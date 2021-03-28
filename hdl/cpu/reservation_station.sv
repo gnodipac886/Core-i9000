@@ -37,7 +37,7 @@ endfunction : find_valid_rs
 
 function set_default(int i);
 	data[i].operation = 7'b0;
-	data[i].tag = 4'b0;
+	data[i].tag = 3'b0;
 	data[i].busy_r1 = 1'b0;
 	data[i].busy_r2 = 1'b0;
 	data[i].r1 = 32'b0;
@@ -68,45 +68,71 @@ begin
 		begin
 			// load..
 			data[index].operation = operation;
-			data[index].tag = 4'b0;
-			data[index].busy_r1 = 1'b0;
-			data[index].busy_r2 = 1'b0;
+			data[index].tag = tag;
+			data[index].busy_r1 = tag_r1;
+			data[index].busy_r2 = tag_r2;
 			data[index].r1 = r1
 			data[index].r2 = r2
-			data[index].pc = 32'b0;
+			data[index].pc = pc;
 			data[index].sent_to_alu = 1'b0;
 			valid[index] = 1'b0;
 		end
 	end
 
-	// check if broadcast_bus tag is received, from the corresponding ALU or from the ROB
+	// loop through all the tags (anywhere from 0 - 2 tags per rs), check if the tag has been resolved by alu broadcast or rob broadcast
 	for (int idx = 0; idx < size; idx++) 
 	begin 
 		// need to check for the corresponding things:
-		// if the alu has finished rs[index], it will recieve broadcast from the (broadcast_bus or ROB)
-		// loop through the rs and clear the rs
+		
 		
 		// if tag_r1 is the tag in the broadcast_bus
 		// loop through the rs and resolve the dependency
-		
+		// if (data[idx].busy_r1 && broadcast_bus[data[idx].r1].finish == 1) // need broadcast bus to be indexed by data[idx]?
+		// begin
+
+		// end
 		// if tag_r2 is the tag in the broadcast_bus
 		// loop through the rs and resolve the dependency
-		
+		// if (data[idx].busy_r2 && broadcast_bus[data[idx].r2].finish == 1) // need broadcast bus to be indexed by data[idx]?
+		// begin
+
+		// end
 		// if tag_r1 is the tag in the rob_broadcast_bus
 		// loop through the rs and resolve the dependency
-		
+		if (data[idx].busy_r1 && rob_broadcast_bus[data[idx].r1].filled_in == 1) // need broadcast bus to be indexed by data[idx]?
+		begin
+			data[idx].r1 = rob_broadcast_bus[data[idx].r1].value;
+			data[idx].busy_r1 = 1'b0;
+		end
 		// if tag_r2 is the tag in the rob_broadcast_bus
 		// loop through the rs and resolve the dependency
+		if (data[idx].busy_r2 && rob_broadcast_bus[data[idx].r2].filled_in == 1) // need broadcast bus to be indexed by data[idx]?
+		begin
+			data[idx].r2 = rob_broadcast_bus[data[idx].r2].value;
+			data[idx].busy_r2 = 1'b0;
+		end
+	end
+
+	// if the alu has finished rs[index], it will recieve broadcast from the broadcast_bus
+	// loop through the rs and clear the rs. set their valid bit to 0
+	for (int idx = 0; idx < size; idx++) 
+	begin
+		if (broadcast_bus[idx].done)
+			set_default(idx);
 	end
 end
 
 always_comb
 begin
+	num_available = 0;
 	for (int z = 0; z < size; z++)
 	begin
+		// count the number of empty rs
 		if (~valid[z])
 			num_available++;
 
+		// check if there are any rs with tags that have no dependencies
+		// set their ready bit to 1
 		ready[z] <= (~data[z].busy_r1 && ~data[z].busy_r2);
 	end
 end
