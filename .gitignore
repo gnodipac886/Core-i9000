@@ -29,4 +29,6 @@ timing
 *.sopc_builder
 *.summary
 *.tcl
+*.qpf
+*.qsf
 .qsys_edit/
