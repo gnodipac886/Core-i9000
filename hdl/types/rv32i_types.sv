@@ -94,4 +94,15 @@ typedef struct{
 	logic 			br_pred;
 } pci_t;
 
+typedef struct{
+	logic [6:0] operation; // set this to an actual struct like alu_ops;
+	logic [3:0] tag;
+	logic busy_r1; // 1 if the r1 value is a tag, 0 if a constant value
+	logic busy_r2; // 1 if the r2 value is a tag, 0 if a constant value
+	logic [31:0] r1;
+	logic [31:0] r2;
+	logic [31:0] pc;
+	logic sent_to_alu; // might be redundant, remove later 
+} rs_t;
+
 endpackage : rv32i_types
