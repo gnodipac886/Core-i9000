@@ -1,25 +1,31 @@
 import rv32i_types::*;
 
-module alu
-(
+module alu #(parameter size=8)
     // this needs to be revised for ooo execution
-    input alu_ops aluop,
-    input [31:0] a, b,
-    output logic [31:0] f
+    input rs_t data[size],
+    input logic[size-1:0] ready,
+
+    output logic sal_t out[size]
 );
 
 always_comb
 begin
-    unique case (aluop)
-        alu_add:  f = a + b;
-        alu_sll:  f = a << b[4:0];
-        alu_sra:  f = $signed(a) >>> b[4:0];
-        alu_sub:  f = a - b;
-        alu_xor:  f = a ^ b;
-        alu_srl:  f = a >> b[4:0];
-        alu_or:   f = a | b;
-        alu_and:  f = a & b;
-    endcase
+    for (int idx = 0; idx < size; idx++)
+    begin
+        if (ready[idx])
+        begin
+            unique case (aluop)
+                alu_add:  out[idx] = data[idx].r1 + data[idx].r2;
+                alu_sll:  out[idx] = data[idx].r1 << data[idx].r2[4:0];
+                alu_sra:  out[idx] = $signed(data[idx].r1) >>> data[idx].r2[4:0];
+                alu_sub:  out[idx] = data[idx].r1 - data[idx].r2;
+                alu_xor:  out[idx] = data[idx].r1 ^ data[idx].r2;
+                alu_srl:  out[idx] = data[idx].r1 >> data[idx].r2[4:0];
+                alu_or:   out[idx] = data[idx].r1 | data[idx].r2;
+                alu_and:  out[idx] = data[idx].r1 & data[idx].r2;
+            endcase
+        end
+    end
 end
 
 endmodule : alu
