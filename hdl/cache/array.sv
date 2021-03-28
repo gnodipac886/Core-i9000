@@ -1,48 +1,35 @@
-/* A register array to be used for tag arrays, LRU array, etc. */
 
-module array #(
-    parameter s_index = 3,
-    parameter width = 1
-)
+module array #(parameter width = 1)
 (
-    clk,
-    rst,
-    read,
-    load,
-    rindex,
-    windex,
-    datain,
-    dataout
+  input clk,
+  input logic load,
+  input logic [2:0] rindex,
+  input logic [2:0] windex,
+  input logic [width-1:0] datain,
+  output logic [width-1:0] dataout
 );
 
-localparam num_sets = 2**s_index;
+//logic [width-1:0] data [2:0] = '{default: '0};
+logic [width-1:0] data [8];
+initial begin
+  data[0] = 0;
+  data[1] = 0;
+  data[2] = 0;
+  data[3] = 0;
+  data[4] = 0;
+  data[5] = 0;
+  data[6] = 0;
+  data[7] = 0;
+end
 
-input clk;
-input rst;
-input read;
-input load;
-input [s_index-1:0] rindex;
-input [s_index-1:0] windex;
-input [width-1:0] datain;
-output logic [width-1:0] dataout;
-
-logic [width-1:0] data [num_sets-1:0] /* synthesis ramstyle = "logic" */;
-logic [width-1:0] _dataout;
-assign dataout = _dataout;
+always_comb begin
+  dataout = (load  & (rindex == windex)) ? datain : data[rindex];
+end
 
 always_ff @(posedge clk)
 begin
-    if (rst) begin
-        for (int i = 0; i < num_sets; ++i)
-            data[i] <= '0;
-    end
-    else begin
-        if (read)
-            _dataout <= (load  & (rindex == windex)) ? datain : data[rindex];
-
-        if(load)
-            data[windex] <= datain;
-    end
+    if(load)
+        data[windex] <= datain;
 end
 
 endmodule : array
