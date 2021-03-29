@@ -2,8 +2,8 @@
 
 # Settings
 ECEBIN=/opt/riscv32
-ECE411DIR=/mnt/c/Users/Eric/Desktop/UIUC/SP\ 2021/ECE\ 411/ericd3
-DEFAULT_TARGET=$ECE411DIR/mp3/simulation/modelsim/memory.lst
+ECE411DIR=/mnt/c/Users/Eric/Desktop/UIUC/SP\ 2021/ECE\ 411/Core-i9000
+DEFAULT_TARGET=$ECE411DIR/simulation/modelsim/memory.lst
 ASSEMBLER=$ECEBIN/bin/riscv32-unknown-elf-gcc
 OBJCOPY=$ECEBIN/bin/riscv32-unknown-elf-objcopy
 OBJDUMP=$ECEBIN/bin/riscv32-unknown-elf-objdump
