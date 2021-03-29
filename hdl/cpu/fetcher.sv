@@ -8,4 +8,11 @@ module fetcher #(parameter width = 32)
 );
 
 
+	register MDR(
+		.load(),
+		.in(),
+		.out(),
+		.*
+	);
+
 endmodule : fetcher
