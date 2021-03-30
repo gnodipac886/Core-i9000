@@ -1,10 +1,10 @@
 /* DO NOT MODIFY. WILL BE OVERRIDDEN BY THE AUTOGRADER. */
 
-`define SRC 0
-`define RAND 1
+`define SRC 1
+`define RAND 0
 `define TESTBENCH `SRC
 
-module mp3_tb;
+module mp4_tb;
 
 timeunit 1ns;
 timeprecision 1ns;
@@ -16,15 +16,14 @@ always #5 clk = clk === 1'b0;
 
 /*********************** Variable/Interface Declarations *********************/
 logic commit;
-assign commit = dut.cpu.load_pc;
+assign commit = dut.cpu.pc_load;
 tb_itf itf(clk);
 logic [63:0] order;
 initial order = 0;
 always @(posedge itf.clk iff commit) order <= order + 1;
 int timeout = 100000000;   // Feel Free to adjust the timeout value
-assign itf.registers = dut.cpu.datapath.regfile.data;
-assign itf.halt = dut.cpu.load_pc &
-                  (dut.cpu.datapath.pc_out == dut.cpu.datapath.pcmux_out);
+// assign itf.registers = dut.cpu.datapath.regfile.data;
+assign itf.halt = 0;//dut.cpu.load_pc &(dut.cpu.datapath.pc_out == dut.cpu.datapath.pcmux_out);
 /*****************************************************************************/
 
 /************************** Testbench Instantiation **************************/
@@ -72,7 +71,7 @@ end
 
 /*****************************************************************************/
 
-mp3 dut(
+mp4 dut(
     .clk          (itf.clk),
     .rst          (itf.rst),
     .pmem_resp    (itf.mem_resp),
@@ -83,33 +82,33 @@ mp3 dut(
     .pmem_wdata   (itf.mem_wdata)
 );
 
-riscv_formal_monitor_rv32i monitor(
-    .clock(itf.clk),
-    .reset(itf.rst),
-    .rvfi_valid(commit),
-    .rvfi_order(order),
-    .rvfi_insn(dut.cpu.datapath.IR.data),
-    .rvfi_trap(dut.cpu.control.trap),
-    .rvfi_halt(itf.halt),
-    .rvfi_intr(1'b0),
-    .rvfi_mode(2'b00),
-    .rvfi_rs1_addr(dut.cpu.control.rs1_addr),
-    .rvfi_rs2_addr(dut.cpu.control.rs2_addr),
-    .rvfi_rs1_rdata(monitor.rvfi_rs1_addr ? dut.cpu.datapath.rs1_out : 0),
-    .rvfi_rs2_rdata(monitor.rvfi_rs2_addr ? dut.cpu.datapath.rs2_out : 0),
-    .rvfi_rd_addr(dut.cpu.load_regfile ? dut.cpu.datapath.rd : 5'h0),
-    .rvfi_rd_wdata(monitor.rvfi_rd_addr ? dut.cpu.datapath.regfilemux_out : 0),
-    .rvfi_pc_rdata(dut.cpu.datapath.pc_out),
-    .rvfi_pc_wdata(dut.cpu.datapath.pcmux_out),
-    // NOTE: dut.cpu.datapath.mem_addr should be byte or 4-byte aligned
-    //       memory address for all loads and stores (including fetches)
-    .rvfi_mem_addr({dut.cpu.datapath.mem_addr[31:2], 2'b0}),
-    .rvfi_mem_rmask(dut.cpu.control.rmask),
-    .rvfi_mem_wmask(dut.cpu.control.wmask),
-    .rvfi_mem_rdata(dut.cpu.datapath.mdrreg_out),
-    .rvfi_mem_wdata(dut.cpu.datapath.mem_wdata),
-    .rvfi_mem_extamo(1'b0),
-    .errcode(itf.errcode)
-);
+// riscv_formal_monitor_rv32i monitor(
+//     .clock(itf.clk),
+//     .reset(itf.rst),
+//     .rvfi_valid(commit),
+//     .rvfi_order(order),
+//     .rvfi_insn(dut.cpu.datapath.IR.data),
+//     .rvfi_trap(dut.cpu.control.trap),
+//     .rvfi_halt(itf.halt),
+//     .rvfi_intr(1'b0),
+//     .rvfi_mode(2'b00),
+//     .rvfi_rs1_addr(dut.cpu.control.rs1_addr),
+//     .rvfi_rs2_addr(dut.cpu.control.rs2_addr),
+//     .rvfi_rs1_rdata(monitor.rvfi_rs1_addr ? dut.cpu.datapath.rs1_out : 0),
+//     .rvfi_rs2_rdata(monitor.rvfi_rs2_addr ? dut.cpu.datapath.rs2_out : 0),
+//     .rvfi_rd_addr(dut.cpu.load_regfile ? dut.cpu.datapath.rd : 5'h0),
+//     .rvfi_rd_wdata(monitor.rvfi_rd_addr ? dut.cpu.datapath.regfilemux_out : 0),
+//     .rvfi_pc_rdata(dut.cpu.datapath.pc_out),
+//     .rvfi_pc_wdata(dut.cpu.datapath.pcmux_out),
+//     // NOTE: dut.cpu.datapath.mem_addr should be byte or 4-byte aligned
+//     //       memory address for all loads and stores (including fetches)
+//     .rvfi_mem_addr({dut.cpu.datapath.mem_addr[31:2], 2'b0}),
+//     .rvfi_mem_rmask(dut.cpu.control.rmask),
+//     .rvfi_mem_wmask(dut.cpu.control.wmask),
+//     .rvfi_mem_rdata(dut.cpu.datapath.mdrreg_out),
+//     .rvfi_mem_wdata(dut.cpu.datapath.mem_wdata),
+//     .rvfi_mem_extamo(1'b0),
+//     .errcode(itf.errcode)
+// );
 
-endmodule : mp3_tb
+endmodule : mp4_tb

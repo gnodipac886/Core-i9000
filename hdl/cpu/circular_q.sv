@@ -19,6 +19,7 @@ module circular_q #(parameter width = 32,
 	assign 	empty 	= front == -1;
 
 	task enqueue(logic [width-1:0] data_in);
+		ready 				<= 0;
 		// full
 		if((front == 0 && rear == size - 1) || (rear == (front - 1) % (size - 1))) begin 
 			return;
@@ -38,12 +39,14 @@ module circular_q #(parameter width = 32,
 
 	task dequeue();
 		// empty
-		if(front == -1) begin 
+		if(front == -1) begin
+			ready 				<= 0;
 			return;
 		end 
 		else begin 
 			out 				<= arr[front];
 			arr[front] 			<= -1;
+			ready 				<= 1;
 			// dequeued the last one
 			if(front == rear) begin 
 				front 			<= -1;
@@ -59,6 +62,7 @@ module circular_q #(parameter width = 32,
 		// if empty
 		if(front == -1) begin 
 			out 					<= data_in;
+			ready 					<= 0;
 		end 
 		else begin 
 			out 					<= arr[front];
@@ -66,6 +70,7 @@ module circular_q #(parameter width = 32,
 			front 					<= (front + 1) % size;
 			rear 					<= (rear + 1) % size;
 			arr[(rear + 1) % size] 	<= data_in; 
+			ready 					<= 1;
 		end 
 	endtask
 
@@ -74,7 +79,8 @@ module circular_q #(parameter width = 32,
 		if(rst) begin
 			front 	<= -1;
 			rear 	<= -1;
-			for(int i = 0; i < width; i++) begin 
+			ready 	<= 	0;
+			for(int i = 0; i < size; i++) begin 
 				arr[i] <= 0;
 			end 
 		end
