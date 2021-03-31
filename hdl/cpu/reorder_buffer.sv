@@ -57,21 +57,19 @@ task dequeue();
 endtask : dequeue
 
 // Necessary?
-/*
 task endequeue(logic [width-1:0] data_in);
-	// if empty
+	// if empty, but this case should never occur be able to occur, because then it wouldn't attempt to dequeue
 	if(front == size) begin 
 		out <= data_in;
 	end 
 	else begin 
 		out <= arr[front];
-		arr[front] <= -1;
+		arr[front] <= 0;
 		front <= (front + 1) % size;
 		rear <= (rear + 1) % size;
 		arr[(rear + 1) % size] <= data_in; 
 	end 
 endtask
-*/
 
 always_comb begin
 	// Enqueue if not full and instr_q is not empty
@@ -95,10 +93,8 @@ always_ff @(posedge clk) begin
 		dequeue();
 	end 
 	// Necessary?
-	/*
 	else if(enq && deq) begin 
-		endequeue(in);
+		endequeue(rob_t'({ instr_q_data.pc, instr_q_data.instruction, 32'hxxxx, 1'b0, 1'b1 }));
 	end 
-	*/
 end
 
