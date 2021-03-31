@@ -78,4 +78,17 @@ module cpu #(parameter width = 32)
 		.pc(pc_out)
 	);
 
+	//TODO: michael needs to fill these in later
+	reservation_station alu_rs(
+	);
+
+	alu alu_module(
+	);
+
+	reservation_station cmp_rs(
+	);
+
+	cmp cmp_module(
+	);
+
 endmodule : cpu
