@@ -102,4 +102,10 @@ typedef struct {
 	logic			valid;
 } rob_t;
 
+typedef struct {
+	logic	[31:0]	data;
+	logic	[3:0]	tag;
+	logic	busy;
+} reg_entry_t;
+
 endpackage : rv32i_types
