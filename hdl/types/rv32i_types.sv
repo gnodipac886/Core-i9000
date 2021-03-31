@@ -74,26 +74,40 @@ typedef enum bit [2:0] {
 
 /*OOO structs*/
 
-typedef struct{
+typedef struct {
 	logic 	[3:0] 	tag;
 	logic 			rdy;
 	logic 	[31:0] 	data;
 } sal_t;
 
-typedef struct{
+typedef struct {
 	sal_t 			op1;
 	sal_t 			op2;
 	alu_ops 		operation;
 	logic 	[3:0] 	tag;
 } alu_t;
 
-typedef struct{
+typedef struct {
 	logic 	[31:0] 	pc;
 	logic 	[31:0] 	instruction;
 	logic 			is_br_instr;
 	logic 			br_pred;
 } pci_t;
 
+typedef struct {
+	logic	[31:0]	pc;
+	logic	[31:0]	instruction;
+	logic	[31:0]	data;
+	logic			rdy;
+	logic			valid;
+} rob_t;
+
+typedef struct {
+	logic	[31:0]	data;
+	logic	[3:0]	tag;
+	logic	busy;
+} reg_entry_t;
+  
 typedef struct{
 	rv32i_opcode operation; // set this to an actual struct like alu_ops;
 	logic [3:0] tag;
