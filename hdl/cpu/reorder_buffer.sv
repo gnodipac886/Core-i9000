@@ -15,6 +15,8 @@ module reorder_buffer #(
 	input sal_t alu_rs_o [alu_rs_size],
 	input logic stall_lsq,
 	input sal_t lsq_o,
+
+
 	output logic instr_q_dequeue,
 	output sal_t bcast_br_rs [br_rs_size],
 	output sal_t bcast_alu_rs [alu_rs_size],
