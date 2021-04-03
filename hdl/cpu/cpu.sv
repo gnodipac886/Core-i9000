@@ -2,6 +2,7 @@ import rv32i_types::*;
 
 module cpu #(
 parameter width = 32,
+parameter rob_size = 8,
 parameter br_rs_size = 3,
 parameter alu_rs_size = 8,
 parameter lsq_size = 5)
@@ -56,6 +57,7 @@ parameter lsq_size = 5)
 	logic sal_t alu_rs_o [alu_rs_size];
 	logic sal_t lsq_o;
 	logic load_br_rs, load_alu_rs, load_lsq;
+	logic sal_t rob_broadcast_bus [rob_size];
 	logic sal_t rdest;
 	logic [3:0] rd_tag;
 	logic reg_ld_instr;
