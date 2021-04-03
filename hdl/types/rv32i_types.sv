@@ -95,8 +95,7 @@ typedef struct {
 } pci_t;
 
 typedef struct {
-	logic	[31:0]	pc;
-	logic	[31:0]	instruction;
+	pci_t			pc_info;
 	logic	[31:0]	data;
 	logic			rdy;
 	logic			valid;
