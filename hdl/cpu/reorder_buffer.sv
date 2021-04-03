@@ -1,7 +1,9 @@
-module reorder_buffer #(parameter width = 32,
-						parameter size	= 8,
-						parameter br_rs_size = 3,
-						parameter alu_rs_size = 8)
+module reorder_buffer #(
+	parameter width = 32,
+	parameter size = 8,
+	parameter br_rs_size = 3,
+	parameter alu_rs_size = 8,
+	parameter lsq_size = 5)
 (
 	input logic	clk,
 	input logic	rst,
@@ -14,23 +16,27 @@ module reorder_buffer #(parameter width = 32,
 	input logic stall_lsq,
 	input sal_t lsq_o,
 	output logic instr_q_dequeue,
-	output sal_t broadcast_bus,
-	output sal_t rdest
+	output sal_t bcast_br_rs [br_rs_size],
+	output sal_t bcast_alu_rs [alu_rs_size],
+	output sal_t bcast_lsq [lsq_size],
+	output sal_t rdest,
+	output [3:0] rd_tag,
+	output logic reg_ld_instr
 );
 
 rob_t arr [size];
-logic [3:0] front, rear;
+int front, rear;
 
 logic enq, deq;
 
-assign full = ((front == 0) && (rear == size - 1)) || (rear == ((front - 1) % size));
+assign full = ((front == 0) && (rear == size - 1)) || (rear == ((front - 1) % (size - 1)));
 // size - 1?
-assign empty = (front == size);
+assign empty = (front == -1);
 
-task enqueue(rob_t data_in);
+task enqueue(rob_t data_in):
 	// Check if full before sending dequeue signal to instr_q
 	// first element
-	if(front == size) begin 
+	if(front == -1) begin 
 		front <= 0;
 		rear <= 0;
 		arr[0] <= data_in;
@@ -42,7 +48,7 @@ task enqueue(rob_t data_in);
 	end 
 endtask : enqueue
 
-task dequeue();
+task dequeue():
 	// Check if empty before dequeuing
 	rdest <= sal_t'({ front, arr[front].rdy, arr[front].data });
 	arr[front] <= 0;
@@ -57,9 +63,9 @@ task dequeue();
 endtask : dequeue
 
 // Necessary?
-task endequeue(logic [width-1:0] data_in);
+task endequeue(logic [width-1:0] data_in):
 	// if empty, but this case should never occur be able to occur, because then it wouldn't attempt to dequeue
-	if(front == size) begin 
+	if(front == -1) begin 
 		out <= data_in;
 	end 
 	else begin 
@@ -80,21 +86,21 @@ end
 
 always_ff @(posedge clk) begin
 	if(rst) begin
-		front <= size;
-		rear <= size;
+		front <= -1;
+		rear <= -1;
 		for(int i = 0; i < size; i++) begin 
 			arr[i] <= 0;
 		end 
 	end
 	else if(enq && ~deq) begin
-		enqueue(rob_t'({ instr_q_data.pc, instr_q_data.instruction, 32'hxxxx, 1'b0, 1'b1 }));
+		enqueue(rob_t'({ instr_q_data, 32'hxxxx, 1'b0, 1'b1 }));
 	end 
 	else if(~enq && deq) begin 
 		dequeue();
 	end 
 	// Necessary?
 	else if(enq && deq) begin 
-		endequeue(rob_t'({ instr_q_data.pc, instr_q_data.instruction, 32'hxxxx, 1'b0, 1'b1 }));
+		endequeue(rob_t'({ instr_q_data.pc, 32'hxxxx, 1'b0, 1'b1 }));
 	end 
 end
 
