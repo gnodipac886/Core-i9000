@@ -1,4 +1,5 @@
 module reservation_station #(parameter size = 8, parameter rob_size = 8) // specify number of RS here
+	(
 		input logic clk,
 		input logic rst,
 		input logic flush,
@@ -14,18 +15,17 @@ module reservation_station #(parameter size = 8, parameter rob_size = 8) // spec
 		input logic tag_r2, // from regfile, tell if r2 is a tag or a value
 		input logic[3:0] tag, // from ROB, what is the tag in ROB to replace once calculation is done
 
-		// input sal_t broadcast_bus, // after computation is done
-		input sal_t rob_broadcast_bus[rob_size], // after other rs is done, send data from ROB to rs
+		input sal_t broadcast_bus[size], // after computation is done
+		input rob_t rob_broadcast_bus[rob_size], // after other rs is done, send data from ROB to rs
 
 		output rs_t data[size], // all the reservation stations, to the alu
 		output logic[size-1:0] ready, // if both values are not tags, flip this ready bit to 1
-		output logic num_available, // do something if the number of available reservation stations are 0
-
-
-
+		output logic num_available // do something if the number of available reservation stations are 0
 	);
+logic valid[size];
 
 function integer find_valid_rs();
+	int result = -1;
 	for (int idx = 0; idx < size; idx++)
 	begin
 		if (~valid[idx])
@@ -56,7 +56,16 @@ begin
 		for (int idx = 0; idx < size; idx++) 
 		begin 
 			// clear..
-			set_default(idx);
+			// set_default(idx);
+			data[idx].operation = 7'b0;
+			data[idx].tag = 3'b0;
+			data[idx].busy_r1 = 1'b0;
+			data[idx].busy_r2 = 1'b0;
+			data[idx].r1 = 32'b0;
+			data[idx].r2 = 32'b0;
+			data[idx].pc = 32'b0;
+			data[idx].sent_to_alu = 1'b0;
+			valid[idx] = 1'b0;
 		end
 	end
 
@@ -68,13 +77,13 @@ begin
 		if (index != -1) 
 		begin
 			// load..
-			data[index].operation = operation;
+			// data[index].operation = operation;
 			data[index].tag = tag;
 			data[index].busy_r1 = tag_r1;
 			data[index].busy_r2 = tag_r2;
-			data[index].r1 = r1
-			data[index].r2 = r2
-			data[index].pc = pc;
+			data[index].r1 = r1;
+			data[index].r2 = r2;
+			// data[index].pc = pc;
 			data[index].sent_to_alu = 1'b0;
 			valid[index] = 1'b0;
 		end
@@ -100,16 +109,16 @@ begin
 		// end
 		// if tag_r1 is the tag in the rob_broadcast_bus
 		// loop through the rs and resolve the dependency
-		if (data[idx].busy_r1 && rob_broadcast_bus[data[idx].r1].filled_in == 1) // need broadcast bus to be indexed by data[idx]?
+		if (data[idx].busy_r1 && rob_broadcast_bus[data[idx].r1].rdy == 1) // need broadcast bus to be indexed by data[idx]?
 		begin
-			data[idx].r1 = rob_broadcast_bus[data[idx].r1].value;
+			data[idx].r1 = rob_broadcast_bus[data[idx].r1].data;
 			data[idx].busy_r1 = 1'b0;
 		end
 		// if tag_r2 is the tag in the rob_broadcast_bus
 		// loop through the rs and resolve the dependency
-		if (data[idx].busy_r2 && rob_broadcast_bus[data[idx].r2].filled_in == 1) // need broadcast bus to be indexed by data[idx]?
+		if (data[idx].busy_r2 && rob_broadcast_bus[data[idx].r2].rdy == 1) // need broadcast bus to be indexed by data[idx]?
 		begin
-			data[idx].r2 = rob_broadcast_bus[data[idx].r2].value;
+			data[idx].r2 = rob_broadcast_bus[data[idx].r2].data;
 			data[idx].busy_r2 = 1'b0;
 		end
 	end
@@ -118,8 +127,19 @@ begin
 	// loop through the rs and clear the rs. set their valid bit to 0
 	for (int idx = 0; idx < size; idx++) 
 	begin
-		if (broadcast_bus[idx].done)
-			set_default(idx);
+		if (broadcast_bus[idx].rdy)
+		begin
+			// set_default(idx);
+			data[idx].operation = 7'b0;
+			data[idx].tag = 3'b0;
+			data[idx].busy_r1 = 1'b0;
+			data[idx].busy_r2 = 1'b0;
+			data[idx].r1 = 32'b0;
+			data[idx].r2 = 32'b0;
+			data[idx].pc = 32'b0;
+			data[idx].sent_to_alu = 1'b0;
+			valid[idx] = 1'b0;
+		end
 	end
 end
 
