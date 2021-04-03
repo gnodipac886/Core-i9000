@@ -32,6 +32,7 @@ rob_t arr [size];
 int front, rear;
 
 logic enq, deq;
+assign instr_q_dequeue = enq;
 
 assign full = ((front == 0) && (rear == size - 1)) || (rear == ((front - 1) % (size - 1)));
 // size - 1?
@@ -92,11 +93,9 @@ task endequeue(logic [width-1:0] data_in):
 endtask
 
 task broadcast(logic [3:0] tag):
-	for (int i = 0; i < size; i = i + 1) begin
-		rob_broadcast_bus[i].tag <= tag;
-		rob_broadcast_bus[i].rdy <= 1'b1;
-		rob_broadcast_bus[i].data <= arr[tag].data;
-	end
+	rob_broadcast_bus[tag].tag <= tag;
+	rob_broadcast_bus[tag].rdy <= 1'b1;
+	rob_broadcast_bus[tag].data <= arr[tag].data;
 endcast
 
 always_comb begin
@@ -108,6 +107,7 @@ always_comb begin
 		end
 	end else if (~stall_lsq) begin
 		if ((opcode == op_lui) || (opcode == op_load) || (opcode == op_store)) begin
+			enq = (full == 1'b0) && (instr_q_empty == 1'b0);
 		end
 	end else if (~stall_alu) begin
 		enq = (full == 1'b0) && (instr_q_empty == 1'b0);
