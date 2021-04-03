@@ -1,4 +1,4 @@
-module reorder_buffer #(
+module rob #(
 	parameter width = 32,
 	parameter size = 8,
 	parameter br_rs_size = 3,
@@ -7,17 +7,21 @@ module reorder_buffer #(
 (
 	input logic	clk,
 	input logic	rst,
+	input rv32i_opcode opcode,	// from decoder
 	input logic	instr_q_empty,
 	input pci_t instr_q_data,
 	input logic stall_br,
-	input sal_t	br_rs_o [br_rs_size],
 	input logic stall_alu,
-	input sal_t alu_rs_o [alu_rs_size],
 	input logic stall_lsq,
+	input sal_t	br_rs_o [br_rs_size],
+	input sal_t alu_rs_o [alu_rs_size],
 	input sal_t lsq_o,
-
+	
 
 	output logic instr_q_dequeue,
+	output logic load_br_rs,
+	output logic load_alu_rs,
+	output logic load_lsq,
 	output sal_t bcast_br_rs [br_rs_size],
 	output sal_t bcast_alu_rs [alu_rs_size],
 	output sal_t bcast_lsq [lsq_size],
@@ -48,6 +52,15 @@ task enqueue(rob_t data_in):
 		rear <= (rear + 1) % size;
 		arr[(rear + 1) % size] <= data_in; 
 	end 
+	unique case (opcode) begin
+		op_br: load_br = 1'b1;
+		op_jal: load_br = 1'b1;
+		op_jalr: load_br = 1'b1;
+		op_lui: load_lsq = 1'b1;
+		op_load: load_lsq = 1'b1;
+		op_store: load_lsq = 1'b1;
+		default: load_alu = 1'b1;
+	end
 endtask : enqueue
 
 task dequeue():
@@ -69,8 +82,7 @@ task endequeue(logic [width-1:0] data_in):
 	// if empty, but this case should never occur be able to occur, because then it wouldn't attempt to dequeue
 	if(front == -1) begin 
 		out <= data_in;
-	end 
-	else begin 
+	end else begin 
 		out <= arr[front];
 		arr[front] <= 0;
 		front <= (front + 1) % size;
@@ -81,7 +93,17 @@ endtask
 
 always_comb begin
 	// Enqueue if not full and instr_q is not empty
-	enq = (full == 1'b0) && (instr_q_empty == 1'b0);
+	enq = 1'b0;
+	if (~stall_br) begin
+		if ((opcode == op_br) || (opcode == op_jal) || (opcode == op_jalr)) begin
+			enq = (full == 1'b0) && (instr_q_empty == 1'b0);
+		end
+	end else if (~stall_lsq) begin
+		if ((opcode == op_lui) || (opcode == op_load) || (opcode == op_store)) begin
+		end
+	end else if (~stall_alu) begin
+		enq = (full == 1'b0) && (instr_q_empty == 1'b0);
+	end
 	// Dequeue if front is ready and valid
 	deq = (arr[front].rdy == 1'b1 && arr[front].valid == 1'b1)
 end

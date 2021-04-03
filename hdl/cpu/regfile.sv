@@ -2,15 +2,30 @@ module regfile #(paramter width = 32)
 (
 	input clk,
 	input rst,
-	input sal_t rdest,
+	input sal_t rdest,	// contains load_data signal
 	input logic reg_ld_instr,
 	input [3:0] rd_tag,
 	input [4:0] rs1, rs2, rd,
-	output rs_t rs1_out, rs2_out,
+	output rs_t rs_out,
 );
 
 logic reg_entry_t data [32];
 logic load_data = rdest.rdy;
+
+always_comb begin
+	rs_out.busy_r1 = data[rs1].busy;
+	rs_out.busy_r2 = data[rs2].busy;
+	
+	unique case (rs_out.busy_r1)
+		1'b0: rs_out.r1 = data[rs1].data;
+		1'b1: rs_out.r1 = data[rs1].tag;
+	endcase
+
+	unique case (rs_out.busy_r2)
+		1'b0: rs_out.r2 = data[rs2].data;
+		1'b1: rs_out.r2 = data[rs2].tag;
+	endcase
+end
 
 always_ff @(posedge clk)
 begin
