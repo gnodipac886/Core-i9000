@@ -1,6 +1,10 @@
 import rv32i_types::*;
 
-module cpu #(parameter width = 32)
+module cpu #(
+parameter width = 32,
+parameter br_rs_size = 3,
+parameter alu_rs_size = 8,
+parameter lsq_size = 5)
 (
 	input 	logic 					clk,
 	input 	logic 					rst,
@@ -32,9 +36,11 @@ module cpu #(parameter width = 32)
 	branch_funct3_t 	cmpop;
 	logic 		[2:0]	funct3;
 	logic 		[6:0]	funct7;
+	logic		[31:0]	i_imm, s_imm, b_imm, u_imm, j_imm;
 	logic 				br_en, load_ir, load_mar, load_mdr, load_data_out;
-	logic 		[4:0] 	rs1, rs2;
+	logic 		[4:0] 	rs1, rs2, rd;
 	logic 		[31:0] 	mem_address_raw;
+	pci_t				pci;
 	/*****************************************************************************/
 
 	/*instruction queue logic*/
@@ -43,6 +49,18 @@ module cpu #(parameter width = 32)
 
 	/*pc_reg logic*/
 	logic 	[width-1:0] pc_in, pc_out, pc_load;
+
+	/* reorder buffer and regfile logic */
+	logic stall_br, stall_alu, stall_lsq;
+	logic sal_t br_rs_o [br_rs_size];
+	logic sal_t alu_rs_o [alu_rs_size];
+	logic sal_t lsq_o;
+	logic load_br_rs, load_alu_rs, load_lsq;
+	logic sal_t rdest;
+	logic [3:0] rd_tag;
+	logic reg_ld_instr;
+	
+	logic rs_t rs_out;
 
 	assign 	pc_load = iq_enq & ~iq_full;
 	assign 	iq_deq 	= 1'b1; 				// need to change
@@ -75,8 +93,11 @@ module cpu #(parameter width = 32)
 
 	decoder decoder(
 		.instruction(iq_out),
-		.pc(pc_out)
+		.pc(pc_out),
+		.*
 	);
+
+	reorder_buffer
 
 	//TODO: michael needs to fill these in later
 	reservation_station alu_rs(
@@ -89,6 +110,17 @@ module cpu #(parameter width = 32)
 	);
 
 	cmp cmp_module(
+	);
+
+	rob reorder_buffer(
+		.instr_q_empty(iq_empty),
+		.instr_q_data(pci),
+		.instr_q_dequeue(iq_deq),
+		.*
+	);
+
+	regfile registers(
+		.*
 	);
 
 endmodule : cpu
