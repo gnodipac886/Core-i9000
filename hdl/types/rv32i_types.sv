@@ -90,6 +90,17 @@ typedef struct {
 typedef struct {
 	logic 	[31:0] 	pc;
 	logic 	[31:0] 	instruction;
+	logic 	[2:0] 	funct3,
+	logic 	[6:0] 	funct7,
+	rv32i_opcode 	opcode,
+	logic 	[31:0] 	i_imm,
+	logic 	[31:0] 	s_imm,
+	logic 	[31:0] 	b_imm,
+	logic 	[31:0] 	u_imm,
+	logic 	[31:0] 	j_imm,
+	logic 	[4:0] 	rs1,
+	logic 	[4:0] 	rs2,
+	logic 	[4:0] 	rd,
 	logic 			is_br_instr;
 	logic 			br_pred;
 } pci_t;
