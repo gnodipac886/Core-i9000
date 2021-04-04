@@ -1,9 +1,9 @@
-module cmp
+module cmp #(parameter size=8)
 (
 	input rs_t data[size],
     input logic[size-1:0] ready,
 
-    output logic sal_t out[size]
+    output sal_t out[size]
 );
 
 
@@ -13,7 +13,7 @@ begin
     begin
         if (ready[idx])
         begin
-            case (cmpop)
+            case (data[idx].operation)
 				beq: out[idx].data = data[idx].r1 == data[idx].r2 ? '1 : '0;
 				bne: out[idx].data = data[idx].r1 != data[idx].r2 ? '1 : '0;
 				blt: out[idx].data = $signed(data[idx].r1) < $signed(data[idx].r2) ? '1 : '0;
@@ -33,7 +33,4 @@ begin
     end
 end
 
-always_comb
-begin
-	
-end
+endmodule : cmp
