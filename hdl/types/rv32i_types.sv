@@ -19,7 +19,7 @@ typedef enum bit [6:0] {
 	op_auipc = 7'b0010111, //add upper immediate PC (U type)
 	op_jal   = 7'b1101111, //jump and link (J type)
 	op_jalr  = 7'b1100111, //jump and link register (I type)
-	op_br	= 7'b1100011, //branch (B type)
+	op_br	 = 7'b1100011, //branch (B type)
 	op_load  = 7'b0000011, //load (I type)
 	op_store = 7'b0100011, //store (S type)
 	op_imm   = 7'b0010011, //arith ops with register/immediate operands (I type)
@@ -90,17 +90,17 @@ typedef struct {
 typedef struct {
 	logic 	[31:0] 	pc;
 	logic 	[31:0] 	instruction;
-	logic 	[2:0] 	funct3,
-	logic 	[6:0] 	funct7,
-	rv32i_opcode 	opcode,
-	logic 	[31:0] 	i_imm,
-	logic 	[31:0] 	s_imm,
-	logic 	[31:0] 	b_imm,
-	logic 	[31:0] 	u_imm,
-	logic 	[31:0] 	j_imm,
-	logic 	[4:0] 	rs1,
-	logic 	[4:0] 	rs2,
-	logic 	[4:0] 	rd,
+	logic 	[2:0] 	funct3;
+	logic 	[6:0] 	funct7;
+	rv32i_opcode 	opcode;
+	logic 	[31:0] 	i_imm;
+	logic 	[31:0] 	s_imm;
+	logic 	[31:0] 	b_imm;
+	logic 	[31:0] 	u_imm;
+	logic 	[31:0] 	j_imm;
+	logic 	[4:0] 	rs1;
+	logic 	[4:0] 	rs2;
+	logic 	[4:0] 	rd;
 	logic 			is_br_instr;
 	logic 			br_pred;
 } pci_t;

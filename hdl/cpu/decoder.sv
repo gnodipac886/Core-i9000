@@ -24,7 +24,7 @@ module decoder #(parameter width = 32)
 	assign pci.rs1 			= data[19:15];
 	assign pci.rs2 			= data[24:20];
 	assign pci.rd 			= data[11:7];
-	assign pci.is_br_instr 	= opcode == op_br;
+	assign pci.is_br_instr 	= pci.opcode == op_br;
 	assign pci.br_pred 		= 0;
 
 endmodule : decoder

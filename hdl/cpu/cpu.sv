@@ -1,11 +1,12 @@
 import rv32i_types::*;
 
-module cpu #(
-parameter width = 32,
-parameter rob_size = 8,
-parameter br_rs_size = 3,
-parameter alu_rs_size = 8,
-parameter lsq_size = 5)
+module cpu #(	
+	parameter width 		= 32,
+	parameter rob_size 		= 8,
+	parameter br_rs_size 	= 3,
+	parameter alu_rs_size 	= 8,
+	parameter lsq_size 		= 5
+)
 (
 	input 	logic 					clk,
 	input 	logic 					rst,
@@ -52,20 +53,19 @@ parameter lsq_size = 5)
 	logic 	[width-1:0] pc_in, pc_out, pc_load;
 
 	/* reorder buffer and regfile logic */
-	logic stall_br, stall_alu, stall_lsq;
-	logic sal_t br_rs_o [br_rs_size];
-	logic sal_t alu_rs_o [alu_rs_size];
-	logic sal_t lsq_o;
-	logic load_br_rs, load_alu_rs, load_lsq;
-	logic sal_t rob_broadcast_bus [rob_size];
-	logic sal_t rdest;
+	logic 		stall_br, stall_alu, stall_lsq;
+	sal_t 		br_rs_o [br_rs_size];
+	sal_t 		alu_rs_o [alu_rs_size];
+	sal_t 		lsq_o;
+	logic 		load_br_rs, load_alu_rs, load_lsq;
+	sal_t 		rob_broadcast_bus [rob_size];
+	sal_t 		rdest;
 	logic [3:0] rd_tag;
-	logic reg_ld_instr;
+	logic 		reg_ld_instr;
 	
-	logic rs_t rs_out;
+	rs_t rs_out;
 
 	assign 	pc_load = iq_enq & ~iq_full;
-	assign 	iq_deq 	= 1'b1; 				// need to change
 	
 	fetcher fetcher(
 		.deq(1'b1),
@@ -96,33 +96,32 @@ parameter lsq_size = 5)
 	decoder decoder(
 		.instruction(iq_out),
 		.pc(pc_out),
-		.*
+		.pci(pci)
 	);
 
-	reorder_buffer
+	// reorder_buffer
 
 	//TODO: michael needs to fill these in later
-	reservation_station alu_rs(
-	);
+	// reservation_station alu_rs(
+	// );
 
-	alu alu_module(
-	);
+	// alu alu_module(
+	// );
 
-	reservation_station cmp_rs(
-	);
+	// reservation_station cmp_rs(
+	// );
 
-	cmp cmp_module(
-	);
+	// cmp cmp_module(
+	// );
 
-	rob reorder_buffer(
+	reorder_buffer rob(
 		.instr_q_empty(iq_empty),
-		.instr_q_data(pci),
 		.instr_q_dequeue(iq_deq),
 		.*
 	);
-
-	regfile registers(
-		.*
-	);
+  
+	// regfile registers(
+	// 	.*
+	// );
 
 endmodule : cpu

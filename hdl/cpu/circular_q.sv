@@ -66,11 +66,15 @@ module circular_q #(parameter width = 32,
 		end 
 		else begin 
 			out 					<= arr[front];
-			arr[front] 				<= -1;
 			front 					<= (front + 1) % size;
 			rear 					<= (rear + 1) % size;
-			arr[(rear + 1) % size] 	<= data_in; 
 			ready 					<= 1;
+			if (~full) begin
+				arr[front] 				<= -1;
+				arr[(rear + 1) % size] 	<= data_in; 
+			end else begin
+				arr[front]			<= data_in;
+			end
 		end 
 	endtask
 
