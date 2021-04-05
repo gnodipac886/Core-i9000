@@ -104,21 +104,21 @@ module reorder_buffer #(
 	endtask
 
 	always_comb begin
+		// Dequeue if front is ready and valid
+		deq = (~empty && arr[front].rdy == 1'b1 && arr[front].valid == 1'b1);
 		// Enqueue if not full and instr_q is not empty
 		enq = 1'b0;
 		if (~stall_br) begin
 			if ((pci.opcode == op_br) || (pci.opcode == op_jal) || (pci.opcode == op_jalr)) begin
-				enq = (full == 1'b0) && (instr_q_empty == 1'b0);
+				enq = (~full | (full & deq)) & (~instr_q_empty);
 			end
 		end if (~stall_lsq) begin
 			if ((pci.opcode == op_lui) || (pci.opcode == op_load) || (pci.opcode == op_store)) begin
-				enq = (full == 1'b0) && (instr_q_empty == 1'b0);
+				enq = (~full | (full & deq)) & (~instr_q_empty);
 			end
 		end if (~stall_alu) begin
-			enq = (full == 1'b0) && (instr_q_empty == 1'b0);
+			enq = (~full | (full & deq)) && (~instr_q_empty);
 		end
-		// Dequeue if front is ready and valid
-		deq = (~empty && arr[front].rdy == 1'b1 && arr[front].valid == 1'b1);
 	end
 
 	always_comb begin
@@ -158,12 +158,18 @@ module reorder_buffer #(
 			// Update rob entry for incoming completed operation
 			// alu
 			for (int i = 0; i < alu_rs_size; i = i + 1) begin
-				if (alu_rs_o[i].rdy == 1'b1) begin
+				if (alu_rs_o[i].rdy & arr[alu_rs_o[i].tag].valid) begin
 					arr[alu_rs_o[i].tag].data <= alu_rs_o[i].data;
 					arr[alu_rs_o[i].tag].rdy <= 1'b1;
 					broadcast(alu_rs_o[i]);
 				end
 			end
+
+			// turn off broadcast bus after a cycle
+			// for(int i = 0; i < alu_rs_size; i++) begin 
+			// 	if(rob_broadcast_bus[i].rdy) 
+			// 		rob_broadcast_bus[i] <= '{ default: 0 };
+			// end 
 		end
 	end
 endmodule : reorder_buffer

@@ -95,7 +95,9 @@ module rob_tb();
 	logic 			reg_ld_instr;	
 
 	rob_t 	arr0, arr1, arr2, arr3, arr4, arr5, arr6, arr7;
-	sal_t rob_broadcast_bus0;
+	sal_t rob_broadcast_bus0, rob_broadcast_bus1, rob_broadcast_bus2, 
+			rob_broadcast_bus3, rob_broadcast_bus4, rob_broadcast_bus5, 
+			rob_broadcast_bus6, rob_broadcast_bus7;
 	int 	front, rear;
 	logic 	enq, deq;
 	logic	full, empty;
@@ -109,6 +111,16 @@ module rob_tb();
 	assign arr5 	= dut.arr[5];
 	assign arr6 	= dut.arr[6];
 	assign arr7 	= dut.arr[7];
+	
+	assign rob_broadcast_bus0 = rob_broadcast_bus[0];
+	assign rob_broadcast_bus1 = rob_broadcast_bus[1];
+	assign rob_broadcast_bus2 = rob_broadcast_bus[2];
+	assign rob_broadcast_bus3 = rob_broadcast_bus[3];
+	assign rob_broadcast_bus4 = rob_broadcast_bus[4];
+	assign rob_broadcast_bus5 = rob_broadcast_bus[5];
+	assign rob_broadcast_bus6 = rob_broadcast_bus[6];
+	assign rob_broadcast_bus7 = rob_broadcast_bus[7];
+
 	assign front 	= dut.front;
 	assign rear 	= dut.rear;
 	assign enq 		= dut.enq;
@@ -116,7 +128,6 @@ module rob_tb();
 	assign full		= dut.full;
 	assign empty	= dut.empty;
 	assign temp_in	= dut.temp_in;
-	assign rob_broadcast_bus0 = rob_broadcast_bus[0];
 
 	RandomInst generator = new();
 	logic	[`width-1:0]	generate_instr;
@@ -160,20 +171,59 @@ module rob_tb();
 		instr_q_empty	<= 1'b1;
 	endtask
 	
-	task test_rob_broadcast_alu();
+	task test_rob_broadcast_alu(int num_broadcast);
 		##1;
-		alu_rs_o[0] <= '{ tag: 4'd0, rdy: 1'b1, data: 32'hdeadbeef };
+		for (int j = 0; j < num_broadcast; j++) begin
+			alu_rs_o[j] <= '{ tag: front + j, rdy: 1'b1, data: (j + 1) };
+		end
 		##1;
-		alu_rs_o[0] = '{ default: 0 };
+		for (int j = 0; j < num_broadcast; j++) begin
+			alu_rs_o[j] <= '{ default: 0 };
+		end
+		##1;
+	endtask
+
+	task test_rob_endequeue(int num_broadcast);
+		##1;
+		// broadcast -> dequeue
+		for (int j = 0; j < num_broadcast; j++) begin
+			alu_rs_o[j] <= '{ tag: front + j, rdy: 1'b1, data: (j + 1) };
+		end
+		##1;
+		// enqueue part
+		generate_instr 	<= generator.immediate();
+		generate_pc 	<= 32'h60;
+		instr_q_empty 	<= 1'b0;
+		for (int j = 0; j < num_broadcast; j++) begin
+			alu_rs_o[j] <= '{ default: 0 };
+		end
+		// turn things off
+		##1;
+		generate_instr 	<= generator.immediate();
+		generate_pc 	<= 32'h64;
+		##1;
+		generate_instr 	<= generator.immediate();
+		generate_pc 	<= 32'h68;
+		##1;
+		instr_q_empty	<= 1'b1;
 	endtask
 		
 	initial begin : TEST_VECTORS
 		reset();
-		for(int i = 0; i < 10; i++) begin 
+		for(int i = 0; i < 8; i++) begin 
 			test_rob_enqueue_alu();
-		end 
-		test_rob_broadcast_alu();
-		##1;
+		end
+
+		test_rob_broadcast_alu(2);
+
+		for(int i = 0; i < 2; i++) begin 
+			test_rob_enqueue_alu();
+		end
+
+		// for(int i = 0; i < 3; i++) begin 
+		test_rob_endequeue(3);
+		// end 
+		##5;
 		$finish;
 	end
  
