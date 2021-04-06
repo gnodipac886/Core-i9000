@@ -26,15 +26,14 @@ module reorder_buffer #(
 	output logic load_lsq,
 	output sal_t rob_broadcast_bus [size],
 	output sal_t rdest,
-	output logic [3:0] rd_tag,
-	output logic reg_ld_instr
+	output logic [3:0] rd_tag
 );
 	rob_t arr [size];
 	rob_t temp_in;
 	int front, rear;
 
 	logic enq, deq, full, empty;
-	assign instr_q_dequeue 	= enq;
+	assign instr_q_dequeue	= enq;
 
 	assign full 				= ((front == 0) && (rear == size - 1)) || (rear == ((front - 1) % (size - 1)));
 	assign empty 				= (front == -1);
@@ -59,10 +58,12 @@ module reorder_buffer #(
 			front 	<= 0;
 			rear 	<= 0;
 			arr[0]	<= data_in;
+			rd_tag	<= 0;
 		end
 		// otherwise
 		else begin 
 			rear 	<= (rear + 1) % size;
+			rd_tag	<= (rear + 1) % size;
 			arr[(rear + 1) % size] <= data_in; 
 		end
 	endtask : enqueue
@@ -84,19 +85,20 @@ module reorder_buffer #(
 	// Necessary?
 	task endequeue(rob_t data_in);
 		// if empty, but this case should never occur be able to occur, because then it wouldn't attempt to dequeue
-		if(front == -1) begin 
-			// rdest 	<= '{4'd0, data_in.rdy, data_in.data};
-		end else begin 
-			rob_broadcast_bus[front] 	<= '{ default: 0 };
-			front 	<= (front + 1) % size;
-			rear 	<= (rear + 1) % size;
-			if (~full) begin
-				arr[front] <= '{ default: 0, pc_info: '{ default: 0, opcode: op_imm }};
-				arr[(rear + 1) % size] 		<= data_in;
-			end else begin
-				arr[front] <= data_in;
-			end
-		end 
+		/*
+		if(front == -1)
+			rdest 	<= '{4'd0, data_in.rdy, data_in.data};
+		*/
+		rob_broadcast_bus[front] 	<= '{ default: 0 };
+		front 						<= (front + 1) % size;
+		rear						<= (rear + 1) % size;
+		if (~full) begin
+			arr[front]				<= '{ default: 0, pc_info: '{ default: 0, opcode: op_imm }};
+			arr[(rear + 1) % size]	<= data_in;
+
+		end else begin
+			arr[front]				<= data_in;
+		end
 	endtask
 
 	task broadcast(sal_t broadcast_data);

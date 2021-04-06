@@ -3,14 +3,13 @@ module regfile #(parameter width = 32)
 	input logic clk,
 	input logic rst,
 	input sal_t rdest,	// contains load_data signal
-	input logic reg_ld_instr,
+	input logic reg_ld_instr,	// instr_q_dequeue
 	input logic [3:0] rd_tag,
 	input logic [4:0] rs1, rs2, rd,
 	output rs_t rs_out
 );
 
 	reg_entry_t data[32];
-	logic load_data = rdest.rdy;
 
 	always_comb begin
 		rs_out.busy_r1 = data[rs1].busy;
@@ -31,12 +30,12 @@ module regfile #(parameter width = 32)
 	begin
 		if (rst) begin
 			for (int i = 0; i < 32; i = i + 1) begin
-				data[i] <= '0;
+				data[i] <= { default: 0 };
 			end
 		end
 		else begin
-			if (load_data) begin
-				for (int i = 0; i < 32; i = i + 1) begin
+			if (rdest.rdy) begin
+				for (int i = 0; i < 32; i++) begin
 					if (rdest.tag == data[i].tag && data[i].busy == 1'b1) begin
 						/* 
 						* Only update if tag in the regfile is tag from the ROB
