@@ -13,7 +13,7 @@ begin
     begin
         if (ready[idx])
         begin
-            case (data[idx].operation)
+            case (data[idx].opcode)
 				beq: out[idx].data = data[idx].r1 == data[idx].r2 ? '1 : '0;
 				bne: out[idx].data = data[idx].r1 != data[idx].r2 ? '1 : '0;
 				blt: out[idx].data = $signed(data[idx].r1) < $signed(data[idx].r2) ? '1 : '0;

@@ -1,3 +1,5 @@
+import rv32i_types::*;
+
 module reservation_station #(parameter size = 8, parameter rob_size = 8) // specify number of RS here
 	(
 		input logic clk,
@@ -17,13 +19,13 @@ module reservation_station #(parameter size = 8, parameter rob_size = 8) // spec
 		// input logic tag_r2, // from regfile, tell if r2 is a tag or a value
 		// input logic[3:0] tag, // from ROB
 
-		// potential inputs
+		// inputs
 		input rs_t input_r, //regfile
 		input logic[3:0] tag, // from ROB
-		input pci_t pc, // from ROB
+		input pci_t pci, // from ROB
 
 		input sal_t broadcast_bus[size], // after computation is done, coming back from alu
-		input rob_t rob_broadcast_bus[rob_size], // after other rs is done, send data from ROB to rs
+		input sal_t rob_broadcast_bus[size], // after other rs is done, send data from ROB to rs
 
 		output rs_t data[size], // all the reservation stations, to the alu
 		output logic[size-1:0] ready, // if both values are not tags, flip this ready bit to 1
@@ -32,17 +34,18 @@ module reservation_station #(parameter size = 8, parameter rob_size = 8) // spec
 
 logic valid[size];
 int result_rs;
+int index = -1;
+int idx = 0;
 // 0 if empty, 1 if full
 task find_valid_rs();
 	result_rs <= -1;
-	for (int idx = 0; idx < size; idx++)
+	for (idx = 0; idx < size; idx++)
 	begin
 		if (~data[idx].valid)
 		begin
 			result_rs <= idx;
 		end
 	end
-	return -1;
 endtask : find_valid_rs
 
 task set_default(int i);
@@ -72,7 +75,7 @@ begin
 	if (load)
 	begin
 		// find an empty place for the new operation
-		int index <= find_valid_rs();
+		find_valid_rs();
 		// set all the fields for the new struct
 		if (index != -1) 
 		begin
@@ -88,7 +91,7 @@ begin
 			// valid[index] = 1'b0;
 			data[index] <= input_r;
 			data[index].valid <= 1'b1;
-			data[index].opcode <= pc_i.opcode;
+			data[index].opcode <= pci.opcode;
 		end
 	end
 
