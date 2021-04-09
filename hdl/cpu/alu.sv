@@ -15,7 +15,7 @@ begin
     begin
         if (ready[idx])
         begin
-            unique case (data[idx].opcode)
+            unique case (data[idx].alu_opcode)
                 alu_add:  out[idx].data = data[idx].r1 + data[idx].r2;
                 alu_sll:  out[idx].data = data[idx].r1 << data[idx].r2[4:0];
                 alu_sra:  out[idx].data = $signed(data[idx].r1) >>> data[idx].r2[4:0];

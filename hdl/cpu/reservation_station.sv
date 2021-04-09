@@ -1,6 +1,6 @@
 import rv32i_types::*;
 
-module reservation_station #(parameter size = 8, parameter rob_size = 8) // specify number of RS here
+module reservation_station #(parameter size = 8, parameter rob_size = 8)
 	(
 		input logic clk,
 		input logic rst,
@@ -32,21 +32,9 @@ module reservation_station #(parameter size = 8, parameter rob_size = 8) // spec
 		output logic[3:0] num_available // do something if the number of available reservation stations are 0
 	);
 
-logic valid[size];
-int result_rs;
+logic[4:0] next_rs = 5'b10000;
 int index = -1;
 int idx = 0;
-// 0 if empty, 1 if full
-task find_valid_rs();
-	result_rs <= -1;
-	for (idx = 0; idx < size; idx++)
-	begin
-		if (~data[idx].valid)
-		begin
-			result_rs <= idx;
-		end
-	end
-endtask : find_valid_rs
 
 task set_default(int i);
 	data[idx] <= '{default: 0};
@@ -61,37 +49,21 @@ begin
 		begin 
 			// clear..
 			// set_default(idx);
-			// data[idx].operation <= 7'b0;
-			// data[idx].tag <= 3'b0;
-			// data[idx].busy_r1 <= 1'b0;
-			// data[idx].busy_r2 <= 1'b0;
-			// data[idx].r1 <= 32'b0;
-			// data[idx].r2 <= 32'b0;
-			// data[idx].sent_to_alu <= 1'b0;
-			data[idx] <= '{default: 0};
+			data[idx] <= '{cmp_ops:cmp_beq, alu_ops:alu_add, default: 0};
 		end
 	end
 
 	if (load)
 	begin
-		// find an empty place for the new operation
-		find_valid_rs();
 		// set all the fields for the new struct
-		if (index != -1) 
+		if (num_available != 5'b0) 
 		begin
 			// load..
-			// data[index].operation = operation;
-			// data[index].tag = tag;
-			// data[index].busy_r1 = tag_r1;
-			// data[index].busy_r2 = tag_r2;
-			// data[index].r1 = r1;
-			// data[index].r2 = r2;
-			// // data[index].pc = pc;
-			// data[index].sent_to_alu = 1'b0;
-			// valid[index] = 1'b0;
-			data[index] <= input_r;
-			data[index].valid <= 1'b1;
-			data[index].opcode <= pci.opcode;
+			data[next_rs].tag = tag;
+			data[next_rs] <= input_r;
+			data[next_rs].valid <= 1'b1;
+			data[next_rs].alu_opcode <= alu_ops'(pci.funct3);
+			data[next_rs].cmp_opcode <= cmp_ops'(pci.funct3);
 		end
 	end
 
@@ -123,22 +95,24 @@ begin
 		if (broadcast_bus[idx].rdy)
 		begin
 			// set_default(idx);
-			// data[idx].operation = 7'b0;
-			// data[idx].tag = 3'b0;
-			// data[idx].busy_r1 = 1'b0;
-			// data[idx].busy_r2 = 1'b0;
-			// data[idx].r1 = 32'b0;
-			// data[idx].r2 = 32'b0;
-			// data[idx].pc = 32'b0;
-			// data[idx].sent_to_alu = 1'b0;
-			// valid[idx] = 1'b0;
-			data[idx] <= '{default: 0};
+			data[idx] <= '{cmp_ops:cmp_beq, alu_ops:alu_add, default: 0};
 		end
 	end
 end
 
 always_comb
 begin
+
+	// find an empty place for the new operation
+	for (idx = 0; idx < size ; idx++)
+	begin
+		if (~data[idx].valid)
+		begin
+			next_rs <= idx;
+			break;
+		end
+	end
+
 	num_available = 0;
 	for (int z = 0; z < size; z++)
 	begin
@@ -148,7 +122,7 @@ begin
 
 		// check if there are any rs with tags that have no dependencies
 		// set their ready bit to 1
-		ready[z] <= (~data[z].busy_r1 && ~data[z].busy_r2);
+		ready[z] <= (~data[z].busy_r1 && ~data[z].busy_r2 && data[z].valid);
 	end
 end
 

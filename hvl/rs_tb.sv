@@ -130,6 +130,7 @@ module rs_tb();
 	logic[`size-1:0] ready; // if both values are not tags, flip this ready bit to 1
 	logic[3:0] num_available; // do something if the number of available reservation stations are 0
 
+	// assign data		= dut.data;
 	// assign data0 	= dut.data[0];
 	// assign data1 	= dut.data[1];
 	// assign data2 	= dut.data[2];
@@ -207,104 +208,103 @@ module rs_tb();
 		.ready(ready),
 		.num_available(num_available)
 	);
+	
+	alu rs_alu(
+		.out(broadcast_bus),
+		.*
+	);
 
 	task reset();
 		##1;
 		rst <= 1'b1;
 		##1;
 		rst <= 1'b0;
-
-		// instr_q_empty 	<= 1'b1;
-		// stall_br 		<= 1'b0;
-		// stall_alu 		<= 1'b0;
-		// stall_lsq 		<= 1'b0;
-		// for (int i = 0; i < `br_rs_size; i = i + 1) begin
-		// 	br_rs_o[i] 	= '{ default: 0 };
-		// end
-		// for (int i = 0; i < `alu_rs_size; i = i + 1) begin
-		// 	alu_rs_o[i] = '{ default: 0 };
-		// end
-		// lsq_o			= '{ default: 0 };
-		// ##1;
+		pci <= {opcode: op_imm, default: 0};
+		tag <= 4'b0;
+		broadcast_bus = {default: 0};
+		rob_broadcast_bus = {default: 0};
 	endtask : reset
 
-	// task test_rob_enqueue_alu();
-	// 	##1;
-	// 	generate_instr 	<= generator.immediate();
-	// 	generate_pc 	<= 32'h60;
-	// 	instr_q_empty 	<= 1'b0;
-	// 	##1;
-	// 	instr_q_empty	<= 1'b1;
-	// endtask
-	
-	// task test_rob_broadcast_alu(int num_broadcast);
-	// 	##1;
-	// 	for (int j = 0; j < num_broadcast; j++) begin
-	// 		alu_rs_o[j] <= '{ tag: front + j, rdy: 1'b1, data: (j + 1) };
-	// 	end
-	// 	##1;
-	// 	for (int j = 0; j < num_broadcast; j++) begin
-	// 		alu_rs_o[j] <= '{ default: 0 };
-	// 	end
-	// 	##1;
-	// endtask
 
-	// task test_rob_endequeue(int num_broadcast);
-	// 	##1;
-	// 	// broadcast -> dequeue
-	// 	for (int j = 0; j < num_broadcast; j++) begin
-	// 		alu_rs_o[j] <= '{ tag: front + j, rdy: 1'b1, data: (j + 1) };
-	// 	end
-	// 	##1;
-	// 	// enqueue part
-	// 	generate_instr 	<= generator.immediate();
-	// 	generate_pc 	<= 32'h60;
-	// 	instr_q_empty 	<= 1'b0;
-	// 	for (int j = 0; j < num_broadcast; j++) begin
-	// 		alu_rs_o[j] <= '{ default: 0 };
-	// 	end
-	// 	// turn things off
-	// 	##1;
-	// 	generate_instr 	<= generator.immediate();
-	// 	generate_pc 	<= 32'h64;
-	// 	##1;
-	// 	generate_instr 	<= generator.immediate();
-	// 	generate_pc 	<= 32'h68;
-	// 	##1;
-	// 	instr_q_empty	<= 1'b1;
-	// endtask
-
-	task test_rs_load_new();
+	task test_rs_load_new(logic busy1, logic busy2, int data1, int data2);
 	// get rs from regfile , see if it can load into rs
-	
+		##4;
+		input_r <= {cmp_ops:cmp_beq, alu_ops:alu_add, busy_r1: busy1, busy_r2: busy2, r1: data1, r2: data2, default:0};
+		load <= 1'b1;
+		##1;
+		load <= 1'b0;
 	endtask
 
-	task test_rs_from_alu();
-	// test update from alu output, update the rs tags and values
-	
-	endtask
-
-	task test_rs_from_rob();
-	// test update from rob output, update the rs tags and values
-		
+	task print_rs();
+		$display("=============%0t==========", $time);
+		for (int idx = 0; idx < 8; idx++) begin
+			$display("rs %0d, r1 %0d, r1_b %0d, r2 %0d, r2_b %0d", idx, data[idx].r1, data[idx].busy_r1, data[idx].r2, data[idx].busy_r2);
+		end
+		$display("==========================");
 	endtask
 		
 	initial begin : TEST_VECTORS
 		reset();
-		// for(int i = 0; i < 8; i++) begin 
-		// 	test_rob_enqueue_alu();
+		
+		// // fill it up with constants
+		// for (int i = 0; i < 10; i++) begin
+		// 	test_rs_load_new(1'b0, 1'b0, i, i);
 		// end
-
-		// test_rob_broadcast_alu(2);
-
-		// for(int i = 0; i < 2; i++) begin 
-		// 	test_rob_enqueue_alu();
-		// end
-
-		// // for(int i = 0; i < 3; i++) begin 
-		// test_rob_endequeue(3);
-		// // end 
 		// ##5;
+
+
+		// // test if update from alu clears the rs
+		// broadcast_bus[0].rdy = 1;
+		// ##1;
+		// $display("time 1 %0t", $time);
+		// assert(num_available == 1);
+		// // test if update from 2 alu clears the rs
+		// broadcast_bus[1].rdy = 1;
+		// broadcast_bus[2].rdy = 1;
+		// ##1;
+		// $display("time 2 %0t", $time);
+		// assert(num_available == 3);
+		// // test if a lot of alu finishing at the same time works
+		// broadcast_bus[3].rdy = 1;
+		// broadcast_bus[4].rdy = 1;
+		// broadcast_bus[5].rdy = 1;
+		// broadcast_bus[6].rdy = 1;
+		// broadcast_bus[7].rdy = 1;
+		// ##1;
+		// $display("time 3 %0t", $time);
+		// assert(num_available == 8);
+		// ##5;
+		// reset();
+		// // fill it up with random tags
+		// for (int i = 0; i < 10; i++) begin
+		// 	test_rs_load_new(1'b1, 1'b1, i, (i+5)%8);
+		// end
+
+		// print_rs();
+		// // use rob to update some tags
+		// rob_broadcast_bus[0].tag = 2;
+		// rob_broadcast_bus[0].data = 12;
+		// rob_broadcast_bus[0].rdy = 1;
+
+		// ##1;
+		// print_rs();
+		// rob_broadcast_bus[1].tag = 1;
+		// rob_broadcast_bus[1].data = 32;
+		// rob_broadcast_bus[1].rdy = 1;
+
+		// rob_broadcast_bus[2].tag = 4;
+		// rob_broadcast_bus[2].data = 9;
+		// rob_broadcast_bus[2].rdy = 1;
+		// ##1;
+		// print_rs();
+		
+		test_rs_load_new(1'b0, 1'b0, 5, 3);
+
+		##5;
+		pci <= {opcode: op_imm, funct3: 3'b011, default: 0};
+		test_rs_load_new(1'b0, 1'b0, 5, 3);
+
+		##5;
 		$finish;
 	end
  
