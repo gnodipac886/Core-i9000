@@ -72,6 +72,15 @@ typedef enum bit [2:0] {
 	alu_and = 3'b111
 } alu_ops;
 
+typedef enum bit [2:0] {
+	cmp_beq  = 3'b000,
+	cmp_bne  = 3'b001,
+	cmp_blt  = 3'b100,
+	cmp_bge  = 3'b101,
+	cmp_bltu = 3'b110,
+	cmp_bgeu = 3'b111
+} cmp_ops;
+
 /*OOO structs*/
 
 typedef struct {
@@ -119,14 +128,16 @@ typedef struct {
 } reg_entry_t;
   
 typedef struct{
-	logic [7:0] operation; // set this to an actual struct like alu_ops;
+	alu_ops alu_opcode; // set this to an actual struct like alu_ops;
+	cmp_ops cmp_opcode;
 	logic [3:0] tag;
 	logic busy_r1; // 1 if the r1 value is a tag, 0 if a constant value
 	logic busy_r2; // 1 if the r2 value is a tag, 0 if a constant value
 	logic [31:0] r1;
 	logic [31:0] r2;
-	logic [31:0] pc;
+	// logic [31:0] pc; // change this to a pci struct
 	logic sent_to_alu; // might be redundant, remove later 
+	logic valid;
 } rs_t;
 
 endpackage : rv32i_types

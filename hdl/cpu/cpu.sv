@@ -62,8 +62,21 @@ module cpu #(
 	sal_t 		rdest;
 	logic [3:0] rd_tag;
 	logic 		reg_ld_instr;
-	
-	rs_t rs_out;
+	rs_t 		rs_out;
+	/*rs and alu logic*/
+
+	logic flush;
+
+ 	rs_t input_r; //regfile
+	logic[3:0] tag; // from ROB
+
+	sal_t broadcast_bus[alu_rs_size]; // after computation is done, coming back from alu
+	// sal_t rob_broadcast_bus[rob_size]; // after other rs is done, send data from ROB to rs
+
+	rs_t data[alu_rs_size]; // all the reservation stations, to the alu
+	logic[alu_rs_size-1:0] ready; // if both values are not tags, flip this ready bit to 1
+	logic[3:0] num_available; // do something if the number of available reservation stations are 0
+
 
 	assign 	pc_load = iq_enq & ~iq_full;
 	
@@ -102,11 +115,16 @@ module cpu #(
 	// reorder_buffer
 
 	//TODO: michael needs to fill these in later
-	// reservation_station alu_rs(
-	// );
+	reservation_station alu_rs(
+		.load(load_alu_rs),
+		.input_r(rs_out),
+		.*
+	);
 
-	// alu alu_module(
-	// );
+	alu alu_module(
+		.out(broadcast_bus),
+		.*
+	);
 
 	// reservation_station cmp_rs(
 	// );
