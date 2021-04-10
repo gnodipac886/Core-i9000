@@ -43,8 +43,6 @@ module reorder_buffer #(
 	assign temp_in.rdy 			= 1'b0;
 	assign temp_in.valid 		= 1'b1;
 	
-	assign rdest = '{ front[3:0], arr[front].rdy, arr[front].data };
-
 	task set_load_rs_default();
 		load_alu_rs = 1'b0;
 		load_br_rs 	= 1'b0;
@@ -106,6 +104,11 @@ module reorder_buffer #(
 	endtask
 
 	always_comb begin
+		if (~empty) begin
+			rdest = '{ front[3:0], arr[front].rdy, arr[front].data };
+		end else begin
+			rdest = '{ 4'b0, 0, 32'b0 };
+		end
 		// Dequeue if front is ready and valid
 		deq = (~empty && arr[front].rdy == 1'b1 && arr[front].valid == 1'b1);
 		// Enqueue if not full and instr_q is not empty

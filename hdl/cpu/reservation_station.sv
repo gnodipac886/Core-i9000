@@ -28,6 +28,7 @@ module reservation_station #(parameter size = 8, parameter rob_size = 8)
 		input sal_t rob_broadcast_bus[size], // after other rs is done, send data from ROB to rs
 
 		output rs_t data[size], // all the reservation stations, to the alu
+		output logic acu_operation[size],
 		output logic[size-1:0] ready, // if both values are not tags, flip this ready bit to 1
 		output logic[3:0] num_available // do something if the number of available reservation stations are 0
 	);
@@ -38,6 +39,7 @@ int idx = 0;
 
 task set_default(int i);
 	data[idx] <= '{default: 0};
+	acu_operation[idx] <= 1'b0;
 endtask : set_default
 
 always_ff @(posedge clk)
@@ -69,30 +71,36 @@ begin
 					data[next_rs].busy_r2 <= 1'b0;
 					data[next_rs].r1 <= u_imm;
 					data[next_rs].r2 <= 32'b0;
+					acu_operation[next_rs] <= 1'b0;
 				end
 				op_auipc: begin
 					data[next_rs].busy_r1 <= 1'b0;
 					data[next_rs].busy_r2 <= 1'b0;
 					data[next_rs].r1 <= pci.pc;
 					data[next_rs].r2 <= pci.u_imm;
-				end
-				op_br: begin
-					data[next_rs].busy_r1 <= input_r.busy_r1;
-					data[next_rs].busy_r2 <= input_r.busy_r2;
-					data[next_rs].r1 <= input_r.r1;
-					data[next_rs].r2 <= input_r.r2;
+					acu_operation[next_rs] <= 1'b0;
 				end
 				op_reg: begin
 					data[next_rs].busy_r1 <= input_r.busy_r1;
 					data[next_rs].busy_r2 <= input_r.busy_r2;
 					data[next_rs].r1 <= input_r.r1;
 					data[next_rs].r2 <= input_r.r2;
+					if (arith_funct3_t'(pci.funct3) != arith_funct3_t.slt) begin
+						acu_operation[next_rs] <= 1'b0;
+					end else 
+						acu_operation[next_rs] <= 1'b1;
+					end
 				end
 				op_imm: begin
 					data[next_rs].busy_r1 <= input_r.busy_r1;
 					data[next_rs].busy_r2 <= 1'b0;
 					data[next_rs].r1 <= input_r.r1;
 					data[next_rs].r2 <= pci.i_imm;
+					if (arith_funct3_t'(pci.funct3) != arith_funct3_t.slt) begin
+						acu_operation[next_rs] <= 1'b0;
+					end else 
+						acu_operation[next_rs] <= 1'b1;
+					end
 				end
 				default: ;
 			endcase

@@ -5,20 +5,28 @@ module circular_q #(parameter width = 32,
 	input 	logic 				rst,
 	input 	logic 				enq,
 	input 	logic 				deq,
-	input 	logic 	[width-1:0] in,
+	input	pci_t				in,
 	output	logic 				empty,
 	output 	logic 				full,
 	output 	logic 				ready,
-	output 	logic 	[width-1:0] out
+	output	pci_t				out
 );
 
-	logic 	[width-1:0] 	arr 	[size];
+	pci_t	arr		[size];
 	int 	front, rear;
 
 	assign 	full 	= (front == 0 && rear == size - 1) || (rear == (front - 1) % (size - 1));
 	assign 	empty 	= front == -1;
 
-	task enqueue(logic [width-1:0] data_in);
+	always_comb begin
+		if (~empty) begin
+			out = arr[front];
+		end else begin
+			out = '{ default: 0, pc_info: '{default: 0, opcode: op_imm }};
+		end
+	end
+
+	task enqueue(pci_t data_in);
 		ready 				<= 0;
 		// full
 		if((front == 0 && rear == size - 1) || (rear == (front - 1) % (size - 1))) begin 
@@ -58,7 +66,7 @@ module circular_q #(parameter width = 32,
 		end 
 	endtask : dequeue
 
-	task endequeue(logic [width-1:0] data_in);
+	task endequeue(pci_t data_in);
 		// if empty
 		if(front == -1) begin 
 			out 					<= data_in;

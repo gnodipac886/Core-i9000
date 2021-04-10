@@ -45,9 +45,11 @@ module cpu #(
 	pci_t				pci;
 	/*****************************************************************************/
 
+	/*fetcher logic*/
+	logic	[width-1:0]	fetch_out;
 	/*instruction queue logic*/
 	logic 				iq_enq, iq_deq, iq_empty, iq_full, iq_ready;
-	logic 	[width-1:0] iq_in, iq_out;
+	pci_t				iq_in, iq_out;
 
 	/*pc_reg logic*/
 	logic 	[width-1:0] pc_in, pc_out, pc_load;
@@ -84,7 +86,7 @@ module cpu #(
 		.deq(1'b1),
 		.pc_addr(pc_out),
 		.rdy(iq_enq),
-		.out(iq_in),
+		.out(fetch_out),
 		.*
 	);
 
@@ -95,7 +97,7 @@ module cpu #(
 		.empty(iq_empty),
 		.full(iq_full),
 		.ready(iq_ready),
-		.out(iq_out),
+		.out(pci),
 		.*
 	);
 
@@ -107,9 +109,9 @@ module cpu #(
 	);
 
 	decoder decoder(
-		.instruction(iq_out),
+		.instruction(fetch_out),
 		.pc(pc_out),
-		.pci(pci)
+		.decoder_out(iq_in)
 	);
 
 	// reorder_buffer
