@@ -5,7 +5,7 @@ module reorder_buffer #(
 	parameter size 			= 8,
 	parameter br_rs_size 	= 3,
 	parameter alu_rs_size 	= 8,
-	parameter lsq_size 		= 5
+	parameter lsq_size 		= 8
 )
 (
 	input logic	clk,
