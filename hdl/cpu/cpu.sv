@@ -5,7 +5,7 @@ module cpu #(
 	parameter rob_size 		= 8,
 	parameter br_rs_size 	= 3,
 	parameter alu_rs_size 	= 8,
-	parameter lsq_size 		= 5
+	parameter lsq_size 		= 8
 )
 (
 	input 	logic 					clk,
@@ -115,16 +115,20 @@ module cpu #(
 	// reorder_buffer
 
 	//TODO: michael needs to fill these in later
+	/*
 	reservation_station alu_rs(
 		.load(load_alu_rs),
 		.input_r(rs_out),
 		.*
 	);
+	*/
 
+	/*
 	alu alu_module(
 		.out(broadcast_bus),
 		.*
 	);
+	*/
 
 	// reservation_station cmp_rs(
 	// );
@@ -138,8 +142,8 @@ module cpu #(
 		.*
 	);
   
-	// regfile registers(
-	// 	.*
-	// );
+	regfile registers(
+		.*
+	);
 
 endmodule : cpu

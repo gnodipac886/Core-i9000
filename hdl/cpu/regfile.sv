@@ -2,8 +2,8 @@ module regfile #(parameter width = 32)
 (
 	input logic clk,
 	input logic rst,
-	input sal_t rdest,	// contains load_data signal
-	input logic reg_ld_instr,	// instr_q_dequeue
+	input sal_t rdest,
+	input logic reg_ld_instr,
 	input logic [3:0] rd_tag,
 	input logic [4:0] rs1, rs2, rd,
 	output rs_t rs_out
@@ -30,7 +30,7 @@ module regfile #(parameter width = 32)
 	begin
 		if (rst) begin
 			for (int i = 0; i < 32; i = i + 1) begin
-				data[i] <= { default: 0 };
+				data[i] <= '{ default: 0 };
 			end
 		end
 		else begin

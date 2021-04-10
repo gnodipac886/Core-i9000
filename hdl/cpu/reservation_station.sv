@@ -59,11 +59,43 @@ begin
 		if (num_available != 5'b0) 
 		begin
 			// load..
-			data[next_rs].tag = tag;
-			data[next_rs] <= input_r;
-			data[next_rs].valid <= 1'b1;
+			data[next_rs].tag <= tag;
 			data[next_rs].alu_opcode <= alu_ops'(pci.funct3);
 			data[next_rs].cmp_opcode <= cmp_ops'(pci.funct3);
+			data[next_rs].valid <= 1'b1;
+			case (pci.opcode) 
+				op_lui: begin
+					data[next_rs].busy_r1 <= 1'b0;
+					data[next_rs].busy_r2 <= 1'b0;
+					data[next_rs].r1 <= u_imm;
+					data[next_rs].r2 <= 32'b0;
+				end
+				op_auipc: begin
+					data[next_rs].busy_r1 <= 1'b0;
+					data[next_rs].busy_r2 <= 1'b0;
+					data[next_rs].r1 <= pci.pc;
+					data[next_rs].r2 <= pci.u_imm;
+				end
+				op_br: begin
+					data[next_rs].busy_r1 <= input_r.busy_r1;
+					data[next_rs].busy_r2 <= input_r.busy_r2;
+					data[next_rs].r1 <= input_r.r1;
+					data[next_rs].r2 <= input_r.r2;
+				end
+				op_reg: begin
+					data[next_rs].busy_r1 <= input_r.busy_r1;
+					data[next_rs].busy_r2 <= input_r.busy_r2;
+					data[next_rs].r1 <= input_r.r1;
+					data[next_rs].r2 <= input_r.r2;
+				end
+				op_imm: begin
+					data[next_rs].busy_r1 <= input_r.busy_r1;
+					data[next_rs].busy_r2 <= 1'b0;
+					data[next_rs].r1 <= input_r.r1;
+					data[next_rs].r2 <= pci.i_imm;
+				end
+				default: ;
+			endcase
 		end
 	end
 
