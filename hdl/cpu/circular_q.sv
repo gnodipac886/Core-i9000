@@ -1,3 +1,6 @@
+import rv32i_types::*;
+
+
 module circular_q #(parameter width = 32,
 					parameter size 	= 8)
 (
@@ -14,17 +17,11 @@ module circular_q #(parameter width = 32,
 
 	pci_t	arr		[size];
 	int 	front, rear;
+	logic 	wtf;
 
 	assign 	full 	= (front == 0 && rear == size - 1) || (rear == (front - 1) % (size - 1));
 	assign 	empty 	= front == -1;
-
-	always_comb begin
-		if (~empty) begin
-			out = arr[front];
-		end else begin
-			out = '{ default: 0, pc_info: '{default: 0, opcode: op_imm }};
-		end
-	end
+	assign	out = enq && deq && front == -1 ? in : arr[front];
 
 	task enqueue(pci_t data_in);
 		ready 				<= 0;
@@ -52,8 +49,8 @@ module circular_q #(parameter width = 32,
 			return;
 		end 
 		else begin 
-			out 				<= arr[front];
-			arr[front] 			<= -1;
+			// out 				<= arr[front];
+			arr[front] 			<= '{ default: 0, opcode: op_imm};
 			ready 				<= 1;
 			// dequeued the last one
 			if(front == rear) begin 
@@ -69,16 +66,18 @@ module circular_q #(parameter width = 32,
 	task endequeue(pci_t data_in);
 		// if empty
 		if(front == -1) begin 
-			out 					<= data_in;
+			wtf 					<= 1;
+			// out 					<= data_in;
 			ready 					<= 0;
+			$display("%t", $time);
 		end 
 		else begin 
-			out 					<= arr[front];
+			// out 					<= arr[front];
 			front 					<= (front + 1) % size;
 			rear 					<= (rear + 1) % size;
 			ready 					<= 1;
 			if (~full) begin
-				arr[front] 				<= -1;
+				arr[front] 				<= '{ default: 0, opcode: op_imm};
 				arr[(rear + 1) % size] 	<= data_in; 
 			end else begin
 				arr[front]			<= data_in;
@@ -86,25 +85,29 @@ module circular_q #(parameter width = 32,
 		end 
 	endtask
 
-
 	always_ff @(posedge clk) begin
 		if(rst) begin
 			front 	<= -1;
 			rear 	<= -1;
 			ready 	<= 	0;
 			for(int i = 0; i < size; i++) begin 
-				arr[i] <= 0;
+				arr[i] <= '{ default: 0, opcode: op_imm};
 			end 
 		end
 		else if(enq && ~deq) begin
 			enqueue(in);
+			// $display("enqueue!");
 		end 
 		else if(~enq && deq) begin 
 			dequeue();
+			// $display("dequeue!");
 		end 
 		else if(enq && deq) begin 
 			endequeue(in);
+			// $display("endeque!");
 		end 
 	end
 
 endmodule : circular_q
+
+

@@ -144,6 +144,7 @@ typedef struct{
 	pci_t 			pc_info;		// pc info
 	logic [3:0] 	rd_tag;			// rob tag
 	logic [31:0] 	data;			// data loaded in
+	logic 			data_is_tag;
 	logic [31:0] 	addr;			// addr for mem loc
 	logic 			addr_is_tag;	// if addr field is tag or not
 } lsq_t;

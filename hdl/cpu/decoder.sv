@@ -7,10 +7,12 @@ module decoder #(parameter width = 32)
 	output 	pci_t 					decoder_out
 );
 
-	logic [31:0] data;
+	logic [31:0] 	data;
+	pci_t 			pci;
 
 	assign data 			= instruction;
-
+	assign decoder_out 		= pci;
+	
 	assign pci.pc 			= pc;
 	assign pci.instruction 	= instruction;
 	assign pci.funct3 		= data[14:12];

@@ -24,61 +24,44 @@ module load_store_q #(
 );
 
 	// internals
-	logic 			ld_valid, st_valid, ld_or_st;									// load is 1, store is 0 for ld_or_st
+	logic 			front_is_ld;
 	logic 	[1:0] 	remainder;
 	logic 	[31:0] 	shift_amt, mem_address_raw, mem_rdata_shifted;
 
 	// load queue logic
-	logic 			ld_enq, ld_deq, ld_empty, ld_full, ld_ready, is_load_instr;
-	lsq_t 			ld_in, ld_out, ld_front;
+	logic 			lsq_enq, lsq_deq, lsq_empty, lsq_full, lsq_ready, is_lsq_instr, is_ld_instr, is_st_instr;
+	lsq_t 			lsq_in, lsq_out, lsq_front;
 	logic 	[31:0]	ld_byte_en;
 
-	// store queue logic
-	logic 			st_enq, st_deq, st_empty, st_full, st_ready, is_store_instr;
-	lsq_t 			st_in, st_out, st_front;
-
-	assign 			ld_front 			= ldq.arr[ldq.front];
-	assign 			st_front 			= stq.arr[stq.front];
-	assign 			is_load_instr 		= instruction.opcode == op_load;
-	assign 			is_store_instr 		= instruction.opcode == op_store;
-	assign 			ld_valid 			= ~ld_empty && ~ld_front.addr_is_tag;		// can be improved, doesn't need to be head
-	assign 			st_valid 			= ~st_empty && ~st_front.addr_is_tag;
+	assign 			lsq_front 			= lsq.arr[lsq.front];
+	assign 			front_is_ld 		= lsq.arr[lsq.front].pc_info.opcode == op_load;
+	assign 			is_lsq_instr 		= instruction.opcode == op_load || instruction.opcode == op_store;
+	assign 			is_ld_instr 		= instruction.opcode == op_load;
+	assign 			is_st_instr 		= instruction.opcode == op_store;
+	assign 			front_is_valid 		= ~lsq_empty && ~lsq_front.addr_is_tag;		// can be improved, doesn't need to be head
+	assign			lsq_stall			= lsq_full;
 
 	assign 			remainder 			= mem_address_raw[1:0];
 	assign 			shift_amt 			= remainder << 3;
 	assign 			mem_rdata_shifted 	= mem_rdata >> shift_amt;
 	assign 			mem_address 		= mem_address_raw & 32'hFFFFFFFC;
 	
-	circular_lsq #(32, lsq_size) ldq(
-		.enq(ld_enq),
-		.deq(ld_deq),
-		.in(ld_in),
-		.empty(ld_empty),
-		.full(ld_full),
-		.ready(ld_ready),
-		.out(ld_out),
-		.*
-	);
-
-	circular_lsq #(32, lsq_size) stq(
-		.enq(st_enq),
-		.deq(st_deq),
-		.in(st_in),
-		.empty(st_empty),
-		.full(st_full),
-		.ready(st_ready),
-		.out(st_out),
+	circular_lsq #(32, lsq_size) lsq(
+		.enq(lsq_enq),
+		.deq(lsq_deq),
+		.in(lsq_in),
+		.empty(lsq_empty),
+		.full(lsq_full),
+		.ready(lsq_ready),
+		.out(lsq_out),
 		.*
 	);
 
 	function set_default();
-		ld_enq 		= 0;
-		ld_deq 		= 0;
-		ld_in 		= '{default: 0};
-
-		st_enq 		= 0;
-		st_deq 		= 0;
-		st_in 		= '{default: 0};
+		lsq_enq 		= 0;
+		lsq_deq 		= mem_resp;
+		ld_byte_en 		= 0;
+		lsq_in 			= '{default: 0};
 	endfunction : set_default
 
 	task update_q_reg(lsq_t item);
@@ -90,34 +73,41 @@ module load_store_q #(
 
 	always_comb begin 
 		set_default();
-		if(is_load_instr) begin 
-			ld_enq 	= 1;
-			ld_in 	= '{pc_info		: 	instruction, 
-						rd_tag		: 	rob_tag, 
-						data 		: 	32'dx,
-						addr 		: 	reg_entry.busy_r1 ? reg_entry.r1 : reg_entry.r1 + instruction.i_imm,
-						addr_is_tag	:	reg_entry.busy_r1
-						};
+		if(is_ld_instr) begin 
+			lsq_enq 	= 1;
+			lsq_in 		= '{pc_info		: 	instruction, 
+							rd_tag		: 	rob_tag, 
+							data 		: 	32'dx,
+							data_is_tag :  	0,
+							addr 		: 	reg_entry.busy_r1 ? reg_entry.r1 : reg_entry.r1 + instruction.i_imm,
+							addr_is_tag	:	reg_entry.busy_r1
+							};
 		end
 
+		if(is_st_instr) begin 
+			lsq_enq 	= 1;
+			lsq_in		= '{pc_info		: 	instruction, 
+							rd_tag		: 	rob_tag, 
+							data 		: 	reg_entry.r2,
+							data_is_tag : 	reg_entry.busy_r2,
+							addr 		: 	reg_entry.busy_r1 ? reg_entry.r1 : reg_entry.r1 + instruction.s_imm,
+							addr_is_tag	:	reg_entry.busy_r1
+							};
+		end 
 
-		unique case({ld_valid, st_valid})
-			2'b00: 	ld_or_st = 1'bx;
-
-			2'b01:	ld_or_st = 0;
-
-			2'b10:	ld_or_st = 1;
-
-			2'b11: 	ld_or_st = ld_front.pc_info.pc > st_front.pc_info.pc;
+		unique case(load_funct3_t'(lsq_front.pc_info.funct3))
+			lb	: 	ld_byte_en = {{25{mem_rdata_shifted[7]}}, mem_rdata_shifted[6:0]};
+			lh	: 	ld_byte_en = {{17{mem_rdata_shifted[15]}}, mem_rdata_shifted[14:0]};
+			lw	: 	ld_byte_en = mem_rdata_shifted;
+			lbu	: 	ld_byte_en = {24'd0, mem_rdata_shifted[7:0]};
+			lhu	: 	ld_byte_en = {16'd0, mem_rdata_shifted[15:0]};
 		endcase 
 
-		unique case(ld_front.pc_info.funct3)
-			load_funct3_t::lb	: ld_byte_en = {{25{mem_rdata_shifted[7]}}, mem_rdata_shifted[6:0]};
-			load_funct3_t::lh	: ld_byte_en = {{17{mem_rdata_shifted[15]}}, mem_rdata_shifted[14:0]};
-			load_funct3_t::lw	: ld_byte_en = mem_rdata_shifted;
-			load_funct3_t::lbu	: ld_byte_en = {24'd0, mem_rdata_shifted[7:0]};
-			load_funct3_t::lhu	: ld_byte_en = {16'd0, mem_rdata_shifted[15:0]};
-		endcase 
+		unique case(store_funct3_t'(lsq_front.pc_info.funct3))
+			sb	: 	mem_byte_enable = 4'b0001 << remainder;
+			sh	: 	mem_byte_enable = 4'b0011 << remainder;
+			sw	: 	mem_byte_enable = 4'b1111;
+		endcase // store_funct3
 	end 
 
 	always_ff @(posedge clk) begin 
@@ -128,37 +118,37 @@ module load_store_q #(
 		else begin 
 			// see if anything new was posted on rob bus
 			for(int i = 0; i < lsq_size; i++) begin 
-				if(ldq.arr[i].addr_is_tag)
-					update_q_reg(ldq.arr[i]);
-
-				if(stq.arr[i].addr_is_tag)
-					update_q_reg(stq.arr[i]);
+				if(lsq.arr[i].addr_is_tag)
+					update_q_reg(lsq.arr[i]);
 			end 
 
 			if(mem_resp) begin
-				ld_deq 			<= mem_read;
-				st_deq 			<= mem_write;
-
-				mem_address_raw <= ld_or_st ? ld_front.addr : st_front.addr;
+				mem_address_raw 	<= lsq_front.addr;
 
 				// read case
 				if(mem_read) begin
-					ld_front.data 	<= ld_byte_en;
-					lsq_out	 		<= '{tag: ld.front.rd_tag, rdy: 1'b1, data: ld_byte_en};	// broadcast on read
+					lsq_front.data 	<= ld_byte_en;
+					lsq_out	 		<= '{tag: lsq_front.rd_tag, rdy: 1'b1, data: ld_byte_en};	// broadcast on read
 				end
-				mem_read 		<= (ld_valid || st_valid) && ld_or_st;
+				mem_read 			<= front_is_ld && front_is_valid;
 
 				// write case
-				mem_write 		<= (ld_valid || st_valid) && ~ld_or_st;
+				mem_write 			<= ~front_is_ld && front_is_valid;
+				mem_wdata 			<= lsq_front.data;
+				if(mem_write) begin 
+					lsq_out 		<= '{tag: lsq_front.rd_tag, rdy: 1'b1, data: lsq_front.data};
+				end 
+				
 			end 
-			else if(~mem_read && ~mem_write && (ld_valid || st_valid)) begin 					// we can now operate
-				mem_address_raw <= ld_or_st ? ld_front.addr : st_front.addr;
+			else if(~mem_read && ~mem_write && front_is_valid) begin 					// we can now operate
+				mem_address_raw <= lsq_front.addr; 
 
 				// read
-				mem_read 		<= ld_or_st;
-
+				mem_read 		<= front_is_ld; 
+	
 				// write
-				mem_write 		<= ~ld_or_st;
+				mem_write 		<= ~front_is_ld; 
+				mem_wdata 		<= lsq_front.data;
 			end 
 	end 
 

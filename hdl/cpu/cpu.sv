@@ -52,9 +52,10 @@ module cpu #(
 	pci_t				iq_in, iq_out;
 
 	/*pc_reg logic*/
-	logic 	[width-1:0] pc_in, pc_out, pc_load;
+	logic 				pc_load;
+	logic 	[width-1:0] pc_in, pc_out;
 
-	/* reorder buffer and regfile logic */
+	/* reorder buffer */
 	logic 		stall_br, stall_alu, stall_lsq;
 	sal_t 		br_rs_o [br_rs_size];
 	sal_t 		alu_rs_o [alu_rs_size];
@@ -63,31 +64,50 @@ module cpu #(
 	sal_t 		rob_broadcast_bus [rob_size];
 	sal_t 		rdest;
 	logic [3:0] rd_tag;
+	
+	/* regfile logic */
 	logic 		reg_ld_instr;
 	rs_t 		rs_out;
+	
 	/*rs and alu logic*/
 
 	logic flush;
 
  	rs_t input_r; //regfile
-	logic[3:0] tag; // from ROB
 
-	sal_t broadcast_bus[alu_rs_size]; // after computation is done, coming back from alu
+	sal_t alu_broadcast_bus[alu_rs_size]; // after computation is done, coming back from alu
 	// sal_t rob_broadcast_bus[rob_size]; // after other rs is done, send data from ROB to rs
 
 	rs_t data[alu_rs_size]; // all the reservation stations, to the alu
 	logic[alu_rs_size-1:0] ready; // if both values are not tags, flip this ready bit to 1
 	logic[3:0] num_available; // do something if the number of available reservation stations are 0
+	logic acu_operation[alu_rs_size];
 
-
+	// assigns
 	assign 	pc_load = iq_enq & ~iq_full;
+
+	// assign rob
+	assign 	stall_alu = num_available == 4'd0;
+
+	pc_register pc_reg(
+		.load(pc_load),
+		.in(pc_out + 4),
+		.out(pc_out),
+		.*
+	);
 	
 	fetcher fetcher(
-		.deq(1'b1),
+		.deq(~iq_full),
 		.pc_addr(pc_out),
 		.rdy(iq_enq),
 		.out(fetch_out),
 		.*
+	);
+
+	decoder decoder(
+		.instruction(fetch_out),
+		.pc(pc_out),
+		.decoder_out(iq_in)
 	);
 
 	circular_q iq(
@@ -101,50 +121,41 @@ module cpu #(
 		.*
 	);
 
-	pc_register pc_reg(
-		.load(pc_load),
-		.in(pc_out + 4),
-		.out(pc_out),
+	// reorder_buffer
+	reorder_buffer rob(
+		.instr_q_empty(iq_empty),
+		.instr_q_dequeue(iq_deq),
+		.instr_mem_resp(iq_enq),
+		.alu_rs_o(alu_broadcast_bus),
 		.*
 	);
 
-	decoder decoder(
-		.instruction(fetch_out),
-		.pc(pc_out),
-		.decoder_out(iq_in)
-	);
-
-	// reorder_buffer
-
-	//TODO: michael needs to fill these in later
-	/*
 	reservation_station alu_rs(
 		.load(load_alu_rs),
 		.input_r(rs_out),
+		.tag(rd_tag),
+		.broadcast_bus(alu_broadcast_bus),
 		.*
 	);
-	*/
-
-	/*
+	
 	alu alu_module(
-		.out(broadcast_bus),
+		.out(alu_broadcast_bus),
 		.*
 	);
-	*/
+	
 
 	// reservation_station cmp_rs(
 	// );
 
 	// cmp cmp_module(
 	// );
-
-	reorder_buffer rob(
-		.instr_q_empty(iq_empty),
-		.instr_q_dequeue(iq_deq),
-		.*
-	);
   
 	regfile registers(
+		.rdest(rdest),
+		.rs1(pci.rs1),
+		.rs2(pci.rs2),
+		.rd(pci.rd),
+		.rs_out(rs_out),
 		.*
 	);
 

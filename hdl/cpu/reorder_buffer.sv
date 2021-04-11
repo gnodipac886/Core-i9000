@@ -11,6 +11,7 @@ module reorder_buffer #(
 	input logic	clk,
 	input logic	rst,
 	input logic	instr_q_empty,
+	input logic instr_mem_resp,
 	input pci_t pci,
 	input logic stall_br,
 	input logic stall_alu,
@@ -122,7 +123,7 @@ module reorder_buffer #(
 				enq = (~full | (full & deq)) & (~instr_q_empty);
 			end
 		end if (~stall_alu) begin
-			enq = (~full | (full & deq)) && (~instr_q_empty);
+			enq = (~full | (full & deq)) && (~instr_q_empty) || (~full | (full & deq)) && instr_q_empty && instr_mem_resp;
 		end
 	end
 

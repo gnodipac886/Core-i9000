@@ -1,3 +1,5 @@
+import rv32i_types::*;
+
 module regfile #(parameter width = 32)
 (
 	input logic clk,
@@ -18,11 +20,13 @@ module regfile #(parameter width = 32)
 		unique case (rs_out.busy_r1)
 			1'b0: rs_out.r1 = data[rs1].data;
 			1'b1: rs_out.r1 = data[rs1].tag;
+			default:;
 		endcase
 
 		unique case (rs_out.busy_r2)
 			1'b0: rs_out.r2 = data[rs2].data;
 			1'b1: rs_out.r2 = data[rs2].tag;
+			default:;
 		endcase
 	end
 
