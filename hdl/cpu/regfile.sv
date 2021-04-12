@@ -34,26 +34,26 @@ module regfile #(parameter width = 32)
 	begin
 		if (rst) begin
 			for (int i = 0; i < 32; i = i + 1) begin
-				data[i] <= '{ default: 0 };
+				data[i] <= '{default: 0 };
 			end
 		end
 		else begin
 			if (rdest.rdy) begin
 				for (int i = 0; i < 32; i++) begin
-					if (rdest.tag == data[i].tag && data[i].busy == 1'b1) begin
+					if (rdest.tag == data[i].tag && data[i].busy == 1'b1 && i != 0) begin
 						/* 
 						* Only update if tag in the regfile is tag from the ROB
 						* If tag from the ROB doesn't match the regfile, then that means
 						* there is a dependenecy and the regfile does not need to be committed
 						*/
-						data[i].data = rdest.data;
-						data[i].busy = 1'b0;
+						data[i].data <= rdest.data;
+						data[i].busy <= 1'b0;
 					end
 				end
 			end
-			if (reg_ld_instr) begin
-				data[rd].busy = 1'b1;
-				data[rd].tag = rd_tag;
+			if (reg_ld_instr && rd != 0) begin
+				data[rd].busy <= 1'b1;
+				data[rd].tag <= rd_tag;
 			end
 		end
 	end

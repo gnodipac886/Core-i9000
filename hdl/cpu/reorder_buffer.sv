@@ -27,7 +27,8 @@ module reorder_buffer #(
 	output logic load_lsq,
 	output sal_t rob_broadcast_bus [size],
 	output sal_t rdest,
-	output logic [3:0] rd_tag
+	output logic [3:0] rd_tag,
+	output logic reg_ld_instr
 );
 	rob_t arr [size];
 	rob_t temp_in;
@@ -38,6 +39,7 @@ module reorder_buffer #(
 
 	assign full 				= ((front == 0) && (rear == size - 1)) || (rear == ((front - 1) % (size - 1)));
 	assign empty 				= (front == -1);
+	assign rd_tag 				= empty ? 0 : (rear + 1) % size;
 
 	assign temp_in.pc_info 		= pci;
 	assign temp_in.data 		= 32'hxxxx;
@@ -48,6 +50,7 @@ module reorder_buffer #(
 		load_alu_rs = 1'b0;
 		load_br_rs 	= 1'b0;
 		load_lsq 	= 1'b0;
+		reg_ld_instr= 1'b0;
 	endtask
 	
 	task enqueue(rob_t data_in);
@@ -57,12 +60,12 @@ module reorder_buffer #(
 			front 	<= 0;
 			rear 	<= 0;
 			arr[0]	<= data_in;
-			rd_tag	<= 0;
+			// rd_tag	<= 0;
 		end
 		// otherwise
 		else begin 
 			rear 	<= (rear + 1) % size;
-			rd_tag	<= (rear + 1) % size;
+			// rd_tag	<= (rear + 1) % size;
 			arr[(rear + 1) % size] <= data_in; 
 		end
 	endtask : enqueue
@@ -105,6 +108,7 @@ module reorder_buffer #(
 	endtask
 
 	always_comb begin
+		set_load_rs_default();
 		if (~empty) begin
 			rdest = '{ front[3:0], arr[front].rdy, arr[front].data };
 		end else begin
@@ -116,28 +120,58 @@ module reorder_buffer #(
 		enq = 1'b0;
 		if (~stall_br) begin
 			if ((pci.opcode == op_br) || (pci.opcode == op_jal) || (pci.opcode == op_jalr)) begin
-				enq = (~full | (full & deq)) & (~instr_q_empty);
+				enq = (~full | (full & deq)) && (~instr_q_empty) || (~full | (full & deq)) && instr_q_empty && instr_mem_resp;
 			end
 		end if (~stall_lsq) begin
 			if ((pci.opcode == op_lui) || (pci.opcode == op_load) || (pci.opcode == op_store)) begin
-				enq = (~full | (full & deq)) & (~instr_q_empty);
+				enq = (~full | (full & deq)) && (~instr_q_empty) || (~full | (full & deq)) && instr_q_empty && instr_mem_resp;
 			end
 		end if (~stall_alu) begin
 			enq = (~full | (full & deq)) && (~instr_q_empty) || (~full | (full & deq)) && instr_q_empty && instr_mem_resp;
 		end
-	end
 
-	always_comb begin
-		set_load_rs_default();
 		if (enq) begin
 			unique case (pci.opcode)
-				op_br	: load_br_rs 	= 1'b1;
-				op_jal	: load_br_rs 	= 1'b1;
-				op_jalr	: load_br_rs 	= 1'b1;
-				op_lui	: load_lsq 		= 1'b1;
-				op_load	: load_lsq 		= 1'b1;
-				op_store: load_lsq 		= 1'b1;
-				default	: load_alu_rs	= 1'b1;
+				op_br	: load_br_rs= 1'b1;
+
+				op_jal	: begin 
+					load_br_rs 		= 1'b1;
+					reg_ld_instr 	= 1'b1;
+				end 
+
+				op_jalr	: begin 
+					load_br_rs 		= 1'b1;
+					reg_ld_instr 	= 1'b1;
+				end 
+
+				op_lui	: begin 
+					load_lsq 		= 1'b1;
+					reg_ld_instr 	= 1'b1;
+				end 
+
+				op_load	: begin 
+					load_lsq 		= 1'b1;
+					reg_ld_instr 	= 1'b1;
+				end 
+
+				op_store: load_lsq 	= 1'b1;
+
+				op_imm	: begin 
+					load_alu_rs 	= 1'b1;
+					reg_ld_instr 	= 1'b1;
+				end 
+
+				op_reg	: begin 
+					load_alu_rs 	= 1'b1;
+					reg_ld_instr 	= 1'b1;
+				end 
+
+				op_auipc: begin 
+					load_alu_rs 	= 1'b1;
+					reg_ld_instr 	= 1'b1;
+				end 
+
+				default :;
 			endcase
 		end
 	end

@@ -50,7 +50,7 @@ begin
 		begin 
 			// clear..
 			// set_default(idx);
-			data[idx] <= '{cmp_opcode :cmp_beq, alu_opcode:alu_add, default: 0};
+			data[idx] <= '{cmp_opcode :cmp_beq, alu_opcode:alu_add, valid: 0, default: 'x};
 			acu_operation[idx] <= 1'b0;
 		end
 	end
@@ -58,7 +58,7 @@ begin
 	if (load)
 	begin
 		// set all the fields for the new struct
-		if (num_available != 5'b0) 
+		if (num_available != 5'd0) 
 		begin
 			// load..
 			data[next_rs].tag <= tag;
@@ -132,10 +132,10 @@ begin
 	// loop through the rs and clear the rs. set their valid bit to 0
 	for (int idx = 0; idx < size; idx++) 
 	begin
-		if (broadcast_bus[idx].rdy)
+		if (broadcast_bus[idx].rdy && next_rs != idx)
 		begin
 			// set_default(idx);
-			data[idx] <= '{cmp_opcode:cmp_beq, alu_opcode:alu_add, default: 0};
+			data[idx] <= '{cmp_opcode :cmp_beq, alu_opcode:alu_add, valid: 0, default: 'x};
 			acu_operation[idx] <= 1'b0;
 		end
 	end
@@ -146,7 +146,7 @@ begin
 	// find an empty place for the new operation
 	for (int idx = 0; idx < size ; idx++)
 	begin
-		if (~data[idx].valid)
+		if (~data[idx].valid || (~data[idx].busy_r1 && ~data[idx].busy_r2))
 		begin
 			next_rs = idx;
 			break;
@@ -162,7 +162,7 @@ begin
 
 		// check if there are any rs with tags that have no dependencies
 		// set their ready bit to 1
-		ready[z] = (~data[z].busy_r1 && ~data[z].busy_r2 && data[z].valid);
+		ready[z] = data[z].valid ? (~data[z].busy_r1 && ~data[z].busy_r2 && data[z].valid) : 0;
 	end
 end
 

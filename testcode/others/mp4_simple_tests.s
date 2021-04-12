@@ -5,15 +5,15 @@ mp4_simple_tests.s:
 	# Refer to the RISC-V ISA Spec for the functionality of
 	# the instructions in this test program.
 _start:
-	ori x1, x1, 1
-	ori x1, x1, 2
 	# ori x1, x1, 1
-	# xori x1, x1, 1
-	# addi x1, x1, 1
-	# addi x1, x1, 1
-	# addi x1, x1, 1
-	# addi x1, x1, 1
-	# addi x1, x1, 2
+	# ori x1, x1, 2
+	# # ori x1, x1, 1
+	# # xori x1, x1, 1
+	addi x1, x1, 1
+	addi x1, x1, 1
+	addi x1, x1, 1
+	addi x1, x1, 1
+	addi x1, x1, 2
 
 
 halt:			 # Infinite loop to keep the processor

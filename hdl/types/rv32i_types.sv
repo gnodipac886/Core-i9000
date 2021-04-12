@@ -136,7 +136,6 @@ typedef struct{
 	logic [31:0] 	r1;
 	logic [31:0] 	r2;
 	// logic [31:0] pc; // change this to a pci struct
-	logic 			sent_to_alu; // might be redundant, remove later 
 	logic 			valid;
 } rs_t;
 
