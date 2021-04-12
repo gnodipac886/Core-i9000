@@ -9,11 +9,20 @@ _start:
 	# ori x1, x1, 2
 	# # ori x1, x1, 1
 	# # xori x1, x1, 1
-	addi x1, x1, 1
-	addi x1, x1, 1
-	addi x1, x1, 1
-	addi x1, x1, 1
-	addi x1, x1, 2
+
+alu:
+	# addi x1, x1, 1
+	# addi x1, x1, 1
+	# addi x1, x1, 1
+	# addi x1, x1, 1
+	# addi x1, x1, 2
+
+lsq:
+	lw 	x1, 	bad
+	lw 	x2, 	threshold
+	lw 	x3, 	result
+	lw 	x4, 	good 
+	lw 	x5, 	nice
 
 
 halt:			 # Infinite loop to keep the processor

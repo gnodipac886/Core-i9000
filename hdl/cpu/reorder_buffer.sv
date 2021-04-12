@@ -205,6 +205,12 @@ module reorder_buffer #(
 				end
 			end
 
+			if(lsq_o.rdy) begin 
+				arr[lsq_o.tag].data <= lsq_o.data;
+				arr[lsq_o.tag].rdy 	<= 1'b1;
+				broadcast(lsq_o);
+			end 
+
 			// turn off broadcast bus after a cycle
 			// for(int i = 0; i < alu_rs_size; i++) begin 
 			// 	if(rob_broadcast_bus[i].rdy) 

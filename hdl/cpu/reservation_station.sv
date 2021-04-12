@@ -33,7 +33,7 @@ module reservation_station #(parameter size = 8, parameter rob_size = 8)
 		output logic[3:0] num_available // do something if the number of available reservation stations are 0
 	);
 
-logic[4:0] next_rs = 5'b10000;
+logic[4:0] next_rs;
 int index = -1;
 
 // task set_default(int idx);
@@ -143,6 +143,7 @@ end
 
 always_comb
 begin
+	next_rs = 5'b10000;
 	// find an empty place for the new operation
 	for (int idx = 0; idx < size ; idx++)
 	begin
