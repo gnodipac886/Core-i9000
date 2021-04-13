@@ -112,6 +112,7 @@ typedef struct {
 	logic 	[4:0] 	rd;
 	logic 			is_br_instr;
 	logic 			br_pred;
+	logic	[31:0]	branch_pc;
 } pci_t;
 
 typedef struct {
