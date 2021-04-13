@@ -3,7 +3,7 @@ import rv32i_types::*;
 module cpu #(	
 	parameter width 		= 32,
 	parameter rob_size 		= 8,
-	parameter br_rs_size 	= 3,
+	parameter br_rs_size 	= 8,
 	parameter acu_rs_size 	= 8,
 	parameter lsq_size 		= 8
 )
@@ -84,29 +84,86 @@ module cpu #(
 
  	rs_t input_r; //regfile
 
-	sal_t acu_broadcast_bus[acu_rs_size]; // after computation is done, coming back from alu
-	// sal_t rob_broadcast_bus[rob_size]; // after other rs is done, send data from ROB to rs
-
-	rs_t data[acu_rs_size]; // all the reservation stations, to the alu
+	rs_t 		data[acu_rs_size]; // all the reservation stations, to the alu
+	rs_t 		br_data[acu_rs_size]; // all the reservation stations, to the alu
 	logic [acu_rs_size-1:0] ready; // if both values are not tags, flip this ready bit to 1
-	logic[3:0] num_available; // do something if the number of available reservation stations are 0
-	logic acu_operation[acu_rs_size];
+	logic [acu_rs_size-1:0] br_ready; // if both values are not tags, flip this ready bit to 1
+	logic	[3:0] num_available; // do something if the number of available reservation stations are 0
+	logic	[3:0] br_num_available; // do something if the number of available reservation stations are 0
+	logic 		acu_operation[acu_rs_size];
+	logic 		br_acu_operation[br_rs_size];
+
+	// CHECKPOINT 2 LAZY BRANCH METHOD VARS
+	logic 			lazy_br, iq_br, br_stall;		
+	logic 			pc_mux_sel;
+	logic 	[31:0] 	pc_mux_out, br_next_pc;
+	rob_t 			rob_front;
+
+	assign 			iq_br = iq_in.is_br_instr || iq_in.opcode == op_jal || iq_in.opcode == op_jalr;
+	assign 			br_stall = iq_br | lazy_br;
 
 	// assigns
-	assign 	pc_load = iq_enq & ~iq_full;
+	assign 	pc_load 	= iq_enq & ~iq_full & ~lazy_br;
 
 	// assign rob
-	assign 	stall_acu = num_available == 4'd0;
+	assign 	stall_acu 	= num_available == 4'd0; // stall if acu_rs is full
+	assign 	stall_br  	= br_num_available == 4'd0; // stall if br_rs is full
+
+	always_comb begin
+		unique case(rob_front.pc_info.opcode)
+			op_jal	: begin 
+				if(rob_front.data) begin 
+					br_next_pc = rob_front.data;
+					pc_mux_sel = 1'b1;
+				end 
+			end 
+
+			op_jalr	: begin 
+				if(rob_front.data) begin 
+					br_next_pc = rob_front.data;
+					pc_mux_sel = 1'b1;
+				end 
+			end 
+
+			op_br	: begin 
+				if(rob_front.data) begin 
+					br_next_pc = rob_front.pc_info.branch_pc;
+					pc_mux_sel = 1'b1;
+				end 
+			end 
+			
+			default	: begin 
+				br_next_pc = 0;
+				pc_mux_sel = 0;
+			end
+		endcase 
+
+		unique case(pc_mux_sel)
+			1'b0: pc_mux_out = pc_out + 4;
+			1'b1: pc_mux_out = br_next_pc;
+			default: ;
+		endcase
+
+	end
+
+	always_ff @(posedge clk) begin
+		if(rst)
+			lazy_br <= 0;
+		else if(rob_front.rdy && (rob_front.pc_info.is_br_instr || rob_front.pc_info.opcode == op_jal || rob_front.pc_info.opcode == op_jalr))
+			lazy_br <= 0;
+		else if(iq_in.is_br_instr || iq_in.opcode == op_jal || iq_in.opcode == op_jalr)
+			lazy_br <= 1;
+	end
 
 	pc_register pc_reg(
-		.load(pc_load),
-		.in(pc_out + 4),
+		.load(pc_load || (lazy_br && pc_mux_sel)),	// lazy br here CHECKPOINT 2
+		.in(pc_mux_out),
 		.out(pc_out),
 		.*
 	);
-	
+
 	fetcher fetcher(
-		.deq(~iq_full),
+		.deq(~iq_full), 				// lazy br here CHECKPOINT 2
 		.pc_addr(pc_out),
 		.rdy(iq_enq),
 		.out(fetch_out),
@@ -135,7 +192,6 @@ module cpu #(
 		.instr_q_empty(iq_empty),
 		.instr_q_dequeue(iq_deq),
 		.instr_mem_resp(iq_enq),
-		.acu_rs_o(acu_broadcast_bus),
 		.*
 	);
 
@@ -152,7 +208,7 @@ module cpu #(
 		.load(load_acu_rs),
 		.input_r(rs_out),
 		.tag(rd_tag),
-		.broadcast_bus(acu_broadcast_bus),
+		.broadcast_bus(acu_rs_o),
 		.*
 	);
 	
@@ -160,7 +216,7 @@ module cpu #(
 		.data(data),
 		.ready(ready),
 		.acu_operation(acu_operation),
-		.out(acu_broadcast_bus)
+		.out(acu_rs_o)
 	);
 	
 	load_store_q lsq(
@@ -180,10 +236,24 @@ module cpu #(
 		.*
 	);
 
-	// reservation_station cmp_rs(
-	// );
+	reservation_station br_rs(
+		.load(load_br_rs),
+		.input_r(rs_out),
+		.tag(rd_tag),
+		.broadcast_bus(br_rs_o),
+		.acu_operation(br_acu_operation),
+		.data(br_data),
+		.ready(br_ready),
+		.num_available(br_num_available),
+		.*
+	);
 
-	// cmp cmp_module(
-	// );
+	acu acu_br(
+		.data(br_data),
+		.ready(br_ready),
+		.acu_operation(br_acu_operation),
+		.out(br_rs_o),
+		.*
+	);
 
 endmodule : cpu

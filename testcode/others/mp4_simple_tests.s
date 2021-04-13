@@ -7,6 +7,7 @@ mp4_simple_tests.s:
 _start:
 	addi    x0,     x0,     0
 	addi    x2,     x0,     2
+	beq 	x2, 	x0, 	halt
 	addi    x4,     x0,     4
 	addi    x6,     x0,     6
 	addi    x8,     x0,     8
@@ -27,7 +28,12 @@ alu:
 	add 	x11, 	x10, 	x10
     la      x5,     result          # x5 <= result
     sw      x4,     0(x5)           # dependency on add and lw
-    
+    beq 	x0, 	x0, 	halt
+	add     x4,     x2,     x8      # dependency on previous instruction
+	add 	x8, 	x4, 	x4
+	add 	x9, 	x8, 	x8
+	add 	x10, 	x9, 	x9 
+	add 	x11, 	x10, 	x10
 
 
 # lsq:

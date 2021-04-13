@@ -3,7 +3,7 @@ import rv32i_types::*;
 module reorder_buffer #(
 	parameter width 		= 32,
 	parameter size 			= 8,
-	parameter br_rs_size 	= 3,
+	parameter br_rs_size 	= 8,
 	parameter acu_rs_size 	= 8,
 	parameter lsq_size 		= 8
 )
@@ -28,14 +28,16 @@ module reorder_buffer #(
 	output sal_t rob_broadcast_bus [size],
 	output sal_t rdest,
 	output logic [3:0] rd_tag,
-	output logic reg_ld_instr
+	output logic reg_ld_instr,
+	output rob_t rob_front
 );
 	rob_t arr [size];
 	rob_t temp_in;
 	int front, rear;
 
 	logic enq, deq, full, empty;
-	assign instr_q_dequeue	= enq;
+	assign instr_q_dequeue		= enq;
+	assign rob_front 			= arr[front];
 
 	assign full 				= ((front == 0) && (rear == size - 1)) || (rear == ((front - 1) % (size - 1)));
 	assign empty 				= (front == -1);
@@ -202,6 +204,15 @@ module reorder_buffer #(
 					arr[acu_rs_o[i].tag].data <= acu_rs_o[i].data;
 					arr[acu_rs_o[i].tag].rdy <= 1'b1;
 					broadcast(acu_rs_o[i]);
+				end
+			end
+
+			for (int i = 0; i < acu_rs_size; i = i + 1) begin
+				if (br_rs_o[i].rdy & arr[br_rs_o[i].tag].valid) begin
+					arr[br_rs_o[i].tag].data <= br_rs_o[i].data;
+					arr[br_rs_o[i].tag].rdy <= 1'b1;
+					if(arr[br_rs_o[i].tag].pc_info.opcode == op_jalr)
+						broadcast(br_rs_o[i]);
 				end
 			end
 

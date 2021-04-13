@@ -28,6 +28,6 @@ module decoder #(parameter width = 32)
 	assign pci.rd 			= data[11:7];
 	assign pci.is_br_instr 	= pci.opcode == op_br;
 	assign pci.br_pred 		= 0;
-	assign pci.branch_pc	= pc + pci.u_imm;
+	assign pci.branch_pc	= pc + pci.b_imm;
 
 endmodule : decoder

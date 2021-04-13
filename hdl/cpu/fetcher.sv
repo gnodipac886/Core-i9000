@@ -12,8 +12,8 @@ module fetcher #(parameter width = 32)
 );
 
 	assign i_mem_address 	= pc_addr;
-	assign i_mem_read 	= deq;
-	assign rdy 			= i_mem_resp;
-	assign out  		= i_mem_rdata;
+	assign i_mem_read 		= deq;
+	assign rdy 				= i_mem_resp;
+	assign out  			= i_mem_rdata;
 
 endmodule : fetcher

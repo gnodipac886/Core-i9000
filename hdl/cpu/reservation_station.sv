@@ -63,15 +63,37 @@ begin
 			// load..
 			data[next_rs].tag <= tag;
 			data[next_rs].alu_opcode <= alu_ops'(pci.funct3);
+			data[next_rs].cmp_opcode <= cmp_ops'(pci.funct3);
 			data[next_rs].valid <= 1'b1;
 			unique case (pci.opcode) 
+				op_jal: begin 
+					data[next_rs].busy_r1 <= 1'b0;
+					data[next_rs].busy_r2 <= 1'b0;
+					data[next_rs].r1 <= pci.pc;
+					data[next_rs].r2 <= pci.j_imm;
+					acu_operation[next_rs] <= 1'b0;
+					
+				end 
+				op_jalr: begin 
+					data[next_rs].busy_r1 <= input_r.busy_r1;
+					data[next_rs].busy_r2 <= 1'b0;
+					data[next_rs].r1 <= input_r.r1;
+					data[next_rs].r2 <= pci.i_imm;
+					acu_operation[next_rs] <= 1'b0;
+				end 
+				op_br: begin 
+					data[next_rs].busy_r1 <= input_r.busy_r1;
+					data[next_rs].busy_r2 <= input_r.busy_r2;
+					data[next_rs].r1 <= input_r.r1;
+					data[next_rs].r2 <= input_r.r2;
+					acu_operation[next_rs] <= 1'b1;
+				end 
 				op_lui: begin
 					data[next_rs].busy_r1 <= 1'b0;
 					data[next_rs].busy_r2 <= 1'b0;
 					data[next_rs].r1 <= pci.u_imm;
 					data[next_rs].r2 <= 32'b0;
 					acu_operation[next_rs] <= 1'b0;
-					data[next_rs].cmp_opcode <= cmp_ops'(pci.funct3);
 				end
 				op_auipc: begin
 					data[next_rs].busy_r1 <= 1'b0;
@@ -79,7 +101,6 @@ begin
 					data[next_rs].r1 <= pci.pc;
 					data[next_rs].r2 <= pci.u_imm;
 					acu_operation[next_rs] <= 1'b0;
-					data[next_rs].cmp_opcode <= cmp_ops'(pci.funct3);
 				end
 				op_reg: begin
 					data[next_rs].busy_r1 <= input_r.busy_r1;
