@@ -4,7 +4,7 @@ module cpu #(
 	parameter width 		= 32,
 	parameter rob_size 		= 8,
 	parameter br_rs_size 	= 3,
-	parameter alu_rs_size 	= 8,
+	parameter acu_rs_size 	= 8,
 	parameter lsq_size 		= 8
 )
 (
@@ -65,11 +65,11 @@ module cpu #(
 	logic 	[width-1:0] pc_in, pc_out;
 
 	/* reorder buffer */
-	logic 		stall_br, stall_alu, stall_lsq;
+	logic 		stall_br, stall_acu, stall_lsq;
 	sal_t 		br_rs_o [br_rs_size];
-	sal_t 		alu_rs_o [alu_rs_size];
+	sal_t 		acu_rs_o [acu_rs_size];
 	sal_t 		lsq_o;
-	logic 		load_br_rs, load_alu_rs, load_lsq;
+	logic 		load_br_rs, load_acu_rs, load_lsq;
 	sal_t 		rob_broadcast_bus [rob_size];
 	sal_t 		rdest;
 	logic [3:0] rd_tag;
@@ -84,19 +84,19 @@ module cpu #(
 
  	rs_t input_r; //regfile
 
-	sal_t alu_broadcast_bus[alu_rs_size]; // after computation is done, coming back from alu
+	sal_t acu_broadcast_bus[acu_rs_size]; // after computation is done, coming back from alu
 	// sal_t rob_broadcast_bus[rob_size]; // after other rs is done, send data from ROB to rs
 
-	rs_t data[alu_rs_size]; // all the reservation stations, to the alu
-	logic[alu_rs_size-1:0] ready; // if both values are not tags, flip this ready bit to 1
+	rs_t data[acu_rs_size]; // all the reservation stations, to the alu
+	logic [acu_rs_size-1:0] ready; // if both values are not tags, flip this ready bit to 1
 	logic[3:0] num_available; // do something if the number of available reservation stations are 0
-	logic acu_operation[alu_rs_size];
+	logic acu_operation[acu_rs_size];
 
 	// assigns
 	assign 	pc_load = iq_enq & ~iq_full;
 
 	// assign rob
-	assign 	stall_alu = num_available == 4'd0;
+	assign 	stall_acu = num_available == 4'd0;
 
 	pc_register pc_reg(
 		.load(pc_load),
@@ -135,7 +135,7 @@ module cpu #(
 		.instr_q_empty(iq_empty),
 		.instr_q_dequeue(iq_deq),
 		.instr_mem_resp(iq_enq),
-		.alu_rs_o(alu_broadcast_bus),
+		.acu_rs_o(acu_broadcast_bus),
 		.*
 	);
 
@@ -148,17 +148,19 @@ module cpu #(
 		.*
 	);
 
-	reservation_station alu_rs(
-		.load(load_alu_rs),
+	reservation_station acu_rs(
+		.load(load_acu_rs),
 		.input_r(rs_out),
 		.tag(rd_tag),
-		.broadcast_bus(alu_broadcast_bus),
+		.broadcast_bus(acu_broadcast_bus),
 		.*
 	);
 	
-	alu alu_module(
-		.out(alu_broadcast_bus),
-		.*
+	acu acu_module(
+		.data(data),
+		.ready(ready),
+		.acu_operation(acu_operation),
+		.out(acu_broadcast_bus)
 	);
 	
 	load_store_q lsq(

@@ -4,7 +4,7 @@ module reorder_buffer #(
 	parameter width 		= 32,
 	parameter size 			= 8,
 	parameter br_rs_size 	= 3,
-	parameter alu_rs_size 	= 8,
+	parameter acu_rs_size 	= 8,
 	parameter lsq_size 		= 8
 )
 (
@@ -14,16 +14,16 @@ module reorder_buffer #(
 	input logic instr_mem_resp,
 	input pci_t pci,
 	input logic stall_br,
-	input logic stall_alu,
+	input logic stall_acu,
 	input logic stall_lsq,
 	input sal_t	br_rs_o [br_rs_size],
-	input sal_t alu_rs_o [alu_rs_size],
+	input sal_t acu_rs_o [acu_rs_size],
 	input sal_t lsq_o,
 	
 
 	output logic instr_q_dequeue,
 	output logic load_br_rs,
-	output logic load_alu_rs,
+	output logic load_acu_rs,
 	output logic load_lsq,
 	output sal_t rob_broadcast_bus [size],
 	output sal_t rdest,
@@ -47,7 +47,7 @@ module reorder_buffer #(
 	assign temp_in.valid 		= 1'b1;
 	
 	task set_load_rs_default();
-		load_alu_rs = 1'b0;
+		load_acu_rs = 1'b0;
 		load_br_rs 	= 1'b0;
 		load_lsq 	= 1'b0;
 		reg_ld_instr= 1'b0;
@@ -126,7 +126,7 @@ module reorder_buffer #(
 			if ((pci.opcode == op_lui) || (pci.opcode == op_load) || (pci.opcode == op_store)) begin
 				enq = (~full | (full & deq)) && (~instr_q_empty) || (~full | (full & deq)) && instr_q_empty && instr_mem_resp;
 			end
-		end if (~stall_alu) begin
+		end if (~stall_acu) begin
 			enq = (~full | (full & deq)) && (~instr_q_empty) || (~full | (full & deq)) && instr_q_empty && instr_mem_resp;
 		end
 
@@ -157,17 +157,17 @@ module reorder_buffer #(
 				op_store: load_lsq 	= 1'b1;
 
 				op_imm	: begin 
-					load_alu_rs 	= 1'b1;
+					load_acu_rs 	= 1'b1;
 					reg_ld_instr 	= 1'b1;
 				end 
 
 				op_reg	: begin 
-					load_alu_rs 	= 1'b1;
+					load_acu_rs 	= 1'b1;
 					reg_ld_instr 	= 1'b1;
 				end 
 
 				op_auipc: begin 
-					load_alu_rs 	= 1'b1;
+					load_acu_rs 	= 1'b1;
 					reg_ld_instr 	= 1'b1;
 				end 
 
@@ -197,11 +197,11 @@ module reorder_buffer #(
 
 			// Update rob entry for incoming completed operation
 			// alu
-			for (int i = 0; i < alu_rs_size; i = i + 1) begin
-				if (alu_rs_o[i].rdy & arr[alu_rs_o[i].tag].valid) begin
-					arr[alu_rs_o[i].tag].data <= alu_rs_o[i].data;
-					arr[alu_rs_o[i].tag].rdy <= 1'b1;
-					broadcast(alu_rs_o[i]);
+			for (int i = 0; i < acu_rs_size; i = i + 1) begin
+				if (acu_rs_o[i].rdy & arr[acu_rs_o[i].tag].valid) begin
+					arr[acu_rs_o[i].tag].data <= acu_rs_o[i].data;
+					arr[acu_rs_o[i].tag].rdy <= 1'b1;
+					broadcast(acu_rs_o[i]);
 				end
 			end
 
@@ -212,7 +212,7 @@ module reorder_buffer #(
 			end 
 
 			// turn off broadcast bus after a cycle
-			// for(int i = 0; i < alu_rs_size; i++) begin 
+			// for(int i = 0; i < acu_rs_size; i++) begin 
 			// 	if(rob_broadcast_bus[i].rdy) 
 			// 		rob_broadcast_bus[i] <= '{ default: 0 };
 			// end 

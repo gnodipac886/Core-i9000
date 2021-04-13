@@ -14,17 +14,17 @@ module regfile #(parameter width = 32)
 	reg_entry_t data[32];
 
 	always_comb begin
-		rs_out.busy_r1 = data[rs1].busy;
-		rs_out.busy_r2 = data[rs2].busy;
+		rs_out.busy_r1 = rdest.rdy && rdest.tag == data[rs1].tag ? 0 : data[rs1].busy;
+		rs_out.busy_r2 = rdest.rdy && rdest.tag == data[rs2].tag ? 0 : data[rs2].busy;
 		
 		unique case (rs_out.busy_r1)
-			1'b0: rs_out.r1 = data[rs1].data;
+			1'b0: rs_out.r1 = rdest.rdy && rdest.tag == data[rs1].tag ? rdest.data : data[rs1].data;
 			1'b1: rs_out.r1 = data[rs1].tag;
 			default:;
 		endcase
 
 		unique case (rs_out.busy_r2)
-			1'b0: rs_out.r2 = data[rs2].data;
+			1'b0: rs_out.r2 = rdest.rdy && rdest.tag == data[rs2].tag ? rdest.data : data[rs2].data;
 			1'b1: rs_out.r2 = data[rs2].tag;
 			default:;
 		endcase

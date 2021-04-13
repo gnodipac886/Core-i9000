@@ -63,7 +63,6 @@ begin
 			// load..
 			data[next_rs].tag <= tag;
 			data[next_rs].alu_opcode <= alu_ops'(pci.funct3);
-			data[next_rs].cmp_opcode <= cmp_ops'(pci.funct3);
 			data[next_rs].valid <= 1'b1;
 			unique case (pci.opcode) 
 				op_lui: begin
@@ -72,6 +71,7 @@ begin
 					data[next_rs].r1 <= pci.u_imm;
 					data[next_rs].r2 <= 32'b0;
 					acu_operation[next_rs] <= 1'b0;
+					data[next_rs].cmp_opcode <= cmp_ops'(pci.funct3);
 				end
 				op_auipc: begin
 					data[next_rs].busy_r1 <= 1'b0;
@@ -79,16 +79,22 @@ begin
 					data[next_rs].r1 <= pci.pc;
 					data[next_rs].r2 <= pci.u_imm;
 					acu_operation[next_rs] <= 1'b0;
+					data[next_rs].cmp_opcode <= cmp_ops'(pci.funct3);
 				end
 				op_reg: begin
 					data[next_rs].busy_r1 <= input_r.busy_r1;
 					data[next_rs].busy_r2 <= input_r.busy_r2;
 					data[next_rs].r1 <= input_r.r1;
 					data[next_rs].r2 <= input_r.r2;
-					if (arith_funct3_t'(pci.funct3) != slt) begin
-						acu_operation[next_rs] <= 1'b0;
-					end else begin
+					if (arith_funct3_t'(pci.funct3) == slt) begin
+						data[next_rs].cmp_opcode <= cmp_blt;
 						acu_operation[next_rs] <= 1'b1;
+					end else if (arith_funct3_t'(pci.funct3) == sltu) begin
+						data[next_rs].cmp_opcode <= cmp_bltu;
+						acu_operation[next_rs] <= 1'b1;
+					end else begin
+						data[next_rs].cmp_opcode <= cmp_ops'(pci.funct3);
+						acu_operation[next_rs] <= 1'b0;
 					end
 				end
 				op_imm: begin
@@ -96,10 +102,15 @@ begin
 					data[next_rs].busy_r2 <= 1'b0;
 					data[next_rs].r1 <= input_r.r1;
 					data[next_rs].r2 <= pci.i_imm;
-					if (arith_funct3_t'(pci.funct3) != slt) begin
-						acu_operation[next_rs] <= 1'b0;
-					end else begin
+					if (arith_funct3_t'(pci.funct3) == slt) begin
+						data[next_rs].cmp_opcode <= cmp_blt;
 						acu_operation[next_rs] <= 1'b1;
+					end else if (arith_funct3_t'(pci.funct3) == sltu) begin
+						data[next_rs].cmp_opcode <= cmp_bltu;
+						acu_operation[next_rs] <= 1'b1;
+					end else begin
+						data[next_rs].cmp_opcode <= cmp_ops'(pci.funct3);
+						acu_operation[next_rs] <= 1'b0;
 					end
 				end
 				default: ;

@@ -1,3 +1,5 @@
+import rv32i_types::*;
+
 module cmp #(parameter size=8)
 (
 	input rs_t data[size],
@@ -13,7 +15,7 @@ begin
     begin
         if (ready[idx])
         begin
-            case (data[idx].cmp_ops)
+            case (data[idx].cmp_opcode)
 				cmp_beq: out[idx].data = data[idx].r1 == data[idx].r2 ? '1 : '0;
 				cmp_bne: out[idx].data = data[idx].r1 != data[idx].r2 ? '1 : '0;
 				cmp_blt: out[idx].data = $signed(data[idx].r1) < $signed(data[idx].r2) ? '1 : '0;

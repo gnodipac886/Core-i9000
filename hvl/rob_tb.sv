@@ -3,7 +3,7 @@ import rv32i_types::*;
 `define width 		32
 `define size 		8
 `define br_rs_size 	3
-`define alu_rs_size 8
+`define acu_rs_size 8
 `define lsq_size 	5
 
 module rob_tb();
@@ -81,7 +81,7 @@ module rob_tb();
 	logic			stall_alu;
 	logic			stall_lsq;
 	sal_t			br_rs_o [`br_rs_size];
-	sal_t			alu_rs_o [`alu_rs_size];
+	sal_t			alu_rs_o [`acu_rs_size];
 	sal_t			lsq_o;
 	
 	// outputs
@@ -155,7 +155,7 @@ module rob_tb();
 		for (int i = 0; i < `br_rs_size; i = i + 1) begin
 			br_rs_o[i] 	= '{ default: 0 };
 		end
-		for (int i = 0; i < `alu_rs_size; i = i + 1) begin
+		for (int i = 0; i < `acu_rs_size; i = i + 1) begin
 			alu_rs_o[i] = '{ default: 0 };
 		end
 		lsq_o			= '{ default: 0 };
