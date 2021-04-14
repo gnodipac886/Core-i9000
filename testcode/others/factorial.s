@@ -11,7 +11,7 @@ factorial.s:
 
  # t2 - next value to multiply with
 factorial:
-	addi 	a0, 	x0, 	5
+	addi 	a0, 	x0, 	6
 	beq 	a0, 	x0, 	case_0	# base cases
 	addi 	t2, 	x0, 	1
 	beq 	a0, 	t2, 	ret
