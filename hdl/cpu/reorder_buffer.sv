@@ -37,7 +37,7 @@ module reorder_buffer #(
 
 	logic enq, deq, full, empty;
 	assign instr_q_dequeue		= enq;
-	assign rob_front 			= arr[front];
+	assign rob_front 			= front == -1 ? arr[0] : arr[front];
 
 	assign full 				= ((front == 0) && (rear == size - 1)) || (rear == ((front - 1) % (size - 1)));
 	assign empty 				= (front == -1);
@@ -74,7 +74,7 @@ module reorder_buffer #(
 
 	task dequeue();
 		// Check if empty before dequeuing
-		arr[front] 	<= '{ default: 0, pc_info: '{ default: 0, opcode: op_imm }};
+		arr[front] 	<= '{ default: 0, pc_info: '{ opcode: op_imm, default: 0 }};
 		rob_broadcast_bus[front] <= '{ default: 0 };
 		// dequeued the last one
 		if(front == rear) begin 
@@ -97,7 +97,7 @@ module reorder_buffer #(
 		front 						<= (front + 1) % size;
 		rear						<= (rear + 1) % size;
 		if (~full) begin
-			arr[front]				<= '{ default: 0, pc_info: '{ default: 0, opcode: op_imm }};
+			arr[front]				<= '{ default: 0, pc_info: '{ opcode: op_imm, default: 0 }};
 			arr[(rear + 1) % size]	<= data_in;
 
 		end else begin
@@ -120,16 +120,20 @@ module reorder_buffer #(
 		deq = (~empty && arr[front].rdy == 1'b1 && arr[front].valid == 1'b1);
 		// Enqueue if not full and instr_q is not empty
 		enq = 1'b0;
-		if (~stall_br) begin
-			if ((pci.opcode == op_br) || (pci.opcode == op_jal) || (pci.opcode == op_jalr)) begin
+		if ((pci.opcode == op_br) || (pci.opcode == op_jal) || (pci.opcode == op_jalr)) begin
+			if (~stall_br) begin
 				enq = (~full | (full & deq)) && (~instr_q_empty) || (~full | (full & deq)) && instr_q_empty && instr_mem_resp;
 			end
-		end if (~stall_lsq) begin
-			if ((pci.opcode == op_lui) || (pci.opcode == op_load) || (pci.opcode == op_store)) begin
+		end 
+		else if ((pci.opcode == op_lui) || (pci.opcode == op_load) || (pci.opcode == op_store)) begin
+			if (~stall_lsq) begin
 				enq = (~full | (full & deq)) && (~instr_q_empty) || (~full | (full & deq)) && instr_q_empty && instr_mem_resp;
 			end
-		end if (~stall_acu) begin
-			enq = (~full | (full & deq)) && (~instr_q_empty) || (~full | (full & deq)) && instr_q_empty && instr_mem_resp;
+		end 
+		else if ((pci.opcode == op_auipc) || (pci.opcode == op_imm) || (pci.opcode == op_reg)) begin
+			if (~stall_acu) begin
+				enq = (~full | (full & deq)) && (~instr_q_empty) || (~full | (full & deq)) && instr_q_empty && instr_mem_resp;
+			end
 		end
 
 		if (enq) begin
@@ -183,7 +187,7 @@ module reorder_buffer #(
 			front <= -1;
 			rear <= -1;
 			for(int i = 0; i < size; i = i + 1) begin 
-				arr[i] <= '{ default: 0, pc_info: '{ default: 0, opcode: op_imm }};
+				arr[i] <= '{ default: 0, pc_info: '{ opcode: op_imm, default: 0 }};
 				rob_broadcast_bus[i] <= '{ default: 0 };
 			end 
 		end else begin

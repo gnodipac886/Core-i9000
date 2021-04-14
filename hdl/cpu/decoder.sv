@@ -4,17 +4,18 @@ module decoder #(parameter width = 32)
 (
 	input 	logic 	[width-1:0] 	instruction,
 	input 	logic 	[width-1:0] 	pc,
+	input 	logic 					valid,
 	output 	pci_t 					decoder_out
 );
 
 	logic [31:0] 	data;
 	pci_t 			pci;
 
-	assign data 			= instruction;
+	assign data 			= valid ?  instruction : 32'h00000013;
 	assign decoder_out 		= pci;
 	
 	assign pci.pc 			= pc;
-	assign pci.instruction 	= instruction;
+	assign pci.instruction 	= data;
 	assign pci.funct3 		= data[14:12];
 	assign pci.funct7 		= data[31:25];
 	assign pci.opcode 		= rv32i_opcode'(data[6:0]);

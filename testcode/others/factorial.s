@@ -22,6 +22,7 @@ fact_loop:
 	addi 	a1, 	t2, 	0 	# set a1 to the next value to mult with
 	addi 	t2, 	t2, 	-1 	# t2--
 	jal 	t0, 	mult 		# call multiplication function
+fact_return:
 	bne 	t2, 	x0, 	fact_loop
 	jal 	x0, 	ret
 
@@ -29,7 +30,7 @@ case_0:
 	addi 	a0, 	x0, 	1
 
 ret:
-		jr ra # Register ra holds the return address
+	jal 	x0, 	halt # Register ra holds the return address
 
 # a0, a1 holds the input values
 # a0 holds the output
@@ -52,7 +53,10 @@ mult_loop:
 	blt 	t1, 	a1, 	mult_loop 
 
 mult_return:
-	jalr 	x0, 	t0, 	0
+	jal 	x0, 	fact_return
+
+halt:			 # Infinite loop to keep the processor
+	beq x0, x0, halt
 
  .section .rodata
  # if you need any constants

@@ -67,6 +67,7 @@ begin
 			data[next_rs].valid <= 1'b1;
 			unique case (pci.opcode) 
 				op_jal: begin 
+					data[next_rs].alu_opcode <= alu_add;
 					data[next_rs].busy_r1 <= 1'b0;
 					data[next_rs].busy_r2 <= 1'b0;
 					data[next_rs].r1 <= pci.pc;
@@ -75,6 +76,7 @@ begin
 					
 				end 
 				op_jalr: begin 
+					data[next_rs].alu_opcode <= alu_add;
 					data[next_rs].busy_r1 <= input_r.busy_r1;
 					data[next_rs].busy_r2 <= 1'b0;
 					data[next_rs].r1 <= input_r.r1;

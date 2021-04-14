@@ -94,41 +94,45 @@ module cpu #(
 	logic 		br_acu_operation[br_rs_size];
 
 	// CHECKPOINT 2 LAZY BRANCH METHOD VARS
-	logic 			lazy_br, iq_br, br_stall;		
+	logic 			lazy_br, iq_br, br_stall, iq_stall, rob_finish_br;		
 	logic 			pc_mux_sel;
 	logic 	[31:0] 	pc_mux_out, br_next_pc;
 	rob_t 			rob_front;
 
 	assign 			iq_br = iq_in.is_br_instr || iq_in.opcode == op_jal || iq_in.opcode == op_jalr;
-	assign 			br_stall = iq_br | lazy_br;
+	assign 			rob_finish_br = rob_front.pc_info.is_br_instr || rob_front.pc_info.opcode == op_jal || rob_front.pc_info.opcode == op_jalr;
 
 	// assigns
-	assign 	pc_load 	= iq_enq & ~iq_full & ~lazy_br;
+	assign 	pc_load 	= iq_enq & ~iq_full & ~br_stall;
 
 	// assign rob
 	assign 	stall_acu 	= num_available == 4'd0; // stall if acu_rs is full
 	assign 	stall_br  	= br_num_available == 4'd0; // stall if br_rs is full
 
 	always_comb begin
+		br_stall = iq_br | (iq_stall ^ rob_finish_br);
 		unique case(rob_front.pc_info.opcode)
 			op_jal	: begin 
-				if(rob_front.data) begin 
-					br_next_pc = rob_front.data;
-					pc_mux_sel = 1'b1;
+				br_stall 	= ~rob_front.rdy;
+				if(rob_front.rdy && rob_front.data) begin 
+					br_next_pc 	= rob_front.data;
+					pc_mux_sel 	= 1'b1;
 				end 
 			end 
 
 			op_jalr	: begin 
-				if(rob_front.data) begin 
-					br_next_pc = rob_front.data;
-					pc_mux_sel = 1'b1;
+				br_stall 	= ~rob_front.rdy;
+				if(rob_front.rdy && rob_front.data) begin 
+					br_next_pc 	= rob_front.data;
+					pc_mux_sel 	= 1'b1;
 				end 
 			end 
 
 			op_br	: begin 
-				if(rob_front.data) begin 
-					br_next_pc = rob_front.pc_info.branch_pc;
-					pc_mux_sel = 1'b1;
+				br_stall 	= ~rob_front.rdy;
+				if(rob_front.rdy && rob_front.data) begin 
+					br_next_pc 	= rob_front.pc_info.branch_pc;
+					pc_mux_sel 	= 1'b1;
 				end 
 			end 
 			
@@ -147,16 +151,27 @@ module cpu #(
 	end
 
 	always_ff @(posedge clk) begin
-		if(rst)
+		if(rst) begin 
 			lazy_br <= 0;
-		else if(rob_front.rdy && (rob_front.pc_info.is_br_instr || rob_front.pc_info.opcode == op_jal || rob_front.pc_info.opcode == op_jalr))
-			lazy_br <= 0;
-		else if(iq_in.is_br_instr || iq_in.opcode == op_jal || iq_in.opcode == op_jalr)
-			lazy_br <= 1;
+			iq_stall <= 0;
+		end 
+		else begin 
+			if(rob_front.rdy && rob_finish_br) begin 
+				lazy_br 	<= 0;
+			end
+			else if(pci.is_br_instr || pci.opcode == op_jal || pci.opcode == op_jalr)
+				lazy_br <= 1;
+
+			if(rob_front.rdy && rob_finish_br) begin 
+				iq_stall 	<= 0;
+			end
+			else if(iq_in.is_br_instr || iq_in.opcode == op_jal || iq_in.opcode == op_jalr)
+				iq_stall 	<= 1;
+		end
 	end
 
 	pc_register pc_reg(
-		.load(pc_load || (lazy_br && pc_mux_sel)),	// lazy br here CHECKPOINT 2
+		.load(pc_load),	// lazy br here CHECKPOINT 2
 		.in(pc_mux_out),
 		.out(pc_out),
 		.*
@@ -173,7 +188,8 @@ module cpu #(
 	decoder decoder(
 		.instruction(fetch_out),
 		.pc(pc_out),
-		.decoder_out(iq_in)
+		.decoder_out(iq_in),
+		.valid(iq_enq & ~iq_stall)
 	);
 
 	circular_q iq(
