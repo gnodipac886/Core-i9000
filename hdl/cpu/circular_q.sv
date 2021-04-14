@@ -1,3 +1,6 @@
+import rv32i_types::*;
+
+
 module circular_q #(parameter width = 32,
 					parameter size 	= 8)
 (
@@ -5,20 +8,22 @@ module circular_q #(parameter width = 32,
 	input 	logic 				rst,
 	input 	logic 				enq,
 	input 	logic 				deq,
-	input 	logic 	[width-1:0] in,
+	input	pci_t				in,
 	output	logic 				empty,
 	output 	logic 				full,
 	output 	logic 				ready,
-	output 	logic 	[width-1:0] out
+	output	pci_t				out
 );
 
-	logic 	[width-1:0] 	arr 	[size];
+	pci_t	arr		[size];
 	int 	front, rear;
+	logic 	wtf;
 
 	assign 	full 	= (front == 0 && rear == size - 1) || (rear == (front - 1) % (size - 1));
 	assign 	empty 	= front == -1;
+	assign	out = enq && deq && front == -1 ? in : arr[front];
 
-	task enqueue(logic [width-1:0] data_in);
+	task enqueue(pci_t data_in);
 		ready 				<= 0;
 		// full
 		if((front == 0 && rear == size - 1) || (rear == (front - 1) % (size - 1))) begin 
@@ -44,8 +49,8 @@ module circular_q #(parameter width = 32,
 			return;
 		end 
 		else begin 
-			out 				<= arr[front];
-			arr[front] 			<= -1;
+			// out 				<= arr[front];
+			arr[front] 			<= '{ default: 0, opcode: op_imm};
 			ready 				<= 1;
 			// dequeued the last one
 			if(front == rear) begin 
@@ -58,19 +63,21 @@ module circular_q #(parameter width = 32,
 		end 
 	endtask : dequeue
 
-	task endequeue(logic [width-1:0] data_in);
+	task endequeue(pci_t data_in);
 		// if empty
 		if(front == -1) begin 
-			out 					<= data_in;
+			wtf 					<= 1;
+			// out 					<= data_in;
 			ready 					<= 0;
+			$display("%t", $time);
 		end 
 		else begin 
-			out 					<= arr[front];
+			// out 					<= arr[front];
 			front 					<= (front + 1) % size;
 			rear 					<= (rear + 1) % size;
 			ready 					<= 1;
 			if (~full) begin
-				arr[front] 				<= -1;
+				arr[front] 				<= '{ default: 0, opcode: op_imm};
 				arr[(rear + 1) % size] 	<= data_in; 
 			end else begin
 				arr[front]			<= data_in;
@@ -78,25 +85,29 @@ module circular_q #(parameter width = 32,
 		end 
 	endtask
 
-
 	always_ff @(posedge clk) begin
 		if(rst) begin
 			front 	<= -1;
 			rear 	<= -1;
 			ready 	<= 	0;
 			for(int i = 0; i < size; i++) begin 
-				arr[i] <= 0;
+				arr[i] <= '{ default: 0, opcode: op_imm};
 			end 
 		end
 		else if(enq && ~deq) begin
 			enqueue(in);
+			// $display("enqueue!");
 		end 
 		else if(~enq && deq) begin 
 			dequeue();
+			// $display("dequeue!");
 		end 
 		else if(enq && deq) begin 
 			endequeue(in);
+			// $display("endeque!");
 		end 
 	end
 
 endmodule : circular_q
+
+

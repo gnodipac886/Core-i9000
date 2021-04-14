@@ -112,6 +112,7 @@ typedef struct {
 	logic 	[4:0] 	rd;
 	logic 			is_br_instr;
 	logic 			br_pred;
+	logic	[31:0]	branch_pc;
 } pci_t;
 
 typedef struct {
@@ -128,16 +129,24 @@ typedef struct {
 } reg_entry_t;
   
 typedef struct{
-	alu_ops alu_opcode; // set this to an actual struct like alu_ops;
-	cmp_ops cmp_opcode;
-	logic [3:0] tag;
-	logic busy_r1; // 1 if the r1 value is a tag, 0 if a constant value
-	logic busy_r2; // 1 if the r2 value is a tag, 0 if a constant value
-	logic [31:0] r1;
-	logic [31:0] r2;
+	alu_ops 		alu_opcode; // set this to an actual struct like alu_ops;
+	cmp_ops 		cmp_opcode;
+	logic [3:0] 	tag;
+	logic 			busy_r1; // 1 if the r1 value is a tag, 0 if a constant value
+	logic 			busy_r2; // 1 if the r2 value is a tag, 0 if a constant value
+	logic [31:0] 	r1;
+	logic [31:0] 	r2;
 	// logic [31:0] pc; // change this to a pci struct
-	logic sent_to_alu; // might be redundant, remove later 
-	logic valid;
+	logic 			valid;
 } rs_t;
+
+typedef struct{
+	pci_t 			pc_info;		// pc info
+	logic [3:0] 	rd_tag;			// rob tag
+	logic [31:0] 	data;			// data loaded in
+	logic 			data_is_tag;
+	logic [31:0] 	addr;			// addr for mem loc
+	logic 			addr_is_tag;	// if addr field is tag or not
+} lsq_t;
 
 endpackage : rv32i_types

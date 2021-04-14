@@ -3,21 +3,30 @@ import rv32i_types::*;
 module cpu #(	
 	parameter width 		= 32,
 	parameter rob_size 		= 8,
-	parameter br_rs_size 	= 3,
-	parameter alu_rs_size 	= 8,
-	parameter lsq_size 		= 5
+	parameter br_rs_size 	= 8,
+	parameter acu_rs_size 	= 8,
+	parameter lsq_size 		= 8
 )
 (
 	input 	logic 					clk,
 	input 	logic 					rst,
 
-	input 	logic 					mem_resp,
-	input 	logic [width-1:0] 		mem_rdata,
-	output 	logic 					mem_read,
-	output 	logic 					mem_write,
-	output 	logic [(width/8)-1:0] 	mem_byte_enable,
-	output 	logic [width-1:0] 		mem_address,
-	output 	logic [width-1:0] 		mem_wdata
+	input 	logic 					i_mem_resp,
+	input 	logic [width-1:0] 		i_mem_rdata,
+	output 	logic 					i_mem_read,
+	output 	logic 					i_mem_write,
+	output 	logic [(width/8)-1:0] 	i_mem_byte_enable,
+	output 	logic [width-1:0] 		i_mem_address,
+	output 	logic [width-1:0] 		i_mem_wdata,
+	output 	logic 					iq_empty,
+
+	input 	logic 					lsq_mem_resp,
+	input 	logic [width-1:0] 		lsq_mem_rdata,
+	output 	logic 					lsq_mem_read,
+	output 	logic 					lsq_mem_write,
+	output 	logic [(width/8)-1:0] 	lsq_mem_byte_enable,
+	output 	logic [width-1:0] 		lsq_mem_address,
+	output 	logic [width-1:0] 		lsq_mem_wdata
 );
 
 	/******************* Signals Needed for RVFI Monitor *************************/
@@ -45,47 +54,142 @@ module cpu #(
 	pci_t				pci;
 	/*****************************************************************************/
 
+	/*fetcher logic*/
+	logic	[width-1:0]	fetch_out;
 	/*instruction queue logic*/
-	logic 				iq_enq, iq_deq, iq_empty, iq_full, iq_ready;
-	logic 	[width-1:0] iq_in, iq_out;
+	logic 				iq_enq, iq_deq, iq_full, iq_ready;
+	pci_t				iq_in, iq_out;
 
 	/*pc_reg logic*/
-	logic 	[width-1:0] pc_in, pc_out, pc_load;
+	logic 				pc_load;
+	logic 	[width-1:0] pc_in, pc_out;
 
-	/* reorder buffer and regfile logic */
-	logic 		stall_br, stall_alu, stall_lsq;
+	/* reorder buffer */
+	logic 		stall_br, stall_acu, stall_lsq;
 	sal_t 		br_rs_o [br_rs_size];
-	sal_t 		alu_rs_o [alu_rs_size];
+	sal_t 		acu_rs_o [acu_rs_size];
 	sal_t 		lsq_o;
-	logic 		load_br_rs, load_alu_rs, load_lsq;
+	logic 		load_br_rs, load_acu_rs, load_lsq;
 	sal_t 		rob_broadcast_bus [rob_size];
 	sal_t 		rdest;
 	logic [3:0] rd_tag;
+	
+	/* regfile logic */
 	logic 		reg_ld_instr;
 	rs_t 		rs_out;
+	
 	/*rs and alu logic*/
 
 	logic flush;
 
  	rs_t input_r; //regfile
-	logic[3:0] tag; // from ROB
 
-	sal_t broadcast_bus[alu_rs_size]; // after computation is done, coming back from alu
-	// sal_t rob_broadcast_bus[rob_size]; // after other rs is done, send data from ROB to rs
+	rs_t 		data[acu_rs_size]; // all the reservation stations, to the alu
+	rs_t 		br_data[acu_rs_size]; // all the reservation stations, to the alu
+	logic [acu_rs_size-1:0] ready; // if both values are not tags, flip this ready bit to 1
+	logic [acu_rs_size-1:0] br_ready; // if both values are not tags, flip this ready bit to 1
+	logic	[3:0] num_available; // do something if the number of available reservation stations are 0
+	logic	[3:0] br_num_available; // do something if the number of available reservation stations are 0
+	logic 		acu_operation[acu_rs_size];
+	logic 		br_acu_operation[br_rs_size];
 
-	rs_t data[alu_rs_size]; // all the reservation stations, to the alu
-	logic[alu_rs_size-1:0] ready; // if both values are not tags, flip this ready bit to 1
-	logic[3:0] num_available; // do something if the number of available reservation stations are 0
+	// CHECKPOINT 2 LAZY BRANCH METHOD VARS
+	logic 			lazy_br, iq_br, br_stall, iq_stall, rob_finish_br;		
+	logic 			pc_mux_sel;
+	logic 	[31:0] 	pc_mux_out, br_next_pc;
+	rob_t 			rob_front;
 
+	assign 			iq_br = iq_in.is_br_instr || iq_in.opcode == op_jal || iq_in.opcode == op_jalr;
+	assign 			rob_finish_br = rob_front.pc_info.is_br_instr || rob_front.pc_info.opcode == op_jal || rob_front.pc_info.opcode == op_jalr;
 
-	assign 	pc_load = iq_enq & ~iq_full;
-	
+	// assigns
+	assign 	pc_load 	= iq_enq & ~iq_full & ~br_stall;
+
+	// assign rob
+	assign 	stall_acu 	= num_available == 4'd0; // stall if acu_rs is full
+	assign 	stall_br  	= br_num_available == 4'd0; // stall if br_rs is full
+
+	always_comb begin
+		br_stall = iq_br | (iq_stall ^ rob_finish_br);
+		unique case(rob_front.pc_info.opcode)
+			op_jal	: begin 
+				br_stall 	= ~rob_front.rdy;
+				if(rob_front.rdy && rob_front.data) begin 
+					br_next_pc 	= rob_front.data;
+					pc_mux_sel 	= 1'b1;
+				end 
+			end 
+
+			op_jalr	: begin 
+				br_stall 	= ~rob_front.rdy;
+				if(rob_front.rdy && rob_front.data) begin 
+					br_next_pc 	= rob_front.data;
+					pc_mux_sel 	= 1'b1;
+				end 
+			end 
+
+			op_br	: begin 
+				br_stall 	= ~rob_front.rdy;
+				if(rob_front.rdy && rob_front.data) begin 
+					br_next_pc 	= rob_front.pc_info.branch_pc;
+					pc_mux_sel 	= 1'b1;
+				end 
+			end 
+			
+			default	: begin 
+				br_next_pc = 0;
+				pc_mux_sel = 0;
+			end
+		endcase 
+
+		unique case(pc_mux_sel)
+			1'b0: pc_mux_out = pc_out + 4;
+			1'b1: pc_mux_out = br_next_pc;
+			default: ;
+		endcase
+
+	end
+
+	always_ff @(posedge clk) begin
+		if(rst) begin 
+			lazy_br <= 0;
+			iq_stall <= 0;
+		end 
+		else begin 
+			if(rob_front.rdy && rob_finish_br) begin 
+				lazy_br 	<= 0;
+			end
+			else if(pci.is_br_instr || pci.opcode == op_jal || pci.opcode == op_jalr)
+				lazy_br <= 1;
+
+			if(rob_front.rdy && rob_finish_br) begin 
+				iq_stall 	<= 0;
+			end
+			else if(iq_in.is_br_instr || iq_in.opcode == op_jal || iq_in.opcode == op_jalr)
+				iq_stall 	<= 1;
+		end
+	end
+
+	pc_register pc_reg(
+		.load(pc_load),	// lazy br here CHECKPOINT 2
+		.in(pc_mux_out),
+		.out(pc_out),
+		.*
+	);
+
 	fetcher fetcher(
-		.deq(1'b1),
+		.deq(~iq_full), 				// lazy br here CHECKPOINT 2
 		.pc_addr(pc_out),
 		.rdy(iq_enq),
-		.out(iq_in),
+		.out(fetch_out),
 		.*
+	);
+
+	decoder decoder(
+		.instruction(fetch_out),
+		.pc(pc_out),
+		.decoder_out(iq_in),
+		.valid(iq_enq & ~iq_stall)
 	);
 
 	circular_q iq(
@@ -95,51 +199,77 @@ module cpu #(
 		.empty(iq_empty),
 		.full(iq_full),
 		.ready(iq_ready),
-		.out(iq_out),
+		.out(pci),
 		.*
-	);
-
-	pc_register pc_reg(
-		.load(pc_load),
-		.in(pc_out + 4),
-		.out(pc_out),
-		.*
-	);
-
-	decoder decoder(
-		.instruction(iq_out),
-		.pc(pc_out),
-		.pci(pci)
 	);
 
 	// reorder_buffer
-
-	//TODO: michael needs to fill these in later
-	reservation_station alu_rs(
-		.load(load_alu_rs),
-		.input_r(rs_out),
-		.*
-	);
-
-	alu alu_module(
-		.out(broadcast_bus),
-		.*
-	);
-
-	// reservation_station cmp_rs(
-	// );
-
-	// cmp cmp_module(
-	// );
-
 	reorder_buffer rob(
 		.instr_q_empty(iq_empty),
 		.instr_q_dequeue(iq_deq),
+		.instr_mem_resp(iq_enq),
 		.*
 	);
-  
-	// regfile registers(
-	// 	.*
-	// );
+
+	regfile registers(
+		.rdest(rdest),
+		.rs1(pci.rs1),
+		.rs2(pci.rs2),
+		.rd(pci.rd),
+		.rs_out(rs_out),
+		.*
+	);
+
+	reservation_station acu_rs(
+		.load(load_acu_rs),
+		.input_r(rs_out),
+		.tag(rd_tag),
+		.broadcast_bus(acu_rs_o),
+		.*
+	);
+	
+	acu acu_module(
+		.data(data),
+		.ready(ready),
+		.acu_operation(acu_operation),
+		.out(acu_rs_o)
+	);
+	
+	load_store_q lsq(
+		.rob_bus(rob_broadcast_bus),
+		.reg_entry(rs_out),
+		.instruction(pci),
+		.rob_tag(rd_tag),
+		.lsq_stall(stall_lsq),
+		.lsq_out(lsq_o),
+		.mem_resp(lsq_mem_resp),
+		.mem_rdata(lsq_mem_rdata),
+		.mem_read(lsq_mem_read),
+		.mem_write(lsq_mem_write),
+		.mem_byte_enable(lsq_mem_byte_enable),
+		.mem_address(lsq_mem_address),
+		.mem_wdata(lsq_mem_wdata),
+		.*
+	);
+
+	reservation_station br_rs(
+		.load(load_br_rs),
+		.input_r(rs_out),
+		.tag(rd_tag),
+		.broadcast_bus(br_rs_o),
+		.acu_operation(br_acu_operation),
+		.data(br_data),
+		.ready(br_ready),
+		.num_available(br_num_available),
+		.*
+	);
+
+	acu acu_br(
+		.data(br_data),
+		.ready(br_ready),
+		.acu_operation(br_acu_operation),
+		.out(br_rs_o),
+		.*
+	);
 
 endmodule : cpu

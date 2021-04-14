@@ -29,13 +29,13 @@ assign itf.halt = 0;//dut.cpu.load_pc &(dut.cpu.datapath.pc_out == dut.cpu.datap
 /************************** Testbench Instantiation **************************/
 // source_tb --- drives the dut by executing a RISC-V binary
 cache_monitor_itf cache_itf(clk);
-assign cache_itf.addr = dut.cpu.mem_address;
-assign cache_itf.rdata = dut.cpu.mem_rdata;
-assign cache_itf.wdata = dut.cpu.mem_wdata;
-assign cache_itf.read = dut.cpu.mem_read;
-assign cache_itf.write = dut.cpu.mem_write;
-assign cache_itf.mbe = dut.cpu.mem_byte_enable;
-assign cache_itf.resp = dut.cpu.mem_resp;
+assign cache_itf.addr = dut.cpu.i_mem_address;
+assign cache_itf.rdata = dut.cpu.i_mem_rdata;
+assign cache_itf.wdata = dut.cpu.i_mem_wdata;
+assign cache_itf.read = dut.cpu.i_mem_read;
+assign cache_itf.write = dut.cpu.i_mem_write;
+assign cache_itf.mbe = dut.cpu.i_mem_byte_enable;
+assign cache_itf.resp = dut.cpu.i_mem_resp;
 source_tb tb(.itf(itf), .mem_itf(itf), .cache_itf(cache_itf));
 // For random_tb, recommend using mp1
 
