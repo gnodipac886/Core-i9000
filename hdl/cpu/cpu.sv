@@ -111,6 +111,8 @@ module cpu #(
 
 	always_comb begin
 		br_stall = iq_br | (iq_stall ^ rob_finish_br);
+		br_next_pc = 0;
+		pc_mux_sel = 0;
 		unique case(rob_front.pc_info.opcode)
 			op_jal	: begin 
 				br_stall 	= ~rob_front.rdy;
