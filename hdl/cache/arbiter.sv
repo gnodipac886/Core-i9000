@@ -1,5 +1,8 @@
 module arbiter #(parameter width = 32)
 (
+	input 	logic					clk,
+	input 	logic					rst,
+	
 	// from instruction cache
 	input 	logic 				iq_empty,
 	input 	logic 				i_pmem_read_cla,
@@ -26,65 +29,109 @@ module arbiter #(parameter width = 32)
 	output 	logic 		[255:0]	pmem_wdata_256_cla
 );
 
-	logic 		i_connected, lsq_connected;
-	logic [1:0]	ar_mux_sel;
+	enum logic [1:0]{
+		serve_mem,
+		serve_instr,
+		serve_lsq,
+		idle
+	} state, next_state;
 
-	assign ar_mux_sel = '{i_connected, lsq_connected};
+	function connect_lsq();
+		i_pmem_resp_cla			= 0;
+		i_pmem_rdata_256_cla	= 0;
+		lsq_pmem_resp_cla		= pmem_resp_cla;
+		lsq_pmem_rdata_256_cla	= pmem_rdata_256_cla;
+		pmem_read_cla 			= lsq_pmem_read_cla;
+		pmem_write_cla			= lsq_pmem_write_cla;
+		pmem_address_cla		= lsq_pmem_address_cla;
+		pmem_wdata_256_cla		= lsq_pmem_wdata_256_cla;
+	endfunction: connect_lsq
 
-	// lsq takes priority unless instruction queue is empty
-	always_comb begin 
-		i_connected = 0;
-		lsq_connected = 0;
-		if(iq_empty) 
-			i_connected = 1;
+	function connect_instr();
+		i_pmem_resp_cla			= pmem_resp_cla;
+		i_pmem_rdata_256_cla	= pmem_rdata_256_cla;
+		lsq_pmem_resp_cla		= 0;
+		lsq_pmem_rdata_256_cla	= 0;
+		pmem_read_cla 			= i_pmem_read_cla;
+		pmem_write_cla			= i_pmem_write_cla;
+		pmem_address_cla		= i_pmem_address_cla;
+		pmem_wdata_256_cla		= i_pmem_wdata_256_cla;
+	endfunction: connect_instr
 
-		else begin
-			if(lsq_pmem_read_cla || lsq_pmem_write_cla)
-				lsq_connected = 1;
+	function set_defaults();
+		i_pmem_resp_cla			= 0;
+		i_pmem_rdata_256_cla	= 0;
+		lsq_pmem_resp_cla		= 0;
+		lsq_pmem_rdata_256_cla	= 0;
+		pmem_read_cla 			= 0;
+		pmem_write_cla			= 0;
+		pmem_address_cla		= 0;
+		pmem_wdata_256_cla		= 0;
+	endfunction : set_defaults
 
-			else if(i_pmem_read_cla || i_pmem_write_cla)
-				i_connected = 1;
+	always_comb begin
 
-			else begin 
-				i_connected = 0;
-				lsq_connected = 0;
+		unique case(state)
+			idle		: begin
+				set_defaults();
+			end 
+
+			serve_instr : begin
+				connect_instr();
+			end 
+
+			serve_lsq 	: begin 
+				connect_lsq();
+			end 
+
+			default		: begin
+				set_defaults();
+			end 
+
+		endcase 
+	end
+
+	always_comb begin
+		next_state = state;
+		unique case(state)
+			idle: begin 
+				if (i_pmem_read_cla || i_pmem_write_cla)
+					next_state = serve_instr;
+				else if (lsq_pmem_read_cla || lsq_pmem_write_cla)
+					next_state = serve_lsq;
+				else
+					next_state = idle;
+			end 
+
+			serve_instr: begin
+				if ((lsq_pmem_read_cla || lsq_pmem_write_cla) && pmem_resp_cla)
+					next_state = serve_lsq;
+				else if (pmem_resp_cla)
+					next_state = idle;
+				else
+					next_state = serve_instr;
+			end 
+
+			serve_lsq: begin
+				if ((i_pmem_read_cla || i_pmem_write_cla) && pmem_resp_cla)
+					next_state = serve_instr;
+				else if (pmem_resp_cla)
+					next_state = idle;
+				else 
+					next_state = serve_lsq;
 			end
+
+			default: ;
+		endcase 
+	end
+
+	always_ff @(posedge clk) begin
+		if(rst) begin 
+			state 	<= idle;
 		end 
-
-		unique case(ar_mux_sel)
-			2'b01: begin 
-				i_pmem_resp_cla			= 0;
-				i_pmem_rdata_256_cla	= 0;
-				lsq_pmem_resp_cla		= pmem_resp_cla;
-				lsq_pmem_rdata_256_cla	= pmem_rdata_256_cla;
-				pmem_read_cla 			= lsq_pmem_read_cla;
-				pmem_write_cla			= lsq_pmem_write_cla;
-				pmem_address_cla		= lsq_pmem_address_cla;
-				pmem_wdata_256_cla		= lsq_pmem_wdata_256_cla;
-			end 	
-
-			2'b10: begin 
-				i_pmem_resp_cla			= pmem_resp_cla;
-				i_pmem_rdata_256_cla	= pmem_rdata_256_cla;
-				lsq_pmem_resp_cla		= 0;
-				lsq_pmem_rdata_256_cla	= 0;
-				pmem_read_cla 			= i_pmem_read_cla;
-				pmem_write_cla			= i_pmem_write_cla;
-				pmem_address_cla		= i_pmem_address_cla;
-				pmem_wdata_256_cla		= i_pmem_wdata_256_cla;
-			end 
-
-			default: begin 
-				i_pmem_resp_cla			= 0;
-				i_pmem_rdata_256_cla	= 0;
-				lsq_pmem_resp_cla		= 0;
-				lsq_pmem_rdata_256_cla	= 0;
-				pmem_read_cla 			= 0;
-				pmem_write_cla			= 0;
-				pmem_address_cla		= 0;
-				pmem_wdata_256_cla		= 0;
-			end 
-		endcase
-	end 
+		else begin 
+			state 	<= next_state;
+		end
+	end
 
 endmodule : arbiter

@@ -3,19 +3,16 @@ import rv32i_types::*;
 module cmp #(parameter size=8)
 (
 	input rs_t data[size],
-    input logic[size-1:0] ready,
+	input logic[size-1:0] ready,
 
-    output sal_t out[size]
+	output sal_t out[size]
 );
 
 
-always_comb
-begin
-    for (int idx = 0; idx < size; idx++)
-    begin
-        if (ready[idx])
-        begin
-            case (data[idx].cmp_opcode)
+always_comb begin
+	for (int idx = 0; idx < size; idx++) begin
+		if (ready[idx]) begin
+			case (data[idx].cmp_opcode)
 				cmp_beq: out[idx].data = data[idx].r1 == data[idx].r2 ? '1 : '0;
 				cmp_bne: out[idx].data = data[idx].r1 != data[idx].r2 ? '1 : '0;
 				cmp_blt: out[idx].data = $signed(data[idx].r1) < $signed(data[idx].r2) ? '1 : '0;
@@ -24,15 +21,14 @@ begin
 				cmp_bgeu: out[idx].data = (data[idx].r1 > data[idx].r2 || data[idx].r1 ==data[idx].r2) ? '1 : '0;
 				default:;
 			endcase
-            out[idx].rdy = 1'b1;
-            out[idx].tag = data[idx].tag;
-        end
-        else 
-        begin
-            out[idx].rdy = 1'b0;
-            out[idx].tag = 4'b0;
-        end
-    end
+			out[idx].rdy = 1'b1;
+			out[idx].tag = data[idx].tag;
+		end
+		else begin
+			out[idx].rdy = 1'b0;
+			out[idx].tag = 4'b0;
+		end
+	end
 end
 
 endmodule : cmp
