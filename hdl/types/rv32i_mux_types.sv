@@ -37,6 +37,13 @@ typedef enum bit [2:0] {
     ,rs2_out = 3'b101
 } alumux2_sel_t;
 endpackage
+// package arbitermux;
+// typedef enum bit[1:0] {
+//     lsq = 2'b01;
+//     instr = 2'b10;
+//     idle = 2'b11;
+// } arbiter_mux_sel_t;
+// endpackage
 
 package regfilemux;
 typedef enum bit [3:0] {

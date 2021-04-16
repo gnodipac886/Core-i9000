@@ -211,8 +211,8 @@ module load_store_q #(
 			else begin
 				// dequeued the last one
 				if(front == rear) begin 
-					next_front 		= -1;
-					next_rear 		= -1;
+					next_front 		= 0;
+					next_rear 		= 0;
 				end
 				else begin 
 					next_front 		= (front + 1) % size;
@@ -237,6 +237,7 @@ module load_store_q #(
 			front 			<= -1;
 			rear 			<= -1;
 			ready 			<= 	0;
+			lsq_out 		<= '{default: 0};
 			for(int i = 0; i < size; i++) begin 
 				arr[i] 		<= '{pc_info: '{opcode: op_imm, default: 0}, default: 0};;
 			end 
@@ -252,6 +253,10 @@ module load_store_q #(
 				endequeue(in);
 			end 
 
+			if(lsq_out.rdy) begin 
+				lsq_out 		<= '{default: 0};
+			end 
+
 			// see if anything new was posted on rob bus
 			if (next_rear >= next_front) begin
 				for (int i = 0; i <= (next_rear - next_front) && i < 8; i++)
@@ -264,13 +269,6 @@ module load_store_q #(
 				for (int i = 0; i <= next_rear && i < 8; i++)
 					update_q_reg(i, rob_bus[arr[i].addr[3:0]]);
 			end
-
-			// for(int i = front; (i != rear) && i < (front + 10); i = (i + 1) % lsq_size) begin 
-			// 	if(arr[i].addr_is_tag)
-			// 		update_q_reg(i, rob_bus[arr[i].addr[3:0]]);
-			// end 
-			// if(rear != -1 && arr[rear].addr_is_tag)
-			// 		update_q_reg(rear, rob_bus[arr[rear].addr[3:0]]);
 
 			if(mem_resp) begin
 				mem_address_raw 	<= lsq_next_front.addr; 
@@ -313,130 +311,3 @@ module load_store_q #(
 	end 
 
 endmodule : load_store_q
-
-
-// module circular_lsq #(parameter width = 32,
-// 					parameter size 	= 8)
-// (
-// 	input 	logic 				clk,
-// 	input 	logic 				rst,
-// 	input 	logic 				enq,
-// 	input 	logic 				deq,
-// 	input 	lsq_t 				in,
-// 	output	logic 				empty,
-// 	output 	logic 				full,
-// 	output 	logic 				ready,
-// 	output 	lsq_t 				out,
-// 	output 	lsq_t 				arr[size]
-// );
-
-// 	int 	front, rear;
-
-// 	assign 	full 	= (front == 0 && rear == size - 1) || (rear == (front - 1) % (size - 1));
-// 	assign 	empty 	= front == -1;
-// 	assign	out 	= enq && deq && front == -1 ? in : arr[front];
-
-// 	task update_q_reg(int i, sal_t rob_item);
-// 		if(arr[i].addr_is_tag & rob_item.rdy) begin
-// 			arr[i].addr 		<= rob_item.data + arr[i].pc_info.i_imm;
-// 			arr[i].addr_is_tag	<= 1'b0;
-// 		end 
-// 	endtask
-
-// 	task enqueue(lsq_t data_in);
-// 		ready 				<= 0;
-// 		// full
-// 		if((front == 0 && rear == size - 1) || (rear == (front - 1) % (size - 1))) begin 
-// 			return;
-// 		end 
-// 		// first element
-// 		else if(front == -1) begin 
-// 			front 			<= 0;
-// 			rear 			<= 0;
-// 			arr[0]			<= data_in;
-// 		end
-// 		// otherwise
-// 		else begin 
-// 			rear 					<= (rear + 1) % size;
-// 			arr[(rear + 1) % size] 	<= data_in; 
-// 		end 
-// 	endtask : enqueue
-
-// 	task dequeue();
-// 		// empty
-// 		if(front == -1) begin
-// 			ready 				<= 0;
-// 			return;
-// 		end 
-// 		else begin 
-// 			// out 				<= arr[front];
-// 			arr[front] 			<= '{default: 0};
-// 			ready 				<= 1;
-// 			// dequeued the last one
-// 			if(front == rear) begin 
-// 				front 			<= -1;
-// 				rear 			<= -1;
-// 			end
-// 			else begin 
-// 				front 			<= (front + 1) % size;
-// 			end
-// 		end 
-// 	endtask : dequeue
-
-// 	task endequeue(lsq_t data_in);
-// 		// if empty
-// 		if(front == -1) begin 
-// 			// out 					<= data_in;
-// 			ready 					<= 0;
-// 		end 
-// 		else begin 
-// 			// out 					<= arr[front];
-// 			front 					<= (front + 1) % size;
-// 			rear 					<= (rear + 1) % size;
-// 			ready 					<= 1;
-// 			if (~full) begin
-// 				arr[front] 				<= '{default: 0};
-// 				arr[(rear + 1) % size] 	<= data_in; 
-// 			end else begin
-// 				arr[front]			<= data_in;
-// 			end
-// 		end 
-// 	endtask
-
-
-// 	always_ff @(posedge clk) begin
-// 		if(rst) begin
-// 			front 	<= -1;
-// 			rear 	<= -1;
-// 			ready 	<= 	0;
-// 			for(int i = 0; i < size; i++) begin 
-// 				arr[i] <= '{default: 0};
-// 			end 
-// 		end
-// 		else if(enq && ~deq) begin
-// 			enqueue(in);
-// 		end 
-// 		else if(~enq && deq) begin 
-// 			dequeue();
-// 		end 
-// 		else if(enq && deq) begin 
-// 			endequeue(in);
-// 		end 
-// 	end
-
-// endmodule : circular_lsq
-
-
-// mem_resp		
-// addr	
-// deq
-// valid	is there a next instruction	
-// 00000000000000001111000000000000000000
-// prev_addr 		   next_addr
-// 
-
-// read
-// addr, read_signal
-
-// write
-// addr, data, write_enable, write (all 4 are valid)
