@@ -36,7 +36,7 @@ module arbiter #(parameter width = 32)
 		idle
 	} state, next_state;
 
-	function connect_lsq();
+	function void connect_lsq();
 		i_pmem_resp_cla			= 0;
 		i_pmem_rdata_256_cla	= 0;
 		lsq_pmem_resp_cla		= pmem_resp_cla;
@@ -47,7 +47,7 @@ module arbiter #(parameter width = 32)
 		pmem_wdata_256_cla		= lsq_pmem_wdata_256_cla;
 	endfunction: connect_lsq
 
-	function connect_instr();
+	function void connect_instr();
 		i_pmem_resp_cla			= pmem_resp_cla;
 		i_pmem_rdata_256_cla	= pmem_rdata_256_cla;
 		lsq_pmem_resp_cla		= 0;
@@ -58,7 +58,7 @@ module arbiter #(parameter width = 32)
 		pmem_wdata_256_cla		= i_pmem_wdata_256_cla;
 	endfunction: connect_instr
 
-	function set_defaults();
+	function void set_defaults();
 		i_pmem_resp_cla			= 0;
 		i_pmem_rdata_256_cla	= 0;
 		lsq_pmem_resp_cla		= 0;
