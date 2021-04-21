@@ -82,6 +82,13 @@ typedef enum bit [2:0] {
 	cmp_bgeu = 3'b111
 } cmp_ops;
 
+typedef enum bit [1:0] {
+	br_s_not_taken  = 2'b00,
+	br_w_not_taken  = 2'b01,
+	br_w_taken  	= 2'b10,
+	br_s_taken  	= 2'b11
+} br_counter;
+
 /*OOO structs*/
 
 typedef struct {
@@ -149,5 +156,10 @@ typedef struct{
 	logic [31:0] 	addr;			// addr for mem loc
 	logic 			addr_is_tag;	// if addr field is tag or not
 } lsq_t;
+
+typedef struct{
+	pci_t 			pc_info;		// pc info
+	logic 	[1:0] 	counter; 		// counter
+} br_pred_t;
 
 endpackage : rv32i_types
