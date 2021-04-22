@@ -160,6 +160,7 @@ typedef struct{
 typedef struct{
 	pci_t 			pc_info;		// pc info
 	logic 	[1:0] 	counter; 		// counter
+	logic 			valid;
 } br_pred_t;
 
 endpackage : rv32i_types

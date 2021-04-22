@@ -111,8 +111,11 @@ module reorder_buffer #(
 
 	always_comb begin
 		set_load_rs_default();
-		if (~empty) begin
-			rdest = '{ front[3:0], arr[front].rdy, arr[front].data };
+		if (~empty) begin 
+			if (arr[front].pc_info.opcode == op_jalr) begin
+				rdest = '{ front[3:0], arr[front].rdy, arr[front].pc_info.pc + 4 };
+			else // FIX JALR RDEST HERE
+				rdest = '{ front[3:0], arr[front].rdy, arr[front].data };
 		end else begin
 			rdest = '{ 4'b0, 0, 32'b0 };
 		end
