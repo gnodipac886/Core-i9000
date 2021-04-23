@@ -5,6 +5,7 @@ mp4_simple_tests.s:
 	# Refer to the RISC-V ISA Spec for the functionality of
 	# the instructions in this test program.
 _start:
+	jal 	branch_pred_tests 	
 	addi    x0,     x0,     0
 	addi    x2,     x0,     2
 	beq 	x2, 	x0, 	halt
@@ -34,7 +35,14 @@ alu:
 	add 	x9, 	x8, 	x8
 	add 	x10, 	x9, 	x9 
 	add 	x11, 	x10, 	x10
-
+	
+branch_pred_tests:
+	and 	x1, x1, x0
+	addi 	x2, x2, 10
+loop:
+	add 	x1, x1, 1
+	bne 	x1, x2, loop
+	
 
 # lsq:
 # 	lw 	x1, 	bad

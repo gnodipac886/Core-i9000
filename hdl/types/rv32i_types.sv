@@ -121,6 +121,7 @@ typedef struct {
 	logic 			is_br_instr;
 	logic 			br_pred;
 	logic	[31:0]	branch_pc;
+	logic 	[31:0]  jal_pc;
 } pci_t;
 
 typedef struct {
@@ -158,8 +159,8 @@ typedef struct{
 } lsq_t;
 
 typedef struct{
-	pci_t 			pc_info;		// pc info
-	logic 	[1:0] 	counter; 		// counter
+	// pci_t 			pc_info;		// pc info
+	logic 	[1:0]  	counter; 		// counter
 	logic 			valid;
 } br_pred_t;
 

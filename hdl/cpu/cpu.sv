@@ -65,14 +65,18 @@ module cpu #(
 	logic 	[width-1:0] pc_in, pc_out;
 
 	/* reorder buffer */
-	logic 		stall_br, stall_acu, stall_lsq;
-	sal_t 		br_rs_o [br_rs_size];
-	sal_t 		acu_rs_o [acu_rs_size];
-	sal_t 		lsq_o;
-	logic 		load_br_rs, load_acu_rs, load_lsq;
-	sal_t 		rob_broadcast_bus [rob_size];
-	sal_t 		rdest;
-	logic [3:0] rd_tag;
+	logic 				stall_br, stall_acu, stall_lsq;
+	sal_t 				br_rs_o [br_rs_size];
+	sal_t 				acu_rs_o [acu_rs_size];
+	sal_t 				lsq_o;
+	logic 				load_br_rs, load_acu_rs, load_lsq;
+	sal_t 				rob_broadcast_bus [rob_size];
+	sal_t 				rdest;
+	logic [3:0] 		rd_tag;
+	logic 				br_result;
+	logic [width-1:0] 	pc_result;
+	logic 				pc_result_load;
+
 	
 	/* regfile logic */
 	logic 		reg_ld_instr;
@@ -84,58 +88,49 @@ module cpu #(
 
  	rs_t input_r; //regfile
 
-	rs_t 		data[acu_rs_size]; // all the reservation stations, to the alu
-	rs_t 		br_data[acu_rs_size]; // all the reservation stations, to the alu
+	rs_t 					data[acu_rs_size]; // all the reservation stations, to the alu
+	rs_t 					br_data[acu_rs_size]; // all the reservation stations, to the alu
 	logic [acu_rs_size-1:0] ready; // if both values are not tags, flip this ready bit to 1
 	logic [acu_rs_size-1:0] br_ready; // if both values are not tags, flip this ready bit to 1
-	logic	[3:0] num_available; // do something if the number of available reservation stations are 0
-	logic	[3:0] br_num_available; // do something if the number of available reservation stations are 0
-	logic 		acu_operation[acu_rs_size];
-	logic 		br_acu_operation[br_rs_size];
+	logic	[3:0] 			num_available; // do something if the number of available reservation stations are 0
+	logic	[3:0] 			br_num_available; // do something if the number of available reservation stations are 0
+	logic 					acu_operation[acu_rs_size];
+	logic 					br_acu_operation[br_rs_size];
 
-	// CHECKPOINT 2 LAZY BRANCH METHOD VARS
-	logic 			lazy_br, iq_br, br_stall, iq_stall, rob_finish_br;		
+	/*branch prediction logic*/
+	logic				br_taken;
+	logic	[width-1:0] br_addr;
+
+	// CHECKPOINT 2 LAZY BRANCH METHOD VARSs	
 	logic 			pc_mux_sel;
 	logic 	[31:0] 	pc_mux_out, br_next_pc;
 	rob_t 			rob_front;
 
-	assign 			iq_br = iq_in.is_br_instr || iq_in.opcode == op_jal || iq_in.opcode == op_jalr;
-	assign 			rob_finish_br = rob_front.pc_info.is_br_instr || rob_front.pc_info.opcode == op_jal || rob_front.pc_info.opcode == op_jalr;
-
+	assign 			iq_br 		= iq_in.is_br_instr || iq_in.opcode == op_jal || iq_in.opcode == op_jalr;
 	// assigns
-	assign 	pc_load 	= iq_enq & ~iq_full & ~br_stall;
+	assign 			pc_load 	= iq_enq & ~iq_full;
 
 	// assign rob
-	assign 	stall_acu 	= num_available == 4'd0; // stall if acu_rs is full
-	assign 	stall_br  	= br_num_available == 4'd0; // stall if br_rs is full
+	assign 			stall_acu 	= num_available == 4'd0; // stall if acu_rs is full
+	assign 			stall_br  	= br_num_available == 4'd0; // stall if br_rs is full
 
 	always_comb begin
-		br_stall = iq_br | (iq_stall ^ rob_finish_br);
 		br_next_pc = 0;
 		pc_mux_sel = 0;
-		unique case(rob_front.pc_info.opcode)
+		unique case(iq_in.opcode)
 			op_jal	: begin 
-				br_stall 	= ~rob_front.rdy;
-				if(rob_front.rdy && rob_front.data) begin 
-					br_next_pc 	= rob_front.data;
-					pc_mux_sel 	= 1'b1;
-				end 
+				br_next_pc  = iq_in.jal_pc;
+				pc_mux_sel 	= 1'b1;
 			end 
 
-			op_jalr	: begin 
-				br_stall 	= ~rob_front.rdy;
-				if(rob_front.rdy && rob_front.data) begin 
-					br_next_pc 	= rob_front.data;
-					pc_mux_sel 	= 1'b1;
-				end 
+			op_jalr	: begin 								// NEEEDDDD TO DO THIS!!!!!!!!!!!!!!!!!!!!!!!!!!! NEED TO STALL???
+				br_next_pc 	= rob_front.data;
+				pc_mux_sel 	= 1'b1;
 			end 
 
 			op_br	: begin 
-				br_stall 	= ~rob_front.rdy;
-				if(rob_front.rdy && rob_front.data) begin 
-					br_next_pc 	= rob_front.pc_info.branch_pc;
-					pc_mux_sel 	= 1'b1;
-				end 
+				br_next_pc 	= br_addr;
+				pc_mux_sel 	= 1'b1;
 			end 
 			
 			default	: begin 
@@ -150,26 +145,6 @@ module cpu #(
 			default: ;
 		endcase
 
-	end
-
-	always_ff @(posedge clk) begin
-		if(rst) begin 
-			lazy_br <= 0;
-			iq_stall <= 0;
-		end 
-		else begin 
-			if(rob_front.rdy && rob_finish_br) begin 
-				lazy_br 	<= 0;
-			end
-			else if(pci.is_br_instr || pci.opcode == op_jal || pci.opcode == op_jalr)
-				lazy_br <= 1;
-
-			if(rob_front.rdy && rob_finish_br) begin 
-				iq_stall 	<= 0;
-			end
-			else if(iq_in.is_br_instr || iq_in.opcode == op_jal || iq_in.opcode == op_jalr)
-				iq_stall 	<= 1;
-		end
 	end
 
 	pc_register pc_reg(
@@ -190,8 +165,8 @@ module cpu #(
 	decoder decoder(
 		.instruction(fetch_out),
 		.pc(pc_out),
-		.decoder_out(iq_in),
-		.valid(iq_enq & ~iq_stall)
+		.br_taken(br_taken),
+		.decoder_out(iq_in)
 	);
 
 	circular_q iq(
@@ -271,6 +246,16 @@ module cpu #(
 		.ready(br_ready),
 		.acu_operation(br_acu_operation),
 		.out(br_rs_o),
+		.*
+	);
+
+	branch_predictor br_pred(
+		.pc_info(iq_in),
+		.br_result(br_result),
+		.pc_result(pc_result),
+		.pc_result_load(pc_result_load),
+		.br_taken(br_taken),
+		.br_addr(br_addr),
 		.*
 	);
 

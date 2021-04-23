@@ -29,7 +29,11 @@ module reorder_buffer #(
 	output sal_t rdest,
 	output logic [3:0] rd_tag,
 	output logic reg_ld_instr,
-	output rob_t rob_front
+	output rob_t rob_front,
+
+	output logic br_result, // high if taking branch, low if not taking
+	output logic [width-1:0] pc_result, // address of branch instruction at top of ROB 
+	output logic pc_result_load // high if dequeueing a branch 
 );
 	rob_t arr [size];
 	rob_t temp_in;
@@ -47,6 +51,11 @@ module reorder_buffer #(
 	assign temp_in.data 		= 32'hxxxx;
 	assign temp_in.rdy 			= 1'b0;
 	assign temp_in.valid 		= 1'b1;
+
+	// SUPER INCORRECT WAY OF DOING THINGS, WILL 100% REDO
+	assign br_result = arr[front].data[0];
+	assign pc_result = arr[front].pc_info.pc;
+	assign pc_result_load = (arr[front].pc_info.opcode == op_br && arr[front].rdy);
 	
 	task set_load_rs_default();
 		load_acu_rs = 1'b0;
