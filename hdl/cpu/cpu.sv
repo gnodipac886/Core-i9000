@@ -76,6 +76,8 @@ module cpu #(
 	logic 				br_result;
 	logic [width-1:0] 	pc_result;
 	logic 				pc_result_load;
+	logic				flush;
+	logic [width-1:0]	flush_pc;
 
 	
 	/* regfile logic */
@@ -83,9 +85,6 @@ module cpu #(
 	rs_t 		rs_out;
 	
 	/*rs and alu logic*/
-
-	logic flush;
-
  	rs_t input_r; //regfile
 
 	rs_t 					data[acu_rs_size]; // all the reservation stations, to the alu
@@ -102,7 +101,7 @@ module cpu #(
 	logic	[width-1:0] br_addr;
 
 	// CHECKPOINT 2 LAZY BRANCH METHOD VARSs	
-	logic 			pc_mux_sel;
+	logic 	[1:0]	pc_mux_sel;
 	logic 	[31:0] 	pc_mux_out, br_next_pc;
 	rob_t 			rob_front;
 
@@ -116,32 +115,39 @@ module cpu #(
 
 	always_comb begin
 		br_next_pc = 0;
-		pc_mux_sel = 0;
-		unique case(iq_in.opcode)
-			op_jal	: begin 
-				br_next_pc  = iq_in.jal_pc;
-				pc_mux_sel 	= 1'b1;
-			end 
+		pc_mux_sel = 2'b00;
 
-			op_jalr	: begin 								// NEEEDDDD TO DO THIS!!!!!!!!!!!!!!!!!!!!!!!!!!! NEED TO STALL???
-				br_next_pc 	= rob_front.data;
-				pc_mux_sel 	= 1'b1;
-			end 
+		if(flush) begin 
+			pc_mux_sel 			= 2'b10;
+		end 
+		else begin 
+			unique case(iq_in.opcode)
+				op_jal	: begin 
+					br_next_pc  = iq_in.jal_pc;
+					pc_mux_sel 	= 2'b01;
+				end 
 
-			op_br	: begin 
-				br_next_pc 	= br_addr;
-				pc_mux_sel 	= 1'b1;
-			end 
-			
-			default	: begin 
-				br_next_pc = 0;
-				pc_mux_sel = 0;
-			end
-		endcase 
+				op_jalr	: begin 								// NEEEDDDD TO DO THIS!!!!!!!!!!!!!!!!!!!!!!!!!!! NEED TO STALL???
+					br_next_pc 	= rob_front.data;
+					pc_mux_sel 	= 2'b01;
+				end 
+
+				op_br	: begin 
+					br_next_pc 	= br_addr;
+					pc_mux_sel 	= 2'b01;
+				end 
+				
+				default	: begin 
+					br_next_pc = 0;
+					pc_mux_sel = 2'b00;
+				end
+			endcase 
+		end
 
 		unique case(pc_mux_sel)
-			1'b0: pc_mux_out = pc_out + 4;
-			1'b1: pc_mux_out = br_next_pc;
+			2'b00: pc_mux_out = pc_out + 4;
+			2'b01: pc_mux_out = br_next_pc;
+			2'b10: pc_mux_out = flush_pc;
 			default: ;
 		endcase
 
@@ -260,3 +266,26 @@ module cpu #(
 	);
 
 endmodule : cpu
+
+/*
+rob entries
+0 	1
+1	2
+2	3
+3	br
+4	1
+5	2
+6	3
+7	4
+
+regfile
+0	
+1	4
+2	5
+3	6
+4	7
+5
+6
+7
+
+*/

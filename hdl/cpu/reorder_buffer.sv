@@ -33,7 +33,10 @@ module reorder_buffer #(
 
 	output logic br_result, // high if taking branch, low if not taking
 	output logic [width-1:0] pc_result, // address of branch instruction at top of ROB 
-	output logic pc_result_load // high if dequeueing a branch 
+	output logic pc_result_load, // high if dequeueing a branch 
+
+	output logic flush,
+	output logic [width-1:0] flush_pc
 );
 	rob_t arr [size];
 	rob_t temp_in;
@@ -53,15 +56,20 @@ module reorder_buffer #(
 	assign temp_in.valid 		= 1'b1;
 
 	// SUPER INCORRECT WAY OF DOING THINGS, WILL 100% REDO
-	assign br_result = arr[front].data[0];
-	assign pc_result = arr[front].pc_info.pc;
-	assign pc_result_load = (arr[front].pc_info.opcode == op_br && arr[front].rdy);
+	// assign br_result = arr[front].data[0];
+	// assign pc_result = arr[front].pc_info.pc;
+	// assign pc_result_load = (arr[front].pc_info.opcode == op_br && arr[front].rdy);
 	
 	task set_load_rs_default();
 		load_acu_rs = 1'b0;
 		load_br_rs 	= 1'b0;
 		load_lsq 	= 1'b0;
 		reg_ld_instr= 1'b0;
+		flush		= 1'b0;
+		flush_pc	= 32'b0;
+		br_result	= 1'b0;
+		pc_result	= 32'b0;
+		pc_result_load = 1'b0;
 	endtask
 	
 	task enqueue(rob_t data_in);
@@ -192,6 +200,20 @@ module reorder_buffer #(
 				default :;
 			endcase
 		end
+
+		// branch flushing logic
+		// ADD LOGIC FOR JALR HERE!!!!!!!!!!!!!!!!!!!
+		for (int i = 0; i < br_rs_size; i = i + 1) begin
+			if (br_rs_o[i].rdy & arr[br_rs_o[i].tag].valid) begin
+				br_result 		= br_rs_o[i].data[0];
+				pc_result 		= arr[br_rs_o[i].tag].pc_info.pc;
+				pc_result_load 	= 1'b1;
+				if(br_rs_o[i].data[0] != arr[br_rs_o[i].tag].pc_info.br_pred) begin 
+					flush 			= 1'b1;
+					flush_pc		= br_rs_o[i].data[0] ? arr[br_rs_o[i].tag].pc_info.branch_pc : arr[br_rs_o[i].tag].pc_info.pc + 4;
+				end 
+			end
+		end
 	end
 
 	always_ff @(posedge clk) begin
@@ -223,10 +245,11 @@ module reorder_buffer #(
 				end
 			end
 
-			for (int i = 0; i < acu_rs_size; i = i + 1) begin
+			for (int i = 0; i < br_rs_size; i = i + 1) begin
 				if (br_rs_o[i].rdy & arr[br_rs_o[i].tag].valid) begin
 					arr[br_rs_o[i].tag].data <= br_rs_o[i].data;
 					arr[br_rs_o[i].tag].rdy <= 1'b1;
+					if(br_rs_o[i].data[0] != arr[br_rs_o[i].tag].pc_info.br_pred)
 					if(arr[br_rs_o[i].tag].pc_info.opcode == op_jalr)
 						broadcast(br_rs_o[i]);
 				end
