@@ -26,7 +26,8 @@ module reorder_buffer #(
 	output logic load_acu_rs,
 	output logic load_lsq,
 	output sal_t rob_broadcast_bus [size],
-	output sal_t rdest,
+	output sal_t rdest[size],
+	output logic [4:0] rd_bus[size],
 	output logic [3:0] rd_tag,
 	output logic reg_ld_instr,
 	output rob_t rob_front,
@@ -41,6 +42,7 @@ module reorder_buffer #(
 	rob_t arr [size];
 	rob_t temp_in;
 	int front, rear;
+	int num_deq;
 
 	logic enq, deq, full, empty;
 	assign instr_q_dequeue		= enq;
@@ -61,15 +63,20 @@ module reorder_buffer #(
 	// assign pc_result_load = (arr[front].pc_info.opcode == op_br && arr[front].rdy);
 	
 	task set_load_rs_default();
-		load_acu_rs = 1'b0;
-		load_br_rs 	= 1'b0;
-		load_lsq 	= 1'b0;
-		reg_ld_instr= 1'b0;
-		flush		= 1'b0;
-		flush_pc	= 32'b0;
-		br_result	= 1'b0;
-		pc_result	= 32'b0;
-		pc_result_load = 1'b0;
+		load_acu_rs 	= 1'b0;
+		load_br_rs 		= 1'b0;
+		load_lsq 		= 1'b0;
+		reg_ld_instr	= 1'b0;
+		flush			= 1'b0;
+		flush_pc		= 32'b0;
+		br_result		= 1'b0;
+		pc_result		= 32'b0;
+		pc_result_load 	= 1'b0;
+		num_deq			= 0;
+		for(int i = 0; i < size; i++) begin
+			rdest[i] 	= '{ 4'b0, 0, 32'b0 };
+			rd_bus[i] 	= arr[i].pc_info.rd;
+		end
 	endtask
 	
 	task enqueue(rob_t data_in);
@@ -91,15 +98,17 @@ module reorder_buffer #(
 
 	task dequeue();
 		// Check if empty before dequeuing
-		arr[front] 	<= '{ default: 0, pc_info: '{ opcode: op_imm, default: 0 }};
-		rob_broadcast_bus[front] <= '{ default: 0 };
+		for(int i = 0; i < num_deq && i < size; i++) begin 
+			arr[front + i] 					<= '{ default: 0, pc_info: '{ opcode: op_imm, default: 0 }};
+			rob_broadcast_bus[front + i] 	<= '{ default: 0 };
+		end 
 		// dequeued the last one
 		if(front == rear) begin 
 			front 	<= -1;
 			rear 	<= -1;
 		end
 		else begin 
-			front 	<= (front + 1) % size;
+			front 	<= (front + num_deq) % size;
 		end
 	endtask : dequeue
 
@@ -110,16 +119,19 @@ module reorder_buffer #(
 		if(front == -1)
 			rdest 	<= '{4'd0, data_in.rdy, data_in.data};
 		*/
-		rob_broadcast_bus[front] 	<= '{ default: 0 };
-		front 						<= (front + 1) % size;
-		rear						<= (rear + 1) % size;
-		if (~full) begin
-			arr[front]				<= '{ default: 0, pc_info: '{ opcode: op_imm, default: 0 }};
+		if(num_deq == 1 && full) begin 
+			rob_broadcast_bus[front] 	<= '{ default: 0 };
+			arr[front]					<= data_in;
+		end 
+		else begin 
+			for(int i = 0; i < num_deq && i < size; i++) begin 
+				rob_broadcast_bus[i + front] 	<= '{ default: 0 };
+				arr[i + front]					<= '{ default: 0, pc_info: '{ opcode: op_imm, default: 0 }};
+			end 
 			arr[(rear + 1) % size]	<= data_in;
-
-		end else begin
-			arr[front]				<= data_in;
-		end
+		end 
+		front 						<= (front + num_deq) % size;
+		rear						<= (rear + 1) % size;
 	endtask
 
 	task broadcast(sal_t broadcast_data);
@@ -128,14 +140,62 @@ module reorder_buffer #(
 
 	always_comb begin
 		set_load_rs_default();
-		if (~empty) begin 
-			if (arr[front].pc_info.opcode == op_jalr)
-				rdest = '{ front[3:0], arr[front].rdy, arr[front].pc_info.pc + 4 };
-			else // FIX JALR RDEST HERE
-				rdest = '{ front[3:0], arr[front].rdy, arr[front].data };
-		end else begin
-			rdest = '{ 4'b0, 0, 32'b0 };
+		if (rear >= front) begin
+			for (int i = 0; i <= (rear - front) && i < size; i++) begin 
+				if (~empty) begin 
+					if(~arr[i + front].rdy | ~arr[i + front].valid)
+						break;
+					if(arr[i + front].pc_info.opcode == op_br || arr[i + front].pc_info.opcode == op_store) begin 
+						num_deq++;
+						continue;
+					end 
+					else if (arr[i + front].pc_info.opcode == op_jalr)
+						rdest[i + front] = '{ (i[3:0] + front[3:0]), arr[i + front].rdy, arr[i + front].pc_info.pc + 4 };
+					else // FIX JALR RDEST[i + front] HERE
+						rdest[i + front] = '{ (i[3:0] + front[3:0]), arr[i + front].rdy, arr[i + front].data };
+				end else
+					rdest[i + front] = '{ 4'b0, 0, 32'b0 };
+				num_deq++;
+			end 
+		end 
+		else begin 
+			for (int i = 0; i < (size - front) && i < size; i++) begin 
+				if (~empty) begin 
+					if(~arr[i + front].rdy | ~arr[i + front].valid)
+						break;
+					if(arr[i + front].pc_info.opcode == op_br || arr[i + front].pc_info.opcode == op_store) begin 
+						num_deq++;
+						continue;
+					end 
+					else if (arr[i + front].pc_info.opcode == op_jalr)
+						rdest[i + front] = '{ (i[3:0] + front[3:0]), arr[i + front].rdy, arr[i + front].pc_info.pc + 4 };
+					else // FIX JALR RDEST[i + front] HERE
+						rdest[i + front] = '{ (i[3:0] + front[3:0]), arr[i + front].rdy, arr[i + front].data };
+				end else
+					rdest[i + front] = '{ 4'b0, 0, 32'b0 };
+				num_deq++;
+			end 
+		 
+		 	if(arr[(num_deq + front) % size].rdy & arr[(num_deq + front) % size].valid) begin 
+		 		for (int i = 0; i <= rear && i < size; i++) begin 
+		 			if (~empty) begin
+		 				if(~arr[i].rdy | ~arr[i].valid)
+							break;
+		 				if(arr[i].pc_info.opcode == op_br || arr[i].pc_info.opcode == op_store) begin 
+		 					num_deq++;
+		 					continue;
+		 				end 
+						else if (arr[i].pc_info.opcode == op_jalr)
+		 					rdest[i] = '{ (i[3:0] + front[3:0]), arr[i].rdy, arr[i].pc_info.pc + 4 };
+		 				else // FIX JALR RDEST[i] HERE
+		 					rdest[i] = '{ (i[3:0] + front[3:0]), arr[i].rdy, arr[i].data };
+		 			end else
+		 				rdest[i] = '{ 4'b0, 0, 32'b0 };
+		 			num_deq++;
+		 		end 
+		 	end 
 		end
+
 		// Dequeue if front is ready and valid
 		deq = (~empty && arr[front].rdy == 1'b1 && arr[front].valid == 1'b1);
 		// Enqueue if not full and instr_q is not empty

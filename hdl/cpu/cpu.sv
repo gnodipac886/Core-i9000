@@ -71,7 +71,8 @@ module cpu #(
 	sal_t 				lsq_o;
 	logic 				load_br_rs, load_acu_rs, load_lsq;
 	sal_t 				rob_broadcast_bus [rob_size];
-	sal_t 				rdest;
+	sal_t 				rdest[rob_size];
+	logic [4:0] 		rd_bus[rob_size];
 	logic [3:0] 		rd_tag;
 	logic 				br_result;
 	logic [width-1:0] 	pc_result;
