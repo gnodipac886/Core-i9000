@@ -10,6 +10,7 @@ module regfile #(	parameter width = 32,
 	input logic [3:0] rd_tag,
 	input logic [4:0] rs1, rs2, rd,
 	input logic [4:0] rd_bus[size],
+	input logic [3:0] rob_front_tag,
 	output rs_t rs_out
 );
 
@@ -53,8 +54,8 @@ module regfile #(	parameter width = 32,
 			end
 
 			for (int i = 0; i < size; i++) begin
-				if (rdest[i].rdy && rd_bus[i] != 0 && data[rd_bus[i]].tag != rdest[i].tag) begin
-					data[rd_bus[i]].data <= rdest[i].data;
+				if (rdest[(i + rob_front_tag) % size].rdy && rd_bus[(i + rob_front_tag) % size] != 0 && data[rd_bus[(i + rob_front_tag) % size]].tag != rdest[(i + rob_front_tag) % size].tag) begin
+					data[rd_bus[(i + rob_front_tag) % size]].data <= rdest[(i + rob_front_tag) % size].data;
 				end
 			end
 			if (reg_ld_instr && rd != 0) begin

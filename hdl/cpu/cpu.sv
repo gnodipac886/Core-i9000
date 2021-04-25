@@ -73,7 +73,7 @@ module cpu #(
 	sal_t 				rob_broadcast_bus [rob_size];
 	sal_t 				rdest[rob_size];
 	logic [4:0] 		rd_bus[rob_size];
-	logic [3:0] 		rd_tag;
+	logic [3:0] 		rd_tag, rob_front_tag;
 	logic 				br_result;
 	logic [width-1:0] 	pc_result;
 	logic 				pc_result_load;
