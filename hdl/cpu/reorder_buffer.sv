@@ -152,8 +152,7 @@ module reorder_buffer #(
 	endtask
 
 	function logic check_valid_flush_tag(logic [3:0] i);
-		if(front <= flush_tag) begin 
-			$display("check tag, i = %0d, result = %0d", i, front <= i && i <= flush_tag);
+		if(front <= flush_tag) begin
 			return front <= i && i < flush_tag ? 1'b1 : 1'b0;
 		end 
 		else begin 
