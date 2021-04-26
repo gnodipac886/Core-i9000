@@ -31,14 +31,14 @@ module reorder_buffer #(
 	output logic [3:0] rd_tag,
 	output logic reg_ld_instr,
 	output rob_t rob_front,
-	output logic [3:0] rob_front_tag,
 
 	output logic br_result, // high if taking branch, low if not taking
 	output logic [width-1:0] pc_result, // address of branch instruction at top of ROB 
 	output logic pc_result_load, // high if dequeueing a branch 
 
-	output logic flush,
-	output logic [width-1:0] flush_pc
+	// output logic flush,
+	output logic [width-1:0] flush_pc,
+	output flush_t flush
 );
 	rob_t arr [size];
 	rob_t temp_in;
@@ -53,28 +53,27 @@ module reorder_buffer #(
 	assign empty 				= (front == -1);
 	assign rd_tag 				= empty ? 0 : (rear + 1) % size;
 
+    assign flush.flush_tag      = flush_tag[3:0];
+	assign flush.front_tag 		= front[3:0];
+    assign flush.rear_tag       = rear[3:0];
+
 	assign temp_in.pc_info 		= pci;
 	assign temp_in.data 		= 32'hxxxx;
 	assign temp_in.rdy 			= 1'b0;
 	assign temp_in.valid 		= 1'b1;
-
-	// SUPER INCORRECT WAY OF DOING THINGS, WILL 100% REDO
-	// assign br_result = arr[front].data[0];
-	// assign pc_result = arr[front].pc_info.pc;
-	// assign pc_result_load = (arr[front].pc_info.opcode == op_br && arr[front].rdy);
 	
 	task set_load_rs_default();
 		load_acu_rs 	= 1'b0;
 		load_br_rs 		= 1'b0;
 		load_lsq 		= 1'b0;
 		reg_ld_instr	= 1'b0;
-		flush			= 1'b0;
+		flush.valid		= 1'b0;
 		flush_pc		= 32'b0;
 		br_result		= 1'b0;
 		pc_result		= 32'b0;
 		pc_result_load 	= 1'b0;
 		num_deq			= 0;
-		flush_tag 		= 0;
+		flush_tag 		= 0;  // index of start of flush to rear of rob
 		for(int i = 0; i < size; i++) begin
 			rdest[i] 	= '{ 4'b0, 0, 32'b0 };
 			rd_bus[i] 	= arr[i].pc_info.rd;
@@ -101,8 +100,8 @@ module reorder_buffer #(
 	task dequeue();
 		// Check if empty before dequeuing
 		for(int i = 0; i < num_deq && i < size; i++) begin 
-			arr[front + i] 					<= '{ default: 0, pc_info: '{ opcode: op_imm, default: 0 }};
-			rob_broadcast_bus[front + i] 	<= '{ default: 0 };
+			arr[(front + i) % size] 				<= '{ default: 0, pc_info: '{ opcode: op_imm, default: 0 }};
+			rob_broadcast_bus[(front + i) % size] 	<= '{ default: 0 };
 		end 
 		// dequeued the last one
 		if(front == rear) begin 
@@ -127,8 +126,8 @@ module reorder_buffer #(
 		end 
 		else begin 
 			for(int i = 0; i < num_deq && i < size; i++) begin 
-				rob_broadcast_bus[i + front] 	<= '{ default: 0 };
-				arr[i + front]					<= '{ default: 0, pc_info: '{ opcode: op_imm, default: 0 }};
+				rob_broadcast_bus[(i + front) % size] 	<= '{ default: 0 };
+				arr[(i + front) % size]					<= '{ default: 0, pc_info: '{ opcode: op_imm, default: 0 }};
 			end 
 			arr[(rear + 1) % size]	<= data_in;
 		end 
@@ -141,14 +140,13 @@ module reorder_buffer #(
 	endtask
 
 	task flush_rob();
-		if(flush) begin 
-			for(int i = 0; i < size; i++) begin 
-				if((flush_tag + i) % size > rear)
-					break;
-				else
-					arr[(flush_tag + i) % size] <= '{ default: 0, pc_info: '{ opcode: op_imm, default: 0 }};
-			end
-		end 
+        for(int i = 0; i < size; i++) begin 
+            if((flush_tag + i) % size > rear)
+                break;
+            else
+                arr[(flush_tag + i) % size] <= '{ default: 0, pc_info: '{ opcode: op_imm, default: 0 }};
+        end
+        rear 	<= (flush_tag - 1) % size;
 	endtask
 
 	function logic check_valid_flush_tag(logic [3:0] i);
@@ -291,7 +289,7 @@ module reorder_buffer #(
 				pc_result 		= arr[br_rs_o[i].tag].pc_info.pc;
 				pc_result_load 	= 1'b1;
 				if(br_rs_o[i].data[0] != arr[br_rs_o[i].tag].pc_info.br_pred) begin 
-					flush 			= 1'b1;
+					flush.valid 	= 1'b1;
 					flush_tag 		= (br_rs_o[i].tag + 1) % size;
 					flush_pc		= br_rs_o[i].data[0] ? arr[br_rs_o[i].tag].pc_info.branch_pc : arr[br_rs_o[i].tag].pc_info.pc + 4;
 				end 
@@ -307,7 +305,7 @@ module reorder_buffer #(
 				arr[i] <= '{ default: 0, pc_info: '{ opcode: op_imm, default: 0 }};
 				rob_broadcast_bus[i] <= '{ default: 0 };
 			end 
-		end else if(flush) begin
+		end else if(flush.valid) begin
 			flush_rob(); 
 			if(deq)
 				dequeue(); 
@@ -323,7 +321,7 @@ module reorder_buffer #(
 			end
 
 			for (int i = 0; i < br_rs_size; i = i + 1) begin
-				if (br_rs_o[i].rdy & arr[br_rs_o[i].tag].valid &check_valid_flush_tag(br_rs_o[i].tag)) begin
+				if (br_rs_o[i].rdy & arr[br_rs_o[i].tag].valid & check_valid_flush_tag(br_rs_o[i].tag)) begin
 					arr[br_rs_o[i].tag].data <= br_rs_o[i].data;
 					arr[br_rs_o[i].tag].rdy <= 1'b1;
 					if(br_rs_o[i].data[0] != arr[br_rs_o[i].tag].pc_info.br_pred)

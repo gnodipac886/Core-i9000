@@ -8,6 +8,7 @@ module load_store_q #(
 (
 	input 	logic 				clk, 
 	input 	logic 				rst,
+	input	flush_t				flush,
 	input 	sal_t 				rob_bus[size],
 	input 	rs_t 				reg_entry,
 	input 	pci_t 				instruction,
@@ -38,15 +39,15 @@ module load_store_q #(
 	logic 	[31:0]	ld_byte_en;
 
 	// circular queue signals
-	logic 				enq;
-	logic 				deq;
-	lsq_t 				in;
-	logic 				empty;
-	logic 				full;
-	logic 				ready;
-	lsq_t 				out;
-	int 				front, rear;
-  	int					next_front, next_rear;
+	logic 			enq;
+	logic 			deq;
+	lsq_t 			in;
+	logic 			empty;
+	logic 			full;
+	logic 			ready;
+	lsq_t 			out;
+	int 			front, rear;
+  	int				next_front, next_rear;
 	  	
 	assign 			enq 				= lsq_enq;
 	assign 			deq 				= lsq_deq;
@@ -60,11 +61,10 @@ module load_store_q #(
 	assign 			empty 				= front == -1;
 	assign			out 				= enq && deq && front == -1 ? in : arr[front];
 
-
 	assign 			front_is_ld 		= lsq_front.pc_info.opcode == op_load;
 	assign 			front_is_valid 		= ~lsq_empty && ~lsq_front.addr_is_tag;		// can be improved, doesn't need to be head
 	assign 			next_front_is_ld 	= lsq_next_front.pc_info.opcode == op_load;
-	assign 			next_front_is_valid = ~lsq_empty && ~lsq_next_front.addr_is_tag;		// can be improved, doesn't need to be head
+	assign 			next_front_is_valid = check_next_valid(next_front) && ~lsq_empty && ~lsq_next_front.addr_is_tag;		// can be improved, doesn't need to be head
 	assign 			is_lsq_instr 		= instruction.opcode == op_load || instruction.opcode == op_store;
 	assign 			is_ld_instr 		= instruction.opcode == op_load;
 	assign 			is_st_instr 		= instruction.opcode == op_store;
@@ -84,6 +84,24 @@ module load_store_q #(
 		next_front 		= front;
 		next_rear 		= rear;
 	endfunction : set_default
+
+	function logic check_next_valid(int i);
+		if(front <= rear) begin
+			return front <= i && i < rear ? 1'b1 : 1'b0;
+		end 
+		else begin 
+			return front <= i || i < rear ? 1'b1 : 1'b0;
+		end 
+	endfunction
+
+	function logic check_valid_flush_tag(logic [3:0] i);
+		if(flush.front_tag <= flush.flush_tag) begin
+			return flush.front_tag <= i && i < flush.flush_tag ? 1'b1 : 1'b0;
+		end 
+		else begin 
+			return flush.front_tag <= i || i < flush.flush_tag ? 1'b1 : 1'b0;
+		end 
+	endfunction
 
 	task update_q_reg(int i, sal_t rob_item);
 		if(arr[i].addr_is_tag & rob_item.rdy) begin

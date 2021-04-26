@@ -41,7 +41,12 @@ branch_pred_tests:
 	addi 	x2, x2, 10
 loop:
 	add 	x1, x1, 1
+	add     x3, x3, 2
+	add		x4, x4, 3
+	lw      x8, bad
 	bne 	x1, x2, loop
+	add		x1, x1, 1
+	add     x3, x3, 1
 	
 
 # lsq:

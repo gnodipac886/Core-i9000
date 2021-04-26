@@ -24,11 +24,7 @@ module branch_predictor #(parameter size = 64)
 
 	assign arr_idx = pc_info.pc[7:2];
 	assign result_idx = pc_result[7:2];
-	
-	task update_lru();
-		
-	endtask
-	
+
 
 // 76543210
 // 11111100 => 31 take counter => 11
