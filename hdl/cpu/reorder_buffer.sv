@@ -104,12 +104,12 @@ module reorder_buffer #(
 			rob_broadcast_bus[(front + i) % size] 	<= '{ default: 0 };
 		end 
 		// dequeued the last one
-		if(front == rear) begin 
+		if(front == rear || front + num_deq > rear) begin 
 			front 	<= -1;
 			rear 	<= -1;
 		end
 		else begin 
-			front 	<= (front + num_deq) % size;
+			front 	<=  (front + num_deq) % size;
 		end
 	endtask : dequeue
 
@@ -141,8 +141,10 @@ module reorder_buffer #(
 
 	task flush_rob();
 		for(int i = 0; i < size; i++) begin 
-			if(~check_valid_flush_tag((flush_tag + i) % size))
+			if(~check_valid_flush_tag((flush_tag + i) % size)) begin
 				arr[(flush_tag + i) % size] <= '{ default: 0, pc_info: '{ opcode: op_imm, default: 0 }};
+				rob_broadcast_bus[(flush_tag + i) % size] <= '{default: 0};
+			end
 		end
 		rear 	<= (flush_tag - 1) % size;
 	endtask

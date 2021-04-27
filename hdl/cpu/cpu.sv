@@ -100,6 +100,8 @@ module cpu #(
 	/*branch prediction logic*/
 	logic				br_taken;
 	logic	[width-1:0] br_addr;
+	logic				br_miss_pc_load;
+	logic	[width-1:0] br_miss_pc_save;
 
 	// CHECKPOINT 2 LAZY BRANCH METHOD VARSs	
 	logic 	[1:0]	pc_mux_sel;
@@ -117,8 +119,11 @@ module cpu #(
 	always_comb begin
 		br_next_pc = 0;
 		pc_mux_sel = 2'b00;
-
-		if(flush.valid) begin 
+		
+		if(br_miss_pc_load) begin
+			pc_mux_sel			= 2'b11;
+		end
+		else if(flush.valid) begin 
 			pc_mux_sel 			= 2'b10;
 		end 
 		else begin 
@@ -149,9 +154,26 @@ module cpu #(
 			2'b00: pc_mux_out = pc_out + 4;
 			2'b01: pc_mux_out = br_next_pc;
 			2'b10: pc_mux_out = flush_pc;
+			2'b11: pc_mux_out = br_miss_pc_save;
 			default: ;
 		endcase
 
+	end
+
+	always_ff @(posedge clk) begin
+		if(rst) begin 
+			br_miss_pc_load <= 1'b0;
+			br_miss_pc_save <= 32'b0;
+		end 
+		else if(flush.valid & ~pc_load) begin 
+			br_miss_pc_load <= 1'b1;
+		end else if(br_miss_pc_load & pc_load) begin 
+			br_miss_pc_load <= 1'b0;
+		end
+
+		if (flush.valid) begin
+			br_miss_pc_save <= flush_pc;
+		end 
 	end
 
 	pc_register pc_reg(
@@ -177,7 +199,7 @@ module cpu #(
 	);
 
 	circular_q iq(
-		.enq(iq_enq),
+		.enq(iq_enq & ~br_miss_pc_load),
 		.deq(iq_deq),
 		.in(iq_in),
 		.empty(iq_empty),
