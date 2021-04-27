@@ -26,7 +26,7 @@ module reorder_buffer #(
 	output logic load_acu_rs,
 	output logic load_lsq,
 	output sal_t rob_broadcast_bus [size],
-	output sal_t rdest[size],
+	output sal2_t rdest[size],
 	output logic [4:0] rd_bus[size],
 	output logic [3:0] rd_tag,
 	output logic reg_ld_instr,
@@ -75,7 +75,7 @@ module reorder_buffer #(
 		num_deq			= 0;
 		flush_tag 		= 0;  // index of start of flush to rear of rob
 		for(int i = 0; i < size; i++) begin
-			rdest[i] 	= '{ 4'b0, 0, 32'b0 };
+			rdest[i] 	= '{ tag: 4'b0, rdy: 0, data: 32'b0, pc_info: '{ opcode: op_imm, default: 0 } };
 			rd_bus[i] 	= arr[i].pc_info.rd;
 		end
 	endtask
@@ -170,11 +170,11 @@ module reorder_buffer #(
 						continue;
 					end 
 					else if (arr[i + front].pc_info.opcode == op_jalr)
-						rdest[i + front] = '{ (i[3:0] + front[3:0]), arr[i + front].rdy, arr[i + front].pc_info.pc + 4 };
+						rdest[i + front] = '{ (i[3:0] + front[3:0]), arr[i + front].rdy, arr[i + front].pc_info.pc + 4, arr[i+front].pc_info };
 					else // FIX JALR RDEST[i + front] HERE
-						rdest[i + front] = '{ (i[3:0] + front[3:0]), arr[i + front].rdy, arr[i + front].data };
+						rdest[i + front] = '{ (i[3:0] + front[3:0]), arr[i + front].rdy, arr[i + front].data, arr[i+front].pc_info };
 				end else
-					rdest[i + front] = '{ 4'b0, 0, 32'b0 };
+					rdest[i + front] = '{ 4'b0, 0, 32'b0, '{ opcode: op_imm, default: 0 } };
 				num_deq++;
 			end 
 		end 
@@ -188,11 +188,11 @@ module reorder_buffer #(
 						continue;
 					end 
 					else if (arr[i + front].pc_info.opcode == op_jalr)
-						rdest[i + front] = '{ (i[3:0] + front[3:0]), arr[i + front].rdy, arr[i + front].pc_info.pc + 4 };
+						rdest[i + front] = '{ (i[3:0] + front[3:0]), arr[i + front].rdy, arr[i + front].pc_info.pc + 4, arr[i+front].pc_info };
 					else // FIX JALR RDEST[i + front] HERE
-						rdest[i + front] = '{ (i[3:0] + front[3:0]), arr[i + front].rdy, arr[i + front].data };
+						rdest[i + front] = '{ (i[3:0] + front[3:0]), arr[i + front].rdy, arr[i + front].data, arr[i+front].pc_info };
 				end else
-					rdest[i + front] = '{ 4'b0, 0, 32'b0 };
+					rdest[i + front] = '{ 4'b0, 0, 32'b0, '{ opcode: op_imm, default: 0 } };
 				num_deq++;
 			end 
 		 
@@ -206,11 +206,11 @@ module reorder_buffer #(
 		 					continue;
 		 				end 
 						else if (arr[i].pc_info.opcode == op_jalr)
-		 					rdest[i] = '{ (i[3:0] + front[3:0]), arr[i].rdy, arr[i].pc_info.pc + 4 };
+		 					rdest[i] = '{ (i[3:0] + front[3:0]), arr[i].rdy, arr[i].pc_info.pc + 4 , arr[i].pc_info};
 		 				else // FIX JALR RDEST[i] HERE
-		 					rdest[i] = '{ (i[3:0] + front[3:0]), arr[i].rdy, arr[i].data };
+		 					rdest[i] = '{ (i[3:0] + front[3:0]), arr[i].rdy, arr[i].data, arr[i].pc_info };
 		 			end else
-		 				rdest[i] = '{ 4'b0, 0, 32'b0 };
+		 				rdest[i] = '{ 4'b0, 0, 32'b0, '{ opcode: op_imm, default: 0 }};
 		 			num_deq++;
 		 		end 
 		 	end 

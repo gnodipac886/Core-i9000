@@ -5,7 +5,7 @@ module regfile #(	parameter width = 32,
 (
 	input logic clk,
 	input logic rst,
-	input sal_t rdest[size],
+	input sal2_t rdest[size],
 	input logic reg_ld_instr,
 	input logic [3:0] rd_tag,
 	input logic [4:0] rs1, rs2, rd,

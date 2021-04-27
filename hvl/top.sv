@@ -112,4 +112,14 @@ mp4 dut(
 //   .errcode(itf.errcode)
 // );
 
+software_model sm(
+	.clk	(itf.clk),
+	.rst    (itf.rst),
+	.commit (dut.cpu.rob.rd_bus[0].rdy || dut.cpu.rob.rd_bus[1].rdy || dut.cpu.rob.rd_bus[2].rdy || dut.cpu.rob.rd_bus[3].rdy || dut.cpu.rob.rd_bus[4].rdy 
+		|| dut.cpu.rob.rd_bus[5].rdy || dut.cpu.rob.rd_bus[6].rdy || dut.cpu.rob.rd_bus[7].rdy),
+	.rdest  (dut.cpu.rob.rdest),
+	.rd_bus (dut.cpu.rob.rd_bus),
+	.cpu_registers(dut.cpu.registers.data)
+)
+
 endmodule : mp4_tb
