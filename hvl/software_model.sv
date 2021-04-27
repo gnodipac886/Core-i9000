@@ -12,11 +12,11 @@ module software_model #(
 	input logic rst,
 	
 	input logic commit, // whenever any of the rdest.rdy bits are 1 (link them up in a big OR?)
-	input sal_t rdest[size], // from rob
+	input sal2_t rdest[size], // from rob
 	input logic [4:0] rd_bus[size], // probably not needed
 
-	input reg_entry_t cpu_registers[32], // the whole regfile
-)
+	input reg_entry_t cpu_registers[32] // the whole regfile
+);
 
 reg_entry_t data[32];
 logic [31:0] r1_data;
@@ -33,45 +33,45 @@ endtask
 
 task ingest_rd(int index);
 // get the pci from each entry, and then do a big case statement of opcodes
-	pci = rdest[i].pci;
+	pci = rdest[index].pc_info;
 
 	case (pci.opcode)
 		op_imm:
 		begin
-			r1_data = data[pci.rs1];
+			r1_data = data[pci.rs1].data;
 			r2_data = pci.i_imm;
 			case (pci.funct3)
 				3'b000: //addi
 				begin
-					data[pci.rd] = r1_data + r2_data;
+					data[pci.rd].data = r1_data + r2_data;
 				end
 				3'b001: //slli
 				begin
-					data[pci.rd] = r1_data << r2_data[4:0];
+					data[pci.rd].data = r1_data << r2_data[4:0];
 				end
 				3'b010: //slti
 				begin
-					data[pci.rd] = r1_data + r2_data;
+					data[pci.rd].data = r1_data + r2_data;
 				end
 				3'b011: //sltiu
 				begin
-					data[pci.rd] = r1_data + r2_data;
+					data[pci.rd].data = r1_data + r2_data;
 				end
 				3'b100: //xori
 				begin
-					data[pci.rd] = r1_data + r2_data;
+					data[pci.rd].data = r1_data + r2_data;
 				end
 				3'b101: //srli OR srai
 				begin
-					data[pci.rd] = r1_data + r2_data;
+					data[pci.rd].data = r1_data + r2_data;
 				end
 				3'b110: //ori
 				begin
-					data[pci.rd] = r1_data + r2_data;
+					data[pci.rd].data = r1_data + r2_data;
 				end
 				3'b111: //andi
 				begin
-					data[pci.rd] = r1_data + r2_data;
+					data[pci.rd].data = r1_data + r2_data;
 				end
 				default: ;
 			endcase // pci.funct3
@@ -81,8 +81,8 @@ task ingest_rd(int index);
 endtask
 
 task compare_registers();
-	for (int i = 0; i < 32, i++) begin
-		assert (cpu_registers[i].data == data[i].data); $info("%0t: register %0d matches", $time, i);
+	for (int i = 0; i < 32; i++) begin
+		assert (cpu_registers[i].data == data[i].data) $info("%0t: register %0d matches", $time, i);
 		else $error("%0t: register %0d should be %0d, but it is %0d", $time, i, data[i].data, cpu_registers[i].data);
 	end
 endtask
@@ -98,12 +98,9 @@ initial begin : TEST_VECTORS
 		end
 	end
 	compare_registers();
-
-
-
 end
 
-import rv32i_types::*;
+endmodule : software_model
 
 // module decoder #(parameter width = 32)
 // (
