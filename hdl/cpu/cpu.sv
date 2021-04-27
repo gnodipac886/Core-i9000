@@ -135,7 +135,7 @@ module cpu #(
 
 				op_jalr	: begin 								// NEEEDDDD TO DO THIS!!!!!!!!!!!!!!!!!!!!!!!!!!! NEED TO STALL???
 					br_next_pc 	= rob_front.data;
-					pc_mux_sel 	= 2'b01;
+					pc_mux_sel 	= 2'b00;
 				end 
 
 				op_br	: begin 

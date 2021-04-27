@@ -109,6 +109,9 @@ module load_store_q #(
 			if(flush.valid && ~check_valid_flush_tag(arr[(front + i) % size].rd_tag)) begin 
 				return (front + i) % size;
 			end 
+			if ((front + i) % size == rear) begin
+				return rear;
+			end
 		end 
 	endfunction
 

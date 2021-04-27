@@ -146,7 +146,7 @@ module reorder_buffer #(
 				rob_broadcast_bus[(flush_tag + i) % size] <= '{default: 0};
 			end
 		end
-		rear 	<= (flush_tag - 1) % size;
+		rear 	<= (flush_tag == 0) ? 7 : (flush_tag - 1);
 	endtask
 
 	function logic check_valid_flush_tag(logic [3:0] i);
@@ -285,13 +285,20 @@ module reorder_buffer #(
 		// ADD LOGIC FOR JALR HERE!!!!!!!!!!!!!!!!!!!
 		for (int i = 0; i < br_rs_size; i++) begin
 			if (br_rs_o[i].rdy & arr[br_rs_o[i].tag].valid) begin
-				br_result 		= br_rs_o[i].data[0];
-				pc_result 		= arr[br_rs_o[i].tag].pc_info.pc;
-				pc_result_load 	= 1'b1;
-				if(br_rs_o[i].data[0] != arr[br_rs_o[i].tag].pc_info.br_pred) begin 
+				if(arr[br_rs_o[i].tag].pc_info.is_br_instr) begin 
+					br_result 		= br_rs_o[i].data[0];
+					pc_result 		= arr[br_rs_o[i].tag].pc_info.pc;
+					pc_result_load 	= 1'b1;
+					if(br_rs_o[i].data[0] != arr[br_rs_o[i].tag].pc_info.br_pred) begin 
+						flush.valid 	= 1'b1;
+						flush_tag 		= (br_rs_o[i].tag + 1) % size;
+						flush_pc		= br_rs_o[i].data[0] ? arr[br_rs_o[i].tag].pc_info.branch_pc : arr[br_rs_o[i].tag].pc_info.pc + 4;
+					end 
+				end 
+				else if(arr[br_rs_o[i].tag].pc_info.opcode == op_jalr) begin 
 					flush.valid 	= 1'b1;
 					flush_tag 		= (br_rs_o[i].tag + 1) % size;
-					flush_pc		= br_rs_o[i].data[0] ? arr[br_rs_o[i].tag].pc_info.branch_pc : arr[br_rs_o[i].tag].pc_info.pc + 4;
+					flush_pc		= br_rs_o[i].data;
 				end 
 			end
 		end
@@ -322,9 +329,13 @@ module reorder_buffer #(
 
 			for (int i = 0; i < br_rs_size; i = i + 1) begin
 				if (br_rs_o[i].rdy & arr[br_rs_o[i].tag].valid & check_valid_flush_tag(br_rs_o[i].tag)) begin
-					arr[br_rs_o[i].tag].data <= br_rs_o[i].data;
 					arr[br_rs_o[i].tag].rdy <= 1'b1;
-					if(br_rs_o[i].data[0] != arr[br_rs_o[i].tag].pc_info.br_pred)
+					if(arr[br_rs_o[i].tag].pc_info.opcode == op_jal) begin
+						arr[br_rs_o[i].tag].data <= arr[br_rs_o[i].tag].pc_info.pc + 4;
+						broadcast('{tag: br_rs_o[i].tag, rdy: 1'b1, data: arr[br_rs_o[i].tag].pc_info.pc + 4});
+					end else begin
+						arr[br_rs_o[i].tag].data <= br_rs_o[i].data;
+					end
 					if(arr[br_rs_o[i].tag].pc_info.opcode == op_jalr)
 						broadcast(br_rs_o[i]);
 				end
@@ -357,10 +368,14 @@ module reorder_buffer #(
 			end
 
 			for (int i = 0; i < br_rs_size; i = i + 1) begin
-				if (br_rs_o[i].rdy & arr[br_rs_o[i].tag].valid) begin
-					arr[br_rs_o[i].tag].data <= br_rs_o[i].data;
+				if (br_rs_o[i].rdy & arr[br_rs_o[i].tag].valid & check_valid_flush_tag(br_rs_o[i].tag)) begin
 					arr[br_rs_o[i].tag].rdy <= 1'b1;
-					if(br_rs_o[i].data[0] != arr[br_rs_o[i].tag].pc_info.br_pred)
+					if(arr[br_rs_o[i].tag].pc_info.opcode == op_jal) begin
+						arr[br_rs_o[i].tag].data <= arr[br_rs_o[i].tag].pc_info.pc + 4;
+						broadcast('{tag: br_rs_o[i].tag, rdy: 1'b1, data: arr[br_rs_o[i].tag].pc_info.pc + 4});
+					end else begin
+						arr[br_rs_o[i].tag].data <= br_rs_o[i].data;
+					end
 					if(arr[br_rs_o[i].tag].pc_info.opcode == op_jalr)
 						broadcast(br_rs_o[i]);
 				end
