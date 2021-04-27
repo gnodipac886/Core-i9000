@@ -98,13 +98,6 @@ typedef struct {
 } sal_t;
 
 typedef struct {
-	logic 	[3:0] 	tag;
-	logic 			rdy;
-	logic 	[31:0] 	data;
-	pci_t           pc_info;
-} sal2_t;
-
-typedef struct {
 	sal_t 			op1;
 	sal_t 			op2;
 	alu_ops 		operation;
@@ -137,6 +130,13 @@ typedef struct {
 	logic			rdy;
 	logic			valid;
 } rob_t;
+
+typedef struct {
+	logic 	[3:0] 	tag;
+	logic 			rdy;
+	logic 	[31:0] 	data;
+	pci_t           pc_info;
+} sal2_t;
 
 typedef struct {
 	logic	[31:0]	data;
