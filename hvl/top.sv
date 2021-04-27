@@ -119,7 +119,8 @@ software_model sm(
 		|| dut.cpu.rob.rdest[5].rdy || dut.cpu.rob.rdest[6].rdy || dut.cpu.rob.rdest[7].rdy),
 	.rdest  (dut.cpu.rob.rdest),
 	.rd_bus (dut.cpu.rob.rd_bus),
-	.cpu_registers(dut.cpu.registers.data)
+	.cpu_registers(dut.cpu.registers.data),
+	.halt(itf.halt)
 );
 
 endmodule : mp4_tb
