@@ -140,13 +140,11 @@ module reorder_buffer #(
 	endtask
 
 	task flush_rob();
-        for(int i = 0; i < size; i++) begin 
-            if((flush_tag + i) % size > rear)
-                break;
-            else
-                arr[(flush_tag + i) % size] <= '{ default: 0, pc_info: '{ opcode: op_imm, default: 0 }};
-        end
-        rear 	<= (flush_tag - 1) % size;
+		for(int i = 0; i < size; i++) begin 
+			if(~check_valid_flush_tag((flush_tag + i) % size))
+				arr[(flush_tag + i) % size] <= '{ default: 0, pc_info: '{ opcode: op_imm, default: 0 }};
+		end
+		rear 	<= (flush_tag - 1) % size;
 	endtask
 
 	function logic check_valid_flush_tag(logic [3:0] i);

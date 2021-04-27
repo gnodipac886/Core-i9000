@@ -226,4 +226,4 @@ module reservation_station #(parameter size = 8, parameter rob_size = 8)
 		end
 	end
 
-endmodule : reservation_station
+endmodule : reservation_station 
