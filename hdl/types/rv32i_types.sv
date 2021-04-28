@@ -98,13 +98,6 @@ typedef struct {
 } sal_t;
 
 typedef struct {
-	logic 	[3:0] 	tag;
-	logic 			rdy;
-	logic 	[31:0] 	data;
-	pci_t           pc_info;
-} sal2_t;
-
-typedef struct {
 	sal_t 			op1;
 	sal_t 			op2;
 	alu_ops 		operation;
@@ -177,5 +170,12 @@ typedef struct {
 	logic   [3:0]   rear_tag;
     logic   [3:0]   flush_tag;
 } flush_t;
+
+typedef struct {
+	logic 	[3:0] 	tag;
+	logic 			rdy;
+	logic 	[31:0] 	data;
+	pci_t           pc_info;
+} sal2_t;
 
 endpackage : rv32i_types

@@ -112,6 +112,7 @@ mp4 dut(
 //   .errcode(itf.errcode)
 // );
 
+/*
 software_model sm(
 	.clk	(itf.clk),
 	.rst    (itf.rst),
@@ -121,5 +122,6 @@ software_model sm(
 	.rd_bus (dut.cpu.rob.rd_bus),
 	.cpu_registers(dut.cpu.registers.data)
 )
+*/
 
 endmodule : mp4_tb
