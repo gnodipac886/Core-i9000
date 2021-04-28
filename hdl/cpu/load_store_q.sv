@@ -128,6 +128,10 @@ module load_store_q #(
 			// reset the whole table
 			front 	<= -1;
 			rear 	<= -1;
+			mem_read <= 0;
+			mem_write <= 0;
+			ready 			<= 	0;
+			lsq_out 		<= '{default: 0};
 			for (int i = 0; i < size; i++) begin
 				arr[i] <= '{pc_info: '{opcode: op_imm, default: 0}, default: 0};
 			end
