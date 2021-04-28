@@ -120,6 +120,7 @@ software_model sm(
 	.rdest  (dut.cpu.rob.rdest),
 	.rd_bus (dut.cpu.rob.rd_bus),
 	.cpu_registers(dut.cpu.registers.data),
+	.pc(dut.cpu.pc_out),
 	.halt(itf.halt)
 );
 
