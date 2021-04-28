@@ -132,6 +132,13 @@ typedef struct {
 } rob_t;
 
 typedef struct {
+	logic 	[3:0] 	tag;
+	logic 			rdy;
+	logic 	[31:0] 	data;
+	pci_t           pc_info;
+} sal2_t;
+
+typedef struct {
 	logic	[31:0]	data;
 	logic	[3:0]	tag;
 	logic	busy;

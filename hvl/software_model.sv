@@ -8,24 +8,35 @@ module software_model #(
 	parameter lsq_size 		= 8
 )
 (
-	input logic clk,
+	// input logic clk,
 	input logic rst,
 	
 	input logic commit, // whenever any of the rdest.rdy bits are 1 (link them up in a big OR?)
-	input sal_t rdest[size], // from rob
+	input sal2_t rdest[size], // from rob
 	input logic [4:0] rd_bus[size], // probably not needed
 
 	input reg_entry_t cpu_registers[32], // the whole regfile
-)
+	input logic halt,
+	input logic [31:0] pc
+);
+timeunit 1ns;
+timeprecision 1ns;
+logic clk;
+always #5 clk = clk === 1'b0;
+default clocking tb_clk @(posedge clk); endclocking
 
 reg_entry_t data[32];
 logic [31:0] r1_data;
 logic [31:0] r2_data;
 pci_t pci;
+logic [31:0] take_pc;
+logic [31:0] pc_out;
 task reset();
 	pci = '{ opcode: op_imm, default: 0 };
 	r1_data = '0;
 	r2_data = '0;
+	pc_out = 32'h60;
+	take_pc = '0;
 	for (int i = 0; i < 32; i++) begin
 		data[i] <= '{default: 0 };
 	end
@@ -33,111 +44,220 @@ endtask
 
 task ingest_rd(int index);
 // get the pci from each entry, and then do a big case statement of opcodes
-	pci = rdest[i].pci;
+	pci = rdest[index].pc_info;
 
 	case (pci.opcode)
 		op_imm:
 		begin
-			r1_data = data[pci.rs1];
+			r1_data = data[pci.rs1].data;
 			r2_data = pci.i_imm;
 			case (pci.funct3)
-				3'b000: //addi
+				3'b000: //addi 
 				begin
-					data[pci.rd] = r1_data + r2_data;
+					data[pci.rd].data = r1_data + r2_data;
 				end
 				3'b001: //slli
 				begin
-					data[pci.rd] = r1_data << r2_data[4:0];
+					data[pci.rd].data = r1_data << r2_data[4:0];
 				end
-				3'b010: //slti
+				3'b010: //slti (need to do something special?)
 				begin
-					data[pci.rd] = r1_data + r2_data;
+					data[pci.rd].data = $signed(r1_data) < $signed(r2_data) ? 1'b1 : 1'b0;
 				end
 				3'b011: //sltiu
 				begin
-					data[pci.rd] = r1_data + r2_data;
+					data[pci.rd].data = r1_data < r2_data ? 1'b1 : 1'b0;
 				end
 				3'b100: //xori
 				begin
-					data[pci.rd] = r1_data + r2_data;
+					data[pci.rd].data = r1_data ^ r2_data;
 				end
 				3'b101: //srli OR srai
 				begin
-					data[pci.rd] = r1_data + r2_data;
+					if (~pci.funct7[5]) //srli
+						data[pci.rd].data = r1_data >> r2_data[4:0];
+					else
+						data[pci.rd].data = $signed(r1_data) >>> r2_data[4:0];
 				end
 				3'b110: //ori
 				begin
-					data[pci.rd] = r1_data + r2_data;
+					data[pci.rd].data = r1_data | r2_data;
 				end
 				3'b111: //andi
 				begin
-					data[pci.rd] = r1_data + r2_data;
+					data[pci.rd].data = r1_data & r2_data;
 				end
 				default: ;
 			endcase // pci.funct3
 		end
+		op_reg:	
+		begin
+			r1_data = data[pci.rs1].data;
+			r2_data = data[pci.rs2].data;
+			case (pci.funct3)
+				3'b000: //add or sub
+				begin
+					if (~pci.funct7[5])
+						data[pci.rd].data = r1_data + r2_data;
+					else
+						data[pci.rd].data = r1_data - r2_data;
+				end
+				3'b001: //sll
+				begin
+					data[pci.rd].data = r1_data << r2_data[4:0];
+				end
+				3'b010: //slt 
+				begin
+					data[pci.rd].data = $signed(r1_data) >>> r2_data[4:0];
+				end
+				3'b011: //sltu
+				begin
+					data[pci.rd].data = r1_data - r2_data;
+				end
+				3'b100: //xor
+				begin
+					data[pci.rd].data = r1_data ^ r2_data;
+				end
+				3'b101: //srl OR sra
+				begin
+					if (~pci.funct7[5]) //srli
+						data[pci.rd].data = r1_data >> r2_data[4:0];
+					else
+						data[pci.rd].data = $signed(r1_data) >>> r2_data[4:0];
+				end
+				3'b110: //or
+				begin
+					data[pci.rd].data = r1_data | r2_data;
+				end
+				3'b111: //and
+				begin
+					data[pci.rd].data = r1_data & r2_data;
+				end
+				default: ;
+			endcase // pci.funct3
+		end
+		op_br:
+		begin
+			r1_data = data[pci.rs1].data;
+			r2_data = data[pci.rs2].data;
+			take_pc = pci.branch_pc;
+			case (pci.funct3)
+			3'b000: //beq
+			begin
+				if (r1_data == r2_data ? '1 : '0)
+				begin
+					pc_out = take_pc;
+				end
+			end
+			3'b001: //bne
+			begin
+				if (r1_data != r2_data ? '1 : '0)
+				begin
+					pc_out = take_pc;
+				end
+			end
+			3'b100: //blt
+			begin
+				if ($signed(r1_data) < $signed(r2_data) ? '1 : '0)
+				begin
+					pc_out = take_pc;
+				end
+			end
+			3'b101: //bge
+			begin
+				if (($signed(r1_data) > $signed(r2_data) || $signed(r1_data) == $signed(r2_data))? '1 : '0)
+				begin
+					pc_out = take_pc;
+				end
+			end
+			3'b110: //bltu
+			begin
+				if (r1_data < r2_data ? '1 : '0)
+				begin
+					pc_out = take_pc;
+				end
+			end
+			3'b111: //bgeu
+			begin
+				if ((r1_data > r2_data || r1_data ==r2_data) ? '1 : '0)
+				begin
+					pc_out = take_pc;
+				end
+			end
+			default:;
+			endcase
+		end
+		op_lui:
+		begin
+			data[pci.rd].data = pci.u_imm;
+		end
+		op_auipc:
+		begin
+			pc_out = pci.pc + pci.u_imm;
+			data[pci.rd].data = pc_out;
+		end
+		op_jal:
+		begin
+			pc_out = pci.pc + pci.j_imm;
+			data[pci.rd].data = pc_out;
+		end
+		op_jalr:
+		begin
+			r1_data = data[pci.rs1].data;
+			pc_out = r1_data + pci.i_imm;
+			data[pci.rd].data = pc_out;
+		end
+		op_load: // TODO: MAKE A MEANINGFUL LOAD CASE
+		begin
+			//currently looks in the rdest data, copies that to the software model
+			data[pci.rd].data = rdest[index].data;
+		end
+		op_store:;
 		default:;
 	endcase // pci.opcode
-endtask
 
+	if (pci.opcode != op_br && pci.opcode != op_auipc && pci.opcode != op_jal && pci.opcode != op_jalr)
+		pc_out = pc_out + 4;
+endtask
+logic flag = 1'b0;
 task compare_registers();
-	for (int i = 0; i < 32, i++) begin
-		assert (cpu_registers[i].data == data[i].data); $info("%0t: register %0d matches", $time, i);
-		else $error("%0t: register %0d should be %0d, but it is %0d", $time, i, data[i].data, cpu_registers[i].data);
+	// $display("comparing registers at %0t", $time);
+	flag = 1'b0;
+	for (int i = 0; i < 32; i++) begin
+		assert (cpu_registers[i].data == data[i].data) //$display("%0t: register %0d matches", $time, i);
+		else begin 
+			$error("%0t: register %0d should be %0x, but it is %0x", $time, i, data[i].data, cpu_registers[i].data);
+			flag = 1'b1;
+		end
 	end
+	// assert(pc == pc_out)
+	// else begin
+	// 	$error("%0t: pc should be %0x, but it is %0x", $time, pc_out, pc);
+	// 	flag = 1'b1;
+	// end
+	if (~flag) $display("all good at commit %4t", $time);
 endtask
 
 initial begin : TEST_VECTORS
 	reset();
-	@(commit);
-	for (int i = 0; i < size; i++) begin
-		if (~rdest[i].rdy) begin
-			continue;
-		end else begin
-			ingest_rd(i);
-		end
-	end
-	compare_registers();
-
 
 
 end
 
-import rv32i_types::*;
+always @(posedge tb_clk iff commit) begin
+		for (int i = 0; i < size; i++) begin
+			if (~rdest[i].rdy) begin
+				continue;
+			end else begin
+				ingest_rd(i);
+			end
+		end
+end
 
-// module decoder #(parameter width = 32)
-// (
-// 	input 	logic 	[width-1:0] 	instruction,
-// 	input 	logic 	[width-1:0] 	pc,
-// 	input	logic					br_taken,
-// 	output 	pci_t 					decoder_out
-// );
-
-// 	logic [31:0] 	data;
-// 	pci_t 			pci;
-
-// 	assign data 			= instruction;
-// 	assign decoder_out 		= pci;
-	
-// 	assign pci.pc 			= pc;
-// 	assign pci.instruction 	= data;
-// 	assign pci.funct3 		= data[14:12];
-// 	assign pci.funct7 		= data[31:25];
-// 	assign pci.opcode 		= rv32i_opcode'(data[6:0]);
-// 	assign pci.i_imm 		= {{21{data[31]}}, data[30:20]};
-// 	assign pci.s_imm 		= {{21{data[31]}}, data[30:25], data[11:7]};
-// 	assign pci.b_imm 		= {{20{data[31]}}, data[7], data[30:25], data[11:8], 1'b0};
-// 	assign pci.u_imm 		= {data[31:12], 12'h000};
-// 	assign pci.j_imm 		= {{12{data[31]}}, data[19:12], data[20], data[30:21], 1'b0};
-// 	assign pci.rs1 			= data[19:15];
-// 	assign pci.rs2 			= data[24:20];
-// 	assign pci.rd 			= data[11:7];
-// 	assign pci.is_br_instr 	= pci.opcode == op_br;
-// 	assign pci.br_pred 		= br_taken;
-// 	assign pci.branch_pc	= pc + pci.b_imm;
-// 	assign pci.jal_pc 		= pc + pci.j_imm;
-
-// endmodule : decoder
+always @(negedge commit) begin
+	// we want to compare the registers after the rdest has propogated (next cycle)	
+	compare_registers();
+end
 
 
-
+endmodule : software_model
