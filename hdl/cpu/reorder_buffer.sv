@@ -44,6 +44,7 @@ module reorder_buffer #(
 	rob_t temp_in;
 	int front, rear;
 	int num_deq, flush_tag;
+	int num_items;
 
 	logic enq, deq, full, empty;
 	assign instr_q_dequeue		= enq;
@@ -74,9 +75,13 @@ module reorder_buffer #(
 		pc_result_load 	= 1'b0;
 		num_deq			= 0;
 		flush_tag 		= 0;  // index of start of flush to rear of rob
+		num_items		= 0;
 		for(int i = 0; i < size; i++) begin
 			rdest[i] 	= '{ tag: 4'b0, rdy: 0, data: 32'b0, pc_info: '{ opcode: op_imm, default: 0 } };
 			rd_bus[i] 	= arr[i].pc_info.rd;
+			if (arr[i].valid) begin
+				num_items++;
+			end
 		end
 	endtask
 	
@@ -104,7 +109,7 @@ module reorder_buffer #(
 			rob_broadcast_bus[(front + i) % size] 	<= '{ default: 0 };
 		end 
 		// dequeued the last one
-		if(front == rear || front + num_deq > rear) begin 
+		if(front == rear || num_deq == num_items) begin 
 			front 	<= -1;
 			rear 	<= -1;
 		end
@@ -292,13 +297,13 @@ module reorder_buffer #(
 					br_result 		= br_rs_o[i].data[0];
 					pc_result 		= arr[br_rs_o[i].tag].pc_info.pc;
 					pc_result_load 	= 1'b1;
-					if(br_rs_o[i].data[0] != arr[br_rs_o[i].tag].pc_info.br_pred) begin 
+					if(br_rs_o[i].data[0] != arr[br_rs_o[i].tag].pc_info.br_pred) begin // Branch Mispredict flush
 						flush.valid 	= 1'b1;
 						flush_tag 		= (br_rs_o[i].tag + 1) % size;
 						flush_pc		= br_rs_o[i].data[0] ? arr[br_rs_o[i].tag].pc_info.branch_pc : arr[br_rs_o[i].tag].pc_info.pc + 4;
 					end 
 				end 
-				else if(arr[br_rs_o[i].tag].pc_info.opcode == op_jalr) begin 
+				else if(arr[br_rs_o[i].tag].pc_info.opcode == op_jalr) begin //JALR fake flush
 					flush.valid 	= 1'b1;
 					flush_tag 		= (br_rs_o[i].tag + 1) % size;
 					flush_pc		= br_rs_o[i].data;

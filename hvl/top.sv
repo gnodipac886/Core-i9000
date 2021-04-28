@@ -121,6 +121,7 @@ software_model sm(
 	.rd_bus (dut.cpu.rob.rd_bus),
 	.cpu_registers(dut.cpu.registers.data),
 	.pc(dut.cpu.pc_out),
+	.flush(dut.cpu.rob.flush),
 	.halt(itf.halt)
 );
 

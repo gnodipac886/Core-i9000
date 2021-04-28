@@ -63,6 +63,7 @@ module cpu #(
 	/*pc_reg logic*/
 	logic 				pc_load;
 	logic 	[width-1:0] pc_in, pc_out;
+	logic 	[width-1:0] fake_pc;
 
 	/* reorder buffer */
 	logic 				stall_br, stall_acu, stall_lsq;
@@ -107,6 +108,8 @@ module cpu #(
 	logic 	[1:0]	pc_mux_sel;
 	logic 	[31:0] 	pc_mux_out, br_next_pc;
 	rob_t 			rob_front;
+
+	assign fake_pc = pc_out + 8'ha0;
 
 	assign 			iq_br 		= iq_in.is_br_instr || iq_in.opcode == op_jal || iq_in.opcode == op_jalr;
 	// assigns

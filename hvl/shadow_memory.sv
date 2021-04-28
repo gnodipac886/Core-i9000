@@ -47,9 +47,9 @@ initial begin
         @(cache_itf.cmcb iff cache_itf.cmcb.resp)
         if (_read) begin
             if (rdata != cache_itf.cmcb.rdata) begin
-                $display("%0t: ShadowCache Error: Mismatch rdata:", $time,
-                    " Expected %8h, Detected: %8h", rdata,
-                    cache_itf.cmcb.rdata);
+                // $display("%0t: ShadowCache Error: Mismatch rdata:", $time,
+                //     " Expected %8h, Detected: %8h", rdata,
+                //     cache_itf.cmcb.rdata);
                 errcount++;
             end
         end

@@ -17,7 +17,8 @@ module software_model #(
 
 	input reg_entry_t cpu_registers[32], // the whole regfile
 	input logic halt,
-	input logic [31:0] pc
+	input logic [31:0] pc,
+	input flush_t flush 
 );
 timeunit 1ns;
 timeprecision 1ns;
@@ -31,12 +32,14 @@ logic [31:0] r2_data;
 pci_t pci;
 logic [31:0] take_pc;
 logic [31:0] pc_out;
+int num_err;
 task reset();
 	pci = '{ opcode: op_imm, default: 0 };
 	r1_data = '0;
 	r2_data = '0;
 	pc_out = 32'h60;
 	take_pc = '0;
+	num_err = 0;
 	for (int i = 0; i < 32; i++) begin
 		data[i] <= '{default: 0 };
 	end
@@ -193,19 +196,19 @@ task ingest_rd(int index);
 		end
 		op_auipc:
 		begin
-			pc_out = pci.pc + pci.u_imm;
-			data[pci.rd].data = pc_out;
+			//	pc_out = pci.pc + pci.u_imm;
+			data[pci.rd].data = pci.pc + pci.u_imm;
 		end
 		op_jal:
 		begin
 			pc_out = pci.pc + pci.j_imm;
-			data[pci.rd].data = pc_out;
+			data[pci.rd].data = pci.pc + 4;
 		end
 		op_jalr:
 		begin
 			r1_data = data[pci.rs1].data;
 			pc_out = r1_data + pci.i_imm;
-			data[pci.rd].data = pc_out;
+			data[pci.rd].data = pci.pc + 4;
 		end
 		op_load: // TODO: MAKE A MEANINGFUL LOAD CASE
 		begin
@@ -216,8 +219,9 @@ task ingest_rd(int index);
 		default:;
 	endcase // pci.opcode
 
-	if (pci.opcode != op_br && pci.opcode != op_auipc && pci.opcode != op_jal && pci.opcode != op_jalr)
+	if (pci.opcode != op_br && pci.opcode != op_jal && pci.opcode != op_jalr)
 		pc_out = pc_out + 4;
+	data[0].data = 32'b0;
 endtask
 logic flag = 1'b0;
 task compare_registers();
@@ -235,7 +239,9 @@ task compare_registers();
 	// 	$error("%0t: pc should be %0x, but it is %0x", $time, pc_out, pc);
 	// 	flag = 1'b1;
 	// end
-	if (~flag) $display("all good at commit %4t", $time);
+	if (flag) num_err++;
+	if (~flag) $display("all good at commit %4t, num_err:%4t", $time, num_err);
+	
 endtask
 
 initial begin : TEST_VECTORS
@@ -246,10 +252,10 @@ end
 
 always @(posedge tb_clk iff commit) begin
 		for (int i = 0; i < size; i++) begin
-			if (~rdest[i].rdy) begin
+			if (~rdest[(i + flush.front_tag) % size].rdy) begin
 				continue;
 			end else begin
-				ingest_rd(i);
+				ingest_rd((i + flush.front_tag) % size);
 			end
 		end
 end
@@ -258,6 +264,8 @@ always @(negedge commit) begin
 	// we want to compare the registers after the rdest has propogated (next cycle)	
 	compare_registers();
 end
+
+
 
 
 endmodule : software_model

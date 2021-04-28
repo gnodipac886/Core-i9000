@@ -160,8 +160,18 @@ module reservation_station #(parameter size = 8, parameter rob_size = 8)
 							data[next_rs].cmp_opcode <= cmp_bltu;
 							acu_operation[next_rs] <= 1'b1;
 						end else begin
-							data[next_rs].cmp_opcode <= cmp_ops'(pci.funct3);
-							acu_operation[next_rs] <= 1'b0;
+							if (arith_funct3_t'(pci.funct3) == sr) begin
+								if (pci.funct7[5]) begin
+									data[next_rs].alu_opcode <= alu_ops'(alu_sra);
+									acu_operation[next_rs] <= 1'b0;
+								end else begin
+									data[next_rs].alu_opcode <= alu_ops'(alu_srl);
+									acu_operation[next_rs] <= 1'b0;
+								end
+							end else begin
+								data[next_rs].cmp_opcode <= cmp_ops'(pci.funct3);
+								acu_operation[next_rs] <= 1'b0;
+							end
 						end
 					end
 					default: ;
