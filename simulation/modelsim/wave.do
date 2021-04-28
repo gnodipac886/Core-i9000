@@ -99,12 +99,14 @@ add wave -noupdate -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/flush_tag
 add wave -noupdate -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/num_deq
 add wave -noupdate -expand -group sm /mp4_tb/sm/cpu_registers
 add wave -noupdate -expand -group sm /mp4_tb/sm/data
-add wave -noupdate -expand -group sm /mp4_tb/sm/pc
-add wave -noupdate -expand -group sm /mp4_tb/sm/pc_out
 add wave -noupdate -expand -group sm /mp4_tb/sm/commit
 add wave -noupdate -expand -group sm /mp4_tb/sm/rdest
 add wave -noupdate -expand -group sm /mp4_tb/sm/r1_data
 add wave -noupdate -expand -group sm /mp4_tb/sm/r2_data
+add wave -noupdate -expand -group sm /mp4_tb/sm/pc
+add wave -noupdate -expand -group sm /mp4_tb/sm/pc_out
+add wave -noupdate -expand -group sm /mp4_tb/sm/pc_hist
+add wave -noupdate -expand -group sm /mp4_tb/sm/num_commit
 add wave -noupdate -group reg_file -expand /mp4_tb/dut/cpu/registers/data
 add wave -noupdate -group reg_file -expand /mp4_tb/dut/cpu/registers/rdest
 add wave -noupdate -group reg_file /mp4_tb/dut/cpu/registers/rd_bus
@@ -243,4 +245,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {0 ps} {630 ns}
+WaveRestoreZoom {4401500 ps} {5031500 ps}

@@ -42,6 +42,7 @@ module reservation_station #(parameter size = 8, parameter rob_size = 8)
 	// 	acu_operation[idx] <= 1'b0;
 	// endtask : set_default
 
+
 	function logic check_valid_flush_tag(logic [3:0] i);
 		if((flush.rear_tag + 1) % size == flush.flush_tag) begin 
 			return 1'b1;
@@ -57,11 +58,16 @@ module reservation_station #(parameter size = 8, parameter rob_size = 8)
 	task flush_rs();
 		// go through all the rs
 		// if the rs is within check_valid_flush_tag, set to default
+
 		for (int i = 0; i < size; i++) begin
 			if (~check_valid_flush_tag(data[i].tag)) begin
-				data[i] <= '{cmp_opcode :cmp_beq, alu_opcode:alu_add, valid: 0, default: 'x};
+				data[i] <= '{cmp_opcode :cmp_beq, alu_opcode:alu_add, valid: 0, default: '0};
 			end
 		end
+
+		if(load) begin 
+			data[next_rs] <= '{cmp_opcode :cmp_beq, alu_opcode:alu_add, valid: 0, default: '0};
+		end 
 
 	endtask
 	
@@ -74,7 +80,7 @@ module reservation_station #(parameter size = 8, parameter rob_size = 8)
 			begin 
 				// clear..
 				// set_default(idx);
-				data[idx] <= '{cmp_opcode :cmp_beq, alu_opcode:alu_add, valid: 0, default: 'x};
+				data[idx] <= '{cmp_opcode :cmp_beq, alu_opcode:alu_add, valid: 0, default: '0};
 				acu_operation[idx] <= 1'b0;
 			end
 		end
@@ -207,7 +213,7 @@ module reservation_station #(parameter size = 8, parameter rob_size = 8)
 			if (broadcast_bus[idx].rdy && ~(load && next_rs == idx))
 			begin
 				// set_default(idx);
-				data[idx] <= '{cmp_opcode :cmp_beq, alu_opcode:alu_add, valid: 0, default: 'x};
+				data[idx] <= '{cmp_opcode :cmp_beq, alu_opcode:alu_add, valid: 0, default: '0};
 				acu_operation[idx] <= 1'b0;
 			end
 		end

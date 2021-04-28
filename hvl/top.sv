@@ -122,7 +122,8 @@ software_model sm(
 	.cpu_registers(dut.cpu.registers.data),
 	.pc(dut.cpu.pc_out),
 	.flush(dut.cpu.rob.flush),
-	.halt(itf.halt)
+	.halt(itf.halt),
+	.pc_load(dut.cpu.pc_load)
 );
 
 endmodule : mp4_tb

@@ -18,7 +18,8 @@ module software_model #(
 	input reg_entry_t cpu_registers[32], // the whole regfile
 	input logic halt,
 	input logic [31:0] pc,
-	input flush_t flush 
+	input flush_t flush,
+	input logic pc_load 
 );
 timeunit 1ns;
 timeprecision 1ns;
@@ -32,7 +33,9 @@ logic [31:0] r2_data;
 pci_t pci;
 logic [31:0] take_pc;
 logic [31:0] pc_out;
-int num_err;
+logic [31:0] pc_hist[8];
+int num_err, num_commit;
+
 task reset();
 	pci = '{ opcode: op_imm, default: 0 };
 	r1_data = '0;
@@ -240,29 +243,52 @@ task compare_registers();
 	// 	flag = 1'b1;
 	// end
 	if (flag) num_err++;
-	if (~flag) $display("all good at commit %4t, num_err:%4t", $time, num_err);
+	// if (~flag) $display("all good at commit %4t, num_err:%4t", $time, num_err);
 	
+endtask
+
+task compare_pc();
+	for(int i = 0; i < 8; i++) begin 
+		if(pc_out == pc_hist[i]) begin 
+			return;
+		end 
+	end 
+	// $error("%0t: PC mismatch", $time);
 endtask
 
 initial begin : TEST_VECTORS
 	reset();
+end
 
+always_comb begin
+	num_commit = 0;
+	for(int i = 0; i < 8; i++) begin 
+		if(rdest[i].rdy)
+			num_commit++;
+	end 
+end
 
+always_ff @(posedge tb_clk iff pc_load) begin
+	pc_hist[0] <= pc;
+	for(int i = 0; i < 8 - 1; i++) begin 
+		pc_hist[i + 1] <= pc_hist[i];
+	end  
 end
 
 always @(posedge tb_clk iff commit) begin
-		for (int i = 0; i < size; i++) begin
-			if (~rdest[(i + flush.front_tag) % size].rdy) begin
-				continue;
-			end else begin
-				ingest_rd((i + flush.front_tag) % size);
-			end
+	for (int i = 0; i < size; i++) begin
+		if (~rdest[(i + flush.front_tag) % size].rdy) begin
+			continue;
+		end else begin
+			ingest_rd((i + flush.front_tag) % size);
 		end
+	end
 end
 
 always @(negedge commit) begin
 	// we want to compare the registers after the rdest has propogated (next cycle)	
 	compare_registers();
+	compare_pc();
 end
 
 

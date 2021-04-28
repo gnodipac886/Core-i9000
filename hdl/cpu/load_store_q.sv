@@ -123,11 +123,23 @@ module load_store_q #(
 	endfunction
 
 	task flush_lsq();
-		for(int i = 0; i < size; i++) begin 
-			if(~check_valid_flush_tag(arr[(front + i) % size].rd_tag))
-				arr[(front + i) % size] <= '{pc_info: '{opcode: op_imm, default: 0}, default: 0};
+		// if the front needs to be flushed, flush the whole thing
+		if (~check_valid_flush_tag(arr[front].rd_tag)) begin
+			// reset the whole table
+			front 	<= -1;
+			rear 	<= -1;
+			for (int i = 0; i < size; i++) begin
+				arr[i] <= '{pc_info: '{opcode: op_imm, default: 0}, default: 0};
+			end
 		end
-        rear 	<= flush_get_next_rear();
+		// else do a weird search
+		else begin
+			for(int i = 0; i < size; i++) begin 
+				if(~check_valid_flush_tag(arr[(front + i) % size].rd_tag))
+					arr[(front + i) % size] <= '{pc_info: '{opcode: op_imm, default: 0}, default: 0};
+			end
+			rear 	<= flush_get_next_rear();
+		end
 	endtask
 
 	task update_q_reg(int i, sal_t rob_item);
