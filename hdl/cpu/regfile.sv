@@ -17,6 +17,9 @@ module regfile #(	parameter width = 32,
 	int temp;
 
 	function logic check_valid_flush_tag(logic [3:0] i);
+		if((flush.rear_tag + 1) % size == flush.flush_tag) begin 
+			return 1'b1;
+		end 
 		if(flush.front_tag <= flush.flush_tag) begin
 			return flush.front_tag <= i && i < flush.flush_tag ? 1'b1 : 1'b0;
 		end 
@@ -30,7 +33,7 @@ module regfile #(	parameter width = 32,
 		// check if tag is within bounds of flush tags
 		// if yes, set busy bit of that index to zero
 		for (int i = 0; i < 32; i++) begin
-			if (check_valid_flush_tag(data[i].tag)) begin
+			if (~check_valid_flush_tag(data[i].tag)) begin
 				data[i].busy <= 1'b0;
 			end
 		end
@@ -77,7 +80,10 @@ module regfile #(	parameter width = 32,
 
 			for (int i = 0; i < size; i++) begin
 				if (rdest[(i + flush.front_tag) % size].rdy && rd_bus[(i + flush.front_tag) % size] != 0 && 
-				data[rd_bus[(i + flush.front_tag) % size]].tag != rdest[(i + flush.front_tag) % size].tag && check_valid_flush_tag((i + flush.front_tag) % size)) begin
+				data[rd_bus[(i + flush.front_tag) % size]].tag != rdest[(i + flush.front_tag) % size].tag && 
+				~rdest[data[rd_bus[(i + flush.front_tag) % size]].tag].rdy && 
+				check_valid_flush_tag((i + flush.front_tag) % size)) begin
+					
 					data[rd_bus[(i + flush.front_tag) % size]].data <= rdest[(i + flush.front_tag) % size].data;
 				end
 			end
@@ -97,7 +103,10 @@ module regfile #(	parameter width = 32,
 			
 
 			for (int i = 0; i < size; i++) begin
-				if (rdest[(i + flush.front_tag) % size].rdy && rd_bus[(i + flush.front_tag) % size] != 0 && data[rd_bus[(i + flush.front_tag) % size]].tag != rdest[(i + flush.front_tag) % size].tag) begin
+				if (rdest[(i + flush.front_tag) % size].rdy && rd_bus[(i + flush.front_tag) % size] != 0 && 
+				data[rd_bus[(i + flush.front_tag) % size]].tag != rdest[(i + flush.front_tag) % size].tag &&
+				~rdest[data[rd_bus[(i + flush.front_tag) % size]].tag].rdy) begin
+
 					data[rd_bus[(i + flush.front_tag) % size]].data <= rdest[(i + flush.front_tag) % size].data;
 				end
 			end

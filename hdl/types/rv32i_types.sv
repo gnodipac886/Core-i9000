@@ -178,4 +178,11 @@ typedef struct {
     logic   [3:0]   flush_tag;
 } flush_t;
 
+typedef struct {
+	logic 	[3:0] 	tag;
+	logic 			rdy;
+	logic 	[31:0] 	data;
+	pci_t           pc_info;
+} sal2_t;
+
 endpackage : rv32i_types

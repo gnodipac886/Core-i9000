@@ -13,7 +13,8 @@ module load_store_q #(
 	input 	rs_t 				reg_entry,
 	input 	pci_t 				instruction,
 	input 	logic 	[3:0]	 	rob_tag,
-	input	rob_t				rob_front,			
+	input	rob_t				rob_front,	
+	input 	logic 				load_lsq,		
 			
 	output 	logic 				lsq_stall,
 	output 	sal_t 				lsq_out,
@@ -96,6 +97,9 @@ module load_store_q #(
 	endfunction
 
 	function logic check_valid_flush_tag(logic [3:0] i);
+		if((flush.rear_tag + 1) % size == flush.flush_tag) begin 
+			return 1'b1;
+		end
 		if(flush.front_tag <= flush.flush_tag) begin
 			return flush.front_tag <= i && i < flush.flush_tag ? 1'b1 : 1'b0;
 		end 
@@ -105,6 +109,9 @@ module load_store_q #(
 	endfunction
 
 	function logic [3:0] flush_get_next_rear();
+		if(empty) begin 
+			return rear;
+		end 
 		for(int i = 0; i < size; i++) begin 
 			if(flush.valid && ~check_valid_flush_tag(arr[(front + i) % size].rd_tag)) begin 
 				return (front + i) % size;
@@ -197,7 +204,7 @@ module load_store_q #(
 	always_comb begin 
 		set_default();
 		if(is_ld_instr) begin 
-			lsq_enq 	= 1;
+			lsq_enq 	= load_lsq;
 			lsq_in 		= '{pc_info		: 	instruction, 
 							rd_tag		: 	rob_tag, 
 							data 		: 	32'dx,
@@ -208,7 +215,7 @@ module load_store_q #(
 		end
 
 		if(is_st_instr) begin 
-			lsq_enq 	= 1;
+			lsq_enq 	= load_lsq;
 			lsq_in		= '{pc_info		: 	instruction, 
 							rd_tag		: 	rob_tag, 
 							data 		: 	reg_entry.r2,

@@ -150,6 +150,9 @@ module reorder_buffer #(
 	endtask
 
 	function logic check_valid_flush_tag(logic [3:0] i);
+		if((rear + 1) % size == flush_tag) begin 
+			return 1'b1;
+		end 
 		if(front <= flush_tag) begin
 			return front <= i && i < flush_tag ? 1'b1 : 1'b0;
 		end 
@@ -368,7 +371,7 @@ module reorder_buffer #(
 			end
 
 			for (int i = 0; i < br_rs_size; i = i + 1) begin
-				if (br_rs_o[i].rdy & arr[br_rs_o[i].tag].valid & check_valid_flush_tag(br_rs_o[i].tag)) begin
+				if (br_rs_o[i].rdy & arr[br_rs_o[i].tag].valid) begin
 					arr[br_rs_o[i].tag].rdy <= 1'b1;
 					if(arr[br_rs_o[i].tag].pc_info.opcode == op_jal) begin
 						arr[br_rs_o[i].tag].data <= arr[br_rs_o[i].tag].pc_info.pc + 4;

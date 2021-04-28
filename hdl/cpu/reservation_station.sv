@@ -43,19 +43,22 @@ module reservation_station #(parameter size = 8, parameter rob_size = 8)
 	// endtask : set_default
 
 	function logic check_valid_flush_tag(logic [3:0] i);
-			if(flush.front_tag <= flush.flush_tag) begin
-				return flush.front_tag <= i && i < flush.flush_tag ? 1'b1 : 1'b0;
-			end 
-			else begin 
-				return flush.front_tag <= i || i < flush.flush_tag ? 1'b1 : 1'b0;
-			end 
+		if((flush.rear_tag + 1) % size == flush.flush_tag) begin 
+			return 1'b1;
+		end 
+		if(flush.front_tag <= flush.flush_tag) begin
+			return flush.front_tag <= i && i < flush.flush_tag ? 1'b1 : 1'b0;
+		end 
+		else begin 
+			return flush.front_tag <= i || i < flush.flush_tag ? 1'b1 : 1'b0;
+		end 
 	endfunction
 
 	task flush_rs();
 		// go through all the rs
 		// if the rs is within check_valid_flush_tag, set to default
 		for (int i = 0; i < size; i++) begin
-			if (check_valid_flush_tag(data[i].tag)) begin
+			if (~check_valid_flush_tag(data[i].tag)) begin
 				data[i] <= '{cmp_opcode :cmp_beq, alu_opcode:alu_add, valid: 0, default: 'x};
 			end
 		end
