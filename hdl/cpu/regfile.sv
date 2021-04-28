@@ -100,8 +100,22 @@ module regfile #(	parameter width = 32,
 					data[i].busy <= 1'b0;
 				end
 			end
-			
 
+				// 0, rd: 1, not ready 
+
+
+				// 5 br 
+
+
+				// 7 rd: 1, not ready
+				/*
+			(~rdest[data[rd_bus[(i + flush.front_tag) % size]].tag].rdy ||
+			(rdest[data[rd_bus[(i + flush.front_tag) % size]].tag].rdy  && 
+			~data[rd_bus[(i + flush.front_tag) % size].busy] && 
+			rd_bus[data[rd_bus[(i + flush.front_tag) % size]].tag] != rd_bus[(i + flush.front_tag) % size))
+			*/
+
+			/*
 			for (int i = 0; i < size; i++) begin
 				if (rdest[(i + flush.front_tag) % size].rdy && rd_bus[(i + flush.front_tag) % size] != 0 && 
 				data[rd_bus[(i + flush.front_tag) % size]].tag != rdest[(i + flush.front_tag) % size].tag &&
@@ -110,6 +124,20 @@ module regfile #(	parameter width = 32,
 					data[rd_bus[(i + flush.front_tag) % size]].data <= rdest[(i + flush.front_tag) % size].data;
 				end
 			end
+			*/
+
+			for (int i = 0; i < size; i++) begin
+				if (rdest[(i + flush.front_tag) % size].rdy && rd_bus[(i + flush.front_tag) % size] != 0 && 
+				data[rd_bus[(i + flush.front_tag) % size]].tag != rdest[(i + flush.front_tag) % size].tag &&
+				(~rdest[data[rd_bus[(i + flush.front_tag) % size]].tag].rdy ||
+				(rdest[data[rd_bus[(i + flush.front_tag) % size]].tag].rdy  && 
+				~data[rd_bus[(i + flush.front_tag) % size]].busy && 
+				rd_bus[data[rd_bus[(i + flush.front_tag) % size]].tag] != rd_bus[(i + flush.front_tag) % size]))) begin
+
+					data[rd_bus[(i + flush.front_tag) % size]].data <= rdest[(i + flush.front_tag) % size].data;
+				end
+			end
+
 			if (reg_ld_instr && rd != 0) begin
 				data[rd].busy <= 1'b1;
 				data[rd].tag <= rd_tag;

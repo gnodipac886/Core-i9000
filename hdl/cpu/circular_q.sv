@@ -70,7 +70,7 @@ module circular_q #(parameter width = 32,
 			wtf 					<= 1;
 			// out 					<= data_in;
 			ready 					<= 0;
-			$display("%t", $time);
+			// $display("%t", $time);
 		end 
 		else begin 
 			// out 					<= arr[front];
