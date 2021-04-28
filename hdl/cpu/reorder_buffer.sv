@@ -77,7 +77,7 @@ module reorder_buffer #(
 		flush_tag 		= 0;  // index of start of flush to rear of rob
 		num_items		= 0;
 		for(int i = 0; i < size; i++) begin
-			rdest[i] 	= '{ tag: 4'b0, rdy: 0, data: 32'b0, pc_info: '{ opcode: op_imm, default: 0 } };
+			rdest[i] 	= '{ tag: 4'b0, rdy: 0, data: 32'b0, pc_info: arr[i].pc_info };
 			rd_bus[i] 	= arr[i].pc_info.rd;
 			if (arr[i].valid) begin
 				num_items++;

@@ -28,15 +28,70 @@ module regfile #(	parameter width = 32,
 		end 
 	endfunction
 
+	/*
+	front: 2
+	rear: 6
+	flush: 7
+
+	0
+	1
+	2 x2
+	3 br
+	4 x2
+
+	before flush
+	x2 4 1
+
+	after flush
+	x2 4 1 <= instruction 2?
+	*/
+
 	task flush_regfile();
 		// go through regfile
 		// check if tag is within bounds of flush tags
 		// if yes, set busy bit of that index to zero
+		/*
 		for (int i = 0; i < 32; i++) begin
 			if (~check_valid_flush_tag(data[i].tag)) begin
 				data[i].busy <= 1'b0;
 			end
 		end
+		*/
+		if(flush.flush_tag == (flush.rear_tag + 1) % size)
+			return;
+
+		for (int i = 0; i < size; i++) begin
+			//start from flush, go to rear
+			if ((i + flush.flush_tag) % size == flush.rear_tag) begin // case if flush tag is already > rear?
+				data[rd_bus[(i+flush.flush_tag) % size]].busy <= 1'b0;  // edge case
+				break;
+			end
+			data[rd_bus[(i+flush.flush_tag) % size]].busy <= 1'b0;  // set all the invalid ones to zero, go to next for loop
+
+		end
+
+		for (int i = 0; i < size; i++) begin
+			if ((i + flush.front_tag) % size == flush.flush_tag) begin
+				break;
+			end
+			if (~rdest[(i + flush.front_tag) % size].rdy && (rdest[(i + flush.front_tag) % size].pc_info.opcode != op_br) && 
+			(rdest[(i + flush.front_tag) % size].pc_info.opcode != op_store) && rd_bus[(i + flush.front_tag) % size] != 0) begin
+				data[rd_bus[(i + flush.front_tag) % size]].busy <= 1'b1;
+				data[rd_bus[(i + flush.front_tag) % size]].tag 	<= (i + flush.front_tag) % size;
+			end
+		end
+		
+		/*
+		for (int i = 0; i < size; i++) begin
+			if ((i + flush.front_tag) % size == flush.flush_tag) begin
+				break;
+			end
+			if (~rdest[(i + flush.front_tag) % size].rdy) begin
+				data[rd_bus[(i + flush.front_tag) % size]].busy <= 1'b1;
+			end
+		end
+		*/
+		
 	endtask 
 
 	always_comb begin
@@ -115,7 +170,7 @@ module regfile #(	parameter width = 32,
 			rd_bus[data[rd_bus[(i + flush.front_tag) % size]].tag] != rd_bus[(i + flush.front_tag) % size))
 			*/
 
-			/*
+			
 			for (int i = 0; i < size; i++) begin
 				if (rdest[(i + flush.front_tag) % size].rdy && rd_bus[(i + flush.front_tag) % size] != 0 && 
 				data[rd_bus[(i + flush.front_tag) % size]].tag != rdest[(i + flush.front_tag) % size].tag &&
@@ -124,8 +179,8 @@ module regfile #(	parameter width = 32,
 					data[rd_bus[(i + flush.front_tag) % size]].data <= rdest[(i + flush.front_tag) % size].data;
 				end
 			end
-			*/
 
+			/*
 			for (int i = 0; i < size; i++) begin
 				if (rdest[(i + flush.front_tag) % size].rdy && rd_bus[(i + flush.front_tag) % size] != 0 && 
 				data[rd_bus[(i + flush.front_tag) % size]].tag != rdest[(i + flush.front_tag) % size].tag &&
@@ -137,6 +192,7 @@ module regfile #(	parameter width = 32,
 					data[rd_bus[(i + flush.front_tag) % size]].data <= rdest[(i + flush.front_tag) % size].data;
 				end
 			end
+			*/
 
 			if (reg_ld_instr && rd != 0) begin
 				data[rd].busy <= 1'b1;
