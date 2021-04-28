@@ -214,9 +214,9 @@ module reorder_buffer #(
 		 					continue;
 		 				end 
 						else if (arr[i].pc_info.opcode == op_jalr)
-		 					rdest[i] = '{ (i[3:0] + front[3:0]), arr[i].rdy, arr[i].pc_info.pc + 4 , arr[i].pc_info};
+		 					rdest[i] = '{ (i[3:0]), arr[i].rdy, arr[i].pc_info.pc + 4 , arr[i].pc_info};
 		 				else // FIX JALR RDEST[i] HERE
-		 					rdest[i] = '{ (i[3:0] + front[3:0]), arr[i].rdy, arr[i].data, arr[i].pc_info };
+		 					rdest[i] = '{ (i[3:0]), arr[i].rdy, arr[i].data, arr[i].pc_info };
 		 			end else
 		 				rdest[i] = '{ 4'b0, 0, 32'b0, '{ opcode: op_imm, default: 0 }};
 		 			num_deq++;

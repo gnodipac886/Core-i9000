@@ -63,6 +63,10 @@ module reservation_station #(parameter size = 8, parameter rob_size = 8)
 			end
 		end
 
+		if(load) begin 
+			data[next_rs] <= '{cmp_opcode :cmp_beq, alu_opcode:alu_add, valid: 0, default: '0};
+		end 
+
 	endtask
 	
 	always_ff @(posedge clk)
