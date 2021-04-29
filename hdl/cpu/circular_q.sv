@@ -4,15 +4,16 @@ import rv32i_types::*;
 module circular_q #(parameter width = 32,
 					parameter size 	= 8)
 (
-	input 	logic 				clk,
-	input 	logic 				rst,
-	input 	logic 				enq,
-	input 	logic 				deq,
-	input	pci_t				in,
-	output	logic 				empty,
-	output 	logic 				full,
-	output 	logic 				ready,
-	output	pci_t				out
+	input 	logic 		clk,
+	input 	logic 		rst,
+	input 	logic 		enq,
+	input 	logic 		deq,
+	input	pci_t		in,
+	input 	flush_t 	flush,
+	output	logic 		empty,
+	output 	logic 		full,
+	output 	logic 		ready,
+	output	pci_t		out
 );
 
 	pci_t	arr		[size];
@@ -69,7 +70,7 @@ module circular_q #(parameter width = 32,
 			wtf 					<= 1;
 			// out 					<= data_in;
 			ready 					<= 0;
-			$display("%t", $time);
+			// $display("%t", $time);
 		end 
 		else begin 
 			// out 					<= arr[front];
@@ -86,7 +87,7 @@ module circular_q #(parameter width = 32,
 	endtask
 
 	always_ff @(posedge clk) begin
-		if(rst) begin
+		if(rst || flush.valid) begin
 			front 	<= -1;
 			rear 	<= -1;
 			ready 	<= 	0;

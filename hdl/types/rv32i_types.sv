@@ -82,6 +82,13 @@ typedef enum bit [2:0] {
 	cmp_bgeu = 3'b111
 } cmp_ops;
 
+typedef enum bit [1:0] {
+	br_s_not_taken  = 2'b00,
+	br_w_not_taken  = 2'b01,
+	br_w_taken  	= 2'b10,
+	br_s_taken  	= 2'b11
+} br_counter;
+
 /*OOO structs*/
 
 typedef struct {
@@ -114,6 +121,7 @@ typedef struct {
 	logic 			is_br_instr;
 	logic 			br_pred;
 	logic	[31:0]	branch_pc;
+	logic 	[31:0]  jal_pc;
 } pci_t;
 
 typedef struct {
@@ -122,6 +130,13 @@ typedef struct {
 	logic			rdy;
 	logic			valid;
 } rob_t;
+
+typedef struct {
+	logic 	[3:0] 	tag;
+	logic 			rdy;
+	logic 	[31:0] 	data;
+	pci_t           pc_info;
+} sal2_t;
 
 typedef struct {
 	logic	[31:0]	data;
@@ -141,7 +156,7 @@ typedef struct{
 	logic 			valid;
 } rs_t;
 
-typedef struct{
+typedef struct {
 	pci_t 			pc_info;		// pc info
 	logic [3:0] 	rd_tag;			// rob tag
 	logic [31:0] 	data;			// data loaded in
@@ -149,5 +164,18 @@ typedef struct{
 	logic [31:0] 	addr;			// addr for mem loc
 	logic 			addr_is_tag;	// if addr field is tag or not
 } lsq_t;
+
+typedef struct {
+	// pci_t 			pc_info;		// pc info
+	logic 	[1:0]  	counter; 		// counter
+	logic 			valid;
+} br_pred_t;
+
+typedef struct {
+	logic           valid;
+	logic	[3:0]	front_tag;
+	logic   [3:0]   rear_tag;
+    logic   [3:0]   flush_tag;
+} flush_t;
 
 endpackage : rv32i_types

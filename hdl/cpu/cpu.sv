@@ -63,90 +63,101 @@ module cpu #(
 	/*pc_reg logic*/
 	logic 				pc_load;
 	logic 	[width-1:0] pc_in, pc_out;
+	logic 	[width-1:0] fake_pc;
 
 	/* reorder buffer */
-	logic 		stall_br, stall_acu, stall_lsq;
-	sal_t 		br_rs_o [br_rs_size];
-	sal_t 		acu_rs_o [acu_rs_size];
-	sal_t 		lsq_o;
-	logic 		load_br_rs, load_acu_rs, load_lsq;
-	sal_t 		rob_broadcast_bus [rob_size];
-	sal_t 		rdest;
-	logic [3:0] rd_tag;
+	logic 				stall_br, stall_acu, stall_lsq;
+	sal_t 				br_rs_o [br_rs_size];
+	sal_t 				acu_rs_o [acu_rs_size];
+	sal_t 				lsq_o;
+	logic 				load_br_rs, load_acu_rs, load_lsq;
+	sal_t 				rob_broadcast_bus [rob_size];
+	sal2_t 				rdest[rob_size];
+	logic [4:0] 		rd_bus[rob_size];
+	logic [3:0] 		rd_tag;
+	logic 				br_result;
+	logic [width-1:0] 	pc_result;
+	logic 				pc_result_load;
+	logic [width-1:0]	flush_pc;
+	flush_t				flush;
+
 	
 	/* regfile logic */
 	logic 		reg_ld_instr;
 	rs_t 		rs_out;
 	
 	/*rs and alu logic*/
-
-	logic flush;
-
  	rs_t input_r; //regfile
 
-	rs_t 		data[acu_rs_size]; // all the reservation stations, to the alu
-	rs_t 		br_data[acu_rs_size]; // all the reservation stations, to the alu
+	rs_t 					data[acu_rs_size]; // all the reservation stations, to the alu
+	rs_t 					br_data[acu_rs_size]; // all the reservation stations, to the alu
 	logic [acu_rs_size-1:0] ready; // if both values are not tags, flip this ready bit to 1
 	logic [acu_rs_size-1:0] br_ready; // if both values are not tags, flip this ready bit to 1
-	logic	[3:0] num_available; // do something if the number of available reservation stations are 0
-	logic	[3:0] br_num_available; // do something if the number of available reservation stations are 0
-	logic 		acu_operation[acu_rs_size];
-	logic 		br_acu_operation[br_rs_size];
+	logic	[3:0] 			num_available; // do something if the number of available reservation stations are 0
+	logic	[3:0] 			br_num_available; // do something if the number of available reservation stations are 0
+	logic 					acu_operation[acu_rs_size];
+	logic 					br_acu_operation[br_rs_size];
 
-	// CHECKPOINT 2 LAZY BRANCH METHOD VARS
-	logic 			lazy_br, iq_br, br_stall, iq_stall, rob_finish_br;		
-	logic 			pc_mux_sel;
+	/*branch prediction logic*/
+	logic				br_taken;
+	logic	[width-1:0] br_addr;
+	logic				br_miss_pc_load;
+	logic	[width-1:0] br_miss_pc_save;
+
+	// CHECKPOINT 2 LAZY BRANCH METHOD VARSs	
+	logic 	[1:0]	pc_mux_sel;
 	logic 	[31:0] 	pc_mux_out, br_next_pc;
 	rob_t 			rob_front;
 
-	assign 			iq_br = iq_in.is_br_instr || iq_in.opcode == op_jal || iq_in.opcode == op_jalr;
-	assign 			rob_finish_br = rob_front.pc_info.is_br_instr || rob_front.pc_info.opcode == op_jal || rob_front.pc_info.opcode == op_jalr;
+	assign fake_pc = pc_out + 8'ha0;
 
+	assign 			iq_br 		= iq_in.is_br_instr || iq_in.opcode == op_jal || iq_in.opcode == op_jalr;
 	// assigns
-	assign 	pc_load 	= iq_enq & ~iq_full & ~br_stall;
+	assign 			pc_load 	= iq_enq & ~iq_full;
 
 	// assign rob
-	assign 	stall_acu 	= num_available == 4'd0; // stall if acu_rs is full
-	assign 	stall_br  	= br_num_available == 4'd0; // stall if br_rs is full
+	assign 			stall_acu 	= num_available == 4'd0; // stall if acu_rs is full
+	assign 			stall_br  	= br_num_available == 4'd0; // stall if br_rs is full
 
 	always_comb begin
-		br_stall = iq_br | (iq_stall ^ rob_finish_br);
 		br_next_pc = 0;
-		pc_mux_sel = 0;
-		unique case(rob_front.pc_info.opcode)
-			op_jal	: begin 
-				br_stall 	= ~rob_front.rdy;
-				if(rob_front.rdy && rob_front.data) begin 
-					br_next_pc 	= rob_front.data;
-					pc_mux_sel 	= 1'b1;
+		pc_mux_sel = 2'b00;
+		
+		if(br_miss_pc_load) begin
+			pc_mux_sel			= 2'b11;
+		end
+		else if(flush.valid) begin 
+			pc_mux_sel 			= 2'b10;
+		end 
+		else begin 
+			unique case(iq_in.opcode)
+				op_jal	: begin 
+					br_next_pc  = iq_in.jal_pc;
+					pc_mux_sel 	= 2'b01;
 				end 
-			end 
 
-			op_jalr	: begin 
-				br_stall 	= ~rob_front.rdy;
-				if(rob_front.rdy && rob_front.data) begin 
+				op_jalr	: begin 								// NEEEDDDD TO DO THIS!!!!!!!!!!!!!!!!!!!!!!!!!!! NEED TO STALL???
 					br_next_pc 	= rob_front.data;
-					pc_mux_sel 	= 1'b1;
+					pc_mux_sel 	= 2'b00;
 				end 
-			end 
 
-			op_br	: begin 
-				br_stall 	= ~rob_front.rdy;
-				if(rob_front.rdy && rob_front.data) begin 
-					br_next_pc 	= rob_front.pc_info.branch_pc;
-					pc_mux_sel 	= 1'b1;
+				op_br	: begin 
+					br_next_pc 	= br_addr;
+					pc_mux_sel 	= 2'b01;
 				end 
-			end 
-			
-			default	: begin 
-				br_next_pc = 0;
-				pc_mux_sel = 0;
-			end
-		endcase 
+				
+				default	: begin 
+					br_next_pc = 0;
+					pc_mux_sel = 2'b00;
+				end
+			endcase 
+		end
 
 		unique case(pc_mux_sel)
-			1'b0: pc_mux_out = pc_out + 4;
-			1'b1: pc_mux_out = br_next_pc;
+			2'b00: pc_mux_out = pc_out + 4;
+			2'b01: pc_mux_out = br_next_pc;
+			2'b10: pc_mux_out = flush_pc;
+			2'b11: pc_mux_out = br_miss_pc_save;
 			default: ;
 		endcase
 
@@ -154,22 +165,18 @@ module cpu #(
 
 	always_ff @(posedge clk) begin
 		if(rst) begin 
-			lazy_br <= 0;
-			iq_stall <= 0;
+			br_miss_pc_load <= 1'b0;
+			br_miss_pc_save <= 32'b0;
 		end 
-		else begin 
-			if(rob_front.rdy && rob_finish_br) begin 
-				lazy_br 	<= 0;
-			end
-			else if(pci.is_br_instr || pci.opcode == op_jal || pci.opcode == op_jalr)
-				lazy_br <= 1;
-
-			if(rob_front.rdy && rob_finish_br) begin 
-				iq_stall 	<= 0;
-			end
-			else if(iq_in.is_br_instr || iq_in.opcode == op_jal || iq_in.opcode == op_jalr)
-				iq_stall 	<= 1;
+		else if(flush.valid & ~pc_load) begin 
+			br_miss_pc_load <= 1'b1;
+		end else if(br_miss_pc_load & pc_load) begin 
+			br_miss_pc_load <= 1'b0;
 		end
+
+		if (flush.valid) begin
+			br_miss_pc_save <= flush_pc;
+		end 
 	end
 
 	pc_register pc_reg(
@@ -190,12 +197,12 @@ module cpu #(
 	decoder decoder(
 		.instruction(fetch_out),
 		.pc(pc_out),
-		.decoder_out(iq_in),
-		.valid(iq_enq & ~iq_stall)
+		.br_taken(br_taken),
+		.decoder_out(iq_in)
 	);
 
 	circular_q iq(
-		.enq(iq_enq),
+		.enq(iq_enq & ~br_miss_pc_load),
 		.deq(iq_deq),
 		.in(iq_in),
 		.empty(iq_empty),
@@ -274,4 +281,37 @@ module cpu #(
 		.*
 	);
 
+	branch_predictor br_pred(
+		.pc_info(iq_in),
+		.br_result(br_result),
+		.pc_result(pc_result),
+		.pc_result_load(pc_result_load),
+		.br_taken(br_taken),
+		.br_addr(br_addr),
+		.*
+	);
+
 endmodule : cpu
+
+/*
+rob entries
+0 	1
+1	2
+2	3
+3	br
+4	1
+5	2
+6	3
+7	4
+
+regfile
+0	
+1	4
+2	5
+3	6
+4	7
+5
+6
+7
+
+*/

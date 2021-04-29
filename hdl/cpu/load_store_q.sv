@@ -8,10 +8,13 @@ module load_store_q #(
 (
 	input 	logic 				clk, 
 	input 	logic 				rst,
+	input	flush_t				flush,
 	input 	sal_t 				rob_bus[size],
 	input 	rs_t 				reg_entry,
 	input 	pci_t 				instruction,
-	input 	logic 	[3:0]	 	rob_tag,			
+	input 	logic 	[3:0]	 	rob_tag,
+	input	rob_t				rob_front,	
+	input 	logic 				load_lsq,		
 			
 	output 	logic 				lsq_stall,
 	output 	sal_t 				lsq_out,
@@ -38,15 +41,16 @@ module load_store_q #(
 	logic 	[31:0]	ld_byte_en;
 
 	// circular queue signals
-	logic 				enq;
-	logic 				deq;
-	lsq_t 				in;
-	logic 				empty;
-	logic 				full;
-	logic 				ready;
-	lsq_t 				out;
-	int 				front, rear;
-  	int					next_front, next_rear;
+	logic 			enq;
+	logic 			deq;
+	lsq_t 			in;
+	logic 			empty;
+	logic 			full;
+	logic 			ready;
+	logic 			flush_stall;
+	lsq_t 			out;
+	int 			front, rear;
+  	int				next_front, next_rear;
 	  	
 	assign 			enq 				= lsq_enq;
 	assign 			deq 				= lsq_deq;
@@ -60,11 +64,10 @@ module load_store_q #(
 	assign 			empty 				= front == -1;
 	assign			out 				= enq && deq && front == -1 ? in : arr[front];
 
-
 	assign 			front_is_ld 		= lsq_front.pc_info.opcode == op_load;
-	assign 			front_is_valid 		= ~lsq_empty && ~lsq_front.addr_is_tag;		// can be improved, doesn't need to be head
+	assign 			front_is_valid 		= ~lsq_empty && ~lsq_front.addr_is_tag && ((~front_is_ld && ~lsq_front.data_is_tag) || front_is_ld);		// can be improved, doesn't need to be head
 	assign 			next_front_is_ld 	= lsq_next_front.pc_info.opcode == op_load;
-	assign 			next_front_is_valid = ~lsq_empty && ~lsq_next_front.addr_is_tag;		// can be improved, doesn't need to be head
+	assign 			next_front_is_valid = check_next_valid(next_front) && ~lsq_empty && ~lsq_next_front.addr_is_tag;		// can be improved, doesn't need to be head
 	assign 			is_lsq_instr 		= instruction.opcode == op_load || instruction.opcode == op_store;
 	assign 			is_ld_instr 		= instruction.opcode == op_load;
 	assign 			is_st_instr 		= instruction.opcode == op_store;
@@ -77,7 +80,7 @@ module load_store_q #(
 	
 	function void set_default();
 		lsq_enq 		= 0;
-		lsq_deq 		= mem_resp;
+		lsq_deq 		= mem_resp & ~flush_stall;
 		ld_byte_en 		= 0;
 		mem_byte_enable = 0;
 		lsq_in 			= '{pc_info: '{opcode: op_imm, default: 0}, default: 0};
@@ -85,10 +88,76 @@ module load_store_q #(
 		next_rear 		= rear;
 	endfunction : set_default
 
+	function logic check_next_valid(int i);
+		if(front <= rear) begin
+			return front <= i && i < rear ? 1'b1 : 1'b0;
+		end 
+		else begin 
+			return front <= i || i < rear ? 1'b1 : 1'b0;
+		end 
+	endfunction
+
+	function logic check_valid_flush_tag(logic [3:0] i);
+		if((flush.rear_tag + 1) % size == flush.flush_tag) begin 
+			return 1'b1;
+		end
+		if(flush.front_tag <= flush.flush_tag) begin
+			return flush.front_tag <= i && i < flush.flush_tag ? 1'b1 : 1'b0;
+		end 
+		else begin 
+			return flush.front_tag <= i || i < flush.flush_tag ? 1'b1 : 1'b0;
+		end 
+	endfunction
+
+	function logic [3:0] flush_get_next_rear();
+		if(empty) begin 
+			return rear;
+		end 
+		for(int i = 0; i < size; i++) begin 
+			if(flush.valid && ~check_valid_flush_tag(arr[(front + i) % size].rd_tag)) begin 
+				return (front + i) % size;
+			end 
+			if ((front + i) % size == rear) begin
+				return rear;
+			end
+		end 
+	endfunction
+
+	task flush_lsq();
+		// if the front needs to be flushed, flush the whole thing
+		if(~check_valid_flush_tag(arr[front].rd_tag)) begin 
+			flush_stall <= 1;
+		end 
+		if (~check_valid_flush_tag(arr[front].rd_tag)) begin
+			// reset the whole table
+			front 	<= -1;
+			rear 	<= -1;
+			// mem_read <= 0;
+			// mem_write <= 0;
+			ready 			<= 	0;
+			lsq_out 		<= '{default: 0};
+			for (int i = 0; i < size; i++) begin
+				arr[i] <= '{pc_info: '{opcode: op_imm, default: 0}, default: 0};
+			end
+		end
+		// else do a weird search
+		else begin
+			for(int i = 0; i < size; i++) begin 
+				if(~check_valid_flush_tag(arr[(front + i) % size].rd_tag))
+					arr[(front + i) % size] <= '{pc_info: '{opcode: op_imm, default: 0}, default: 0};
+			end
+			rear 	<= flush_get_next_rear();
+		end
+	endtask
+
 	task update_q_reg(int i, sal_t rob_item);
-		if(arr[i].addr_is_tag & rob_item.rdy) begin
-			arr[i].addr 		<= rob_item.data + arr[i].pc_info.i_imm;
+		if(arr[i].addr_is_tag & rob_item.rdy & (rob_item.tag == arr[i].addr[3:0])) begin
+			arr[i].addr 		<= arr[i].pc_info.opcode == op_load ? rob_item.data + arr[i].pc_info.i_imm : rob_item.data + arr[i].pc_info.s_imm;
 			arr[i].addr_is_tag	<= 1'b0;
+		end 
+		if(arr[i].data_is_tag & rob_item.rdy && (rob_item.tag == arr[i].data[3:0])) begin
+			arr[i].data 		<= rob_item.data;
+			arr[i].data_is_tag	<= 1'b0;
 		end 
 	endtask
 
@@ -155,7 +224,7 @@ module load_store_q #(
 	always_comb begin 
 		set_default();
 		if(is_ld_instr) begin 
-			lsq_enq 	= 1;
+			lsq_enq 	= load_lsq;
 			lsq_in 		= '{pc_info		: 	instruction, 
 							rd_tag		: 	rob_tag, 
 							data 		: 	32'dx,
@@ -166,7 +235,7 @@ module load_store_q #(
 		end
 
 		if(is_st_instr) begin 
-			lsq_enq 	= 1;
+			lsq_enq 	= load_lsq;
 			lsq_in		= '{pc_info		: 	instruction, 
 							rd_tag		: 	rob_tag, 
 							data 		: 	reg_entry.r2,
@@ -238,11 +307,86 @@ module load_store_q #(
 			rear 			<= -1;
 			ready 			<= 	0;
 			lsq_out 		<= '{default: 0};
+			flush_stall     <=  0;
 			for(int i = 0; i < size; i++) begin 
 				arr[i] 		<= '{pc_info: '{opcode: op_imm, default: 0}, default: 0};;
 			end 
 		end 
-		else begin 
+
+		else if (flush.valid) begin
+			// remove all bad entries in lsq
+			flush_lsq();
+			
+			if(deq) begin 
+				dequeue();
+			end 
+			// prevent memory from overwriting bad lsq entries
+			if(lsq_out.rdy) begin 
+				lsq_out 		<= '{default: 0};
+			end 
+
+			// see if anything new was posted on rob bus
+			if (next_rear >= next_front) begin
+				for (int i = 0; i <= (next_rear - next_front) && i < size; i++) begin 
+					if(check_valid_flush_tag(arr[i + next_front].rd_tag)) begin 
+						if(arr[i + next_front].addr_is_tag && check_valid_flush_tag(arr[i + next_front].addr[3:0]));
+							update_q_reg(i + next_front, rob_bus[arr[i + next_front].addr[3:0]]);
+						if(arr[i + next_front].data_is_tag && check_valid_flush_tag(arr[i + next_front].data[3:0]));
+							update_q_reg(i + next_front, rob_bus[arr[i + next_front].data[3:0]]);
+					end
+				end
+			end 
+			else begin 
+				for (int i = 0; i < (size - next_front + 1) && i < size; i++) begin 
+					if(check_valid_flush_tag(arr[i + next_front].rd_tag)) begin 
+						if(arr[i + next_front].addr_is_tag && check_valid_flush_tag(arr[i + next_front].addr[3:0]));
+							update_q_reg(i + next_front, rob_bus[arr[i + next_front].addr[3:0]]);
+						if(arr[i + next_front].data_is_tag && check_valid_flush_tag(arr[i + next_front].data[3:0]));
+							update_q_reg(i + next_front, rob_bus[arr[i + next_front].data[3:0]]);
+					end
+				end
+		  
+				for (int i = 0; i <= next_rear && i < size; i++) begin
+					if(check_valid_flush_tag(arr[i + next_front].rd_tag)) begin 
+						if(arr[i + next_front].addr_is_tag && check_valid_flush_tag(arr[i + next_front].addr[3:0]));
+							update_q_reg(i, rob_bus[arr[i].addr[3:0]]);
+						if(arr[i + next_front].data_is_tag && check_valid_flush_tag(arr[i + next_front].data[3:0]));
+							update_q_reg(i, rob_bus[arr[i].data[3:0]]);
+					end
+					
+				end
+			end
+
+			if(mem_resp) begin
+				mem_address_raw 	<= lsq_next_front.addr; 
+
+				// read case
+				if(mem_read && check_valid_flush_tag(lsq_front.rd_tag)) begin
+					// arr[front].data 	<= ld_byte_en;
+					lsq_out	 		<= '{tag: lsq_front.rd_tag, rdy: 1'b1, data: ld_byte_en};	// broadcast on read
+				end
+				// read case (next instruction)
+				mem_read 			<= next_front_is_ld && next_front_is_valid && check_valid_flush_tag(lsq_next_front.rd_tag);
+
+				// write case (next instruction)
+				mem_write 			<= (~next_front_is_ld && next_front_is_valid) && (lsq_next_front.rd_tag == flush.front_tag && check_valid_flush_tag(lsq_next_front.rd_tag));
+				mem_wdata 			<= lsq_next_front.data;
+				if(mem_write  && check_valid_flush_tag(lsq_front.rd_tag)) begin // the current instruction
+					lsq_out 		<= '{tag: lsq_front.rd_tag, rdy: 1'b1, data: lsq_front.data}; // broadcast write done
+				end 
+			end 
+			else if(~mem_read && ~mem_write && front_is_valid) begin 					// we can now operate
+				mem_address_raw 	<= lsq_front.addr; 
+	
+				// read	
+				mem_read 			<= front_is_ld && check_valid_flush_tag(lsq_front.rd_tag); 
+		
+				// write	
+				mem_write 			<= ~front_is_ld && (lsq_front.rd_tag == flush.front_tag) && check_valid_flush_tag(lsq_front.rd_tag); 
+				mem_wdata 			<= lsq_front.data;
+			end 
+
+		end else begin 
 			if(enq && ~deq) begin
 				enqueue(in);
 			end 
@@ -259,52 +403,56 @@ module load_store_q #(
 
 			// see if anything new was posted on rob bus
 			if (next_rear >= next_front) begin
-				for (int i = 0; i <= (next_rear - next_front) && i < 8; i++)
+				for (int i = 0; i <= (next_rear - next_front) && i < size; i++) begin 
 					update_q_reg(i + next_front, rob_bus[arr[i + next_front].addr[3:0]]);
+					update_q_reg(i + next_front, rob_bus[arr[i + next_front].data[3:0]]);
+				end 
+					
 			end 
 			else begin 
-				for (int i = 0; i < (size - next_front + 1) && i < 8; i++)
+				for (int i = 0; i < (size - next_front + 1) && i < size; i++) begin 
 					update_q_reg(i + next_front, rob_bus[arr[i + next_front].addr[3:0]]);
+					update_q_reg(i + next_front, rob_bus[arr[i + next_front].data[3:0]]);
+				end 
 		  
-				for (int i = 0; i <= next_rear && i < 8; i++)
+				for (int i = 0; i <= next_rear && i < size; i++) begin 
 					update_q_reg(i, rob_bus[arr[i].addr[3:0]]);
+					update_q_reg(i, rob_bus[arr[i].data[3:0]]);
+				end 
 			end
 
-			if(mem_resp) begin
-				mem_address_raw 	<= lsq_next_front.addr; 
-				// we are doing the dequeue of the old instruction, but the front is still the old instruction (only updated next cycle)
-				// we should be looking at the addr of the next valid instruction
-
-				// if (~arr[next_front].addr_is_tag) begin
-				// 	mem_address_raw <= arr[next_front].addr;
-				// end else begin
-				// 	// what is the expected behavior here?
-				// 	mem_address_raw <= 32'bx; // dont read anything?
-				// end
-
-				// read case
-				if(mem_read) begin
-					// arr[front].data 	<= ld_byte_en;
-					lsq_out	 		<= '{tag: lsq_front.rd_tag, rdy: 1'b1, data: ld_byte_en};	// broadcast on read
-				end
-				mem_read 			<= next_front_is_ld && next_front_is_valid;
-
-				// write case
-				mem_write 			<= ~next_front_is_ld && next_front_is_valid;
-				mem_wdata 			<= lsq_next_front.data;
-				if(mem_write) begin 
-					lsq_out 		<= '{tag: lsq_front.rd_tag, rdy: 1'b1, data: lsq_front.data};
+			if(mem_resp) begin 
+				if(flush_stall) begin 
+					flush_stall <= 0;
+					mem_read 	<= 0;
+					mem_write 	<= 0;
 				end 
-				
+				else begin
+					mem_address_raw 	<= lsq_next_front.addr; 
+
+					// read case
+					if(mem_read) begin
+						// arr[front].data 	<= ld_byte_en;
+						lsq_out	 		<= '{tag: lsq_front.rd_tag, rdy: 1'b1, data: ld_byte_en};	// broadcast on read
+					end
+					mem_read 			<= next_front_is_ld && next_front_is_valid;
+
+					// write case (next instruction)
+					mem_write 			<= (~next_front_is_ld && next_front_is_valid) && (lsq_next_front.rd_tag == flush.front_tag);
+					mem_wdata 			<= lsq_next_front.data;
+					if(mem_write) begin // the current instruction
+						lsq_out 		<= '{tag: lsq_front.rd_tag, rdy: 1'b1, data: lsq_front.data};
+					end 
+				end 
 			end 
 			else if(~mem_read && ~mem_write && front_is_valid) begin 					// we can now operate
 				mem_address_raw 	<= lsq_front.addr; 
 	
 				// read	
-				mem_read 			<= front_is_ld; 
+				mem_read 			<= front_is_ld;
 		
 				// write	
-				mem_write 			<= ~front_is_ld; 
+				mem_write 			<= ~front_is_ld && (lsq_front.rd_tag == flush.front_tag); 
 				mem_wdata 			<= lsq_front.data;
 			end 
 		end 

@@ -11,6 +11,7 @@ module cmp #(parameter size=8)
 
 always_comb begin
 	for (int idx = 0; idx < size; idx++) begin
+		out[idx].data = 0;
 		if (ready[idx]) begin
 			case (data[idx].cmp_opcode)
 				cmp_beq: out[idx].data = data[idx].r1 == data[idx].r2 ? '1 : '0;

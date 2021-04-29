@@ -4,14 +4,14 @@ module decoder #(parameter width = 32)
 (
 	input 	logic 	[width-1:0] 	instruction,
 	input 	logic 	[width-1:0] 	pc,
-	input 	logic 					valid,
+	input	logic					br_taken,
 	output 	pci_t 					decoder_out
 );
 
 	logic [31:0] 	data;
 	pci_t 			pci;
 
-	assign data 			= valid ?  instruction : 32'h00000013;
+	assign data 			= instruction;
 	assign decoder_out 		= pci;
 	
 	assign pci.pc 			= pc;
@@ -28,7 +28,8 @@ module decoder #(parameter width = 32)
 	assign pci.rs2 			= data[24:20];
 	assign pci.rd 			= data[11:7];
 	assign pci.is_br_instr 	= pci.opcode == op_br;
-	assign pci.br_pred 		= 0;
+	assign pci.br_pred 		= br_taken;
 	assign pci.branch_pc	= pc + pci.b_imm;
+	assign pci.jal_pc 		= pc + pci.j_imm;
 
 endmodule : decoder

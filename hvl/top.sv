@@ -23,7 +23,7 @@ initial order = 0;
 always @(posedge itf.clk iff commit) order <= order + 1;
 int timeout = 100000000;   // Feel Free to adjust the timeout value
 // assign itf.registers = dut.cpu.datapath.regfile.data;
-assign itf.halt = dut.cpu.pc_load &(dut.cpu.pc_mux_out == dut.cpu.pc_out);
+assign itf.halt = 0;//dut.cpu.pc_load & (dut.cpu.pc_mux_out == dut.cpu.pc_out);
 /*****************************************************************************/
 
 /************************** Testbench Instantiation **************************/
@@ -111,5 +111,19 @@ mp4 dut(
 //   .rvfi_mem_extamo(1'b0),
 //   .errcode(itf.errcode)
 // );
+
+software_model sm(
+	// .clk	(itf.clk),
+	.rst    (itf.rst),
+	.commit (dut.cpu.rob.rdest[0].rdy || dut.cpu.rob.rdest[1].rdy || dut.cpu.rob.rdest[2].rdy || dut.cpu.rob.rdest[3].rdy || dut.cpu.rob.rdest[4].rdy 
+		|| dut.cpu.rob.rdest[5].rdy || dut.cpu.rob.rdest[6].rdy || dut.cpu.rob.rdest[7].rdy),
+	.rdest  (dut.cpu.rob.rdest),
+	.rd_bus (dut.cpu.rob.rd_bus),
+	.cpu_registers(dut.cpu.registers.data),
+	.pc(dut.cpu.pc_out),
+	.flush(dut.cpu.rob.flush),
+	.halt(itf.halt),
+	.pc_load(dut.cpu.pc_load)
+);
 
 endmodule : mp4_tb
