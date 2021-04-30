@@ -5,7 +5,8 @@ module software_model #(
 	parameter size 			= 8,
 	parameter br_rs_size 	= 8,
 	parameter acu_rs_size 	= 8,
-	parameter lsq_size 		= 8
+	parameter lsq_size 		= 8,
+	parameter NUM_PC 		= 16
 )
 (
 	// input logic clk,
@@ -19,7 +20,9 @@ module software_model #(
 	input logic halt,
 	input logic [31:0] pc,
 	input flush_t flush,
-	input logic pc_load 
+	input logic pc_load,
+	input logic [31:0] pc_mux_out, 
+	input int num_deq 
 );
 timeunit 1ns;
 timeprecision 1ns;
@@ -33,7 +36,7 @@ logic [31:0] r2_data;
 pci_t pci;
 logic [31:0] take_pc;
 logic [31:0] pc_out;
-logic [31:0] pc_hist[8];
+logic [31:0] pc_hist[NUM_PC];
 int num_err, num_commit;
 
 task reset();
@@ -150,42 +153,42 @@ task ingest_rd(int index);
 			case (pci.funct3)
 			3'b000: //beq
 			begin
-				if (r1_data == r2_data ? '1 : '0)
+				if (r1_data == r2_data)
 				begin
 					pc_out = take_pc;
 				end
 			end
 			3'b001: //bne
 			begin
-				if (r1_data != r2_data ? '1 : '0)
+				if (r1_data != r2_data)
 				begin
 					pc_out = take_pc;
 				end
 			end
 			3'b100: //blt
 			begin
-				if ($signed(r1_data) < $signed(r2_data) ? '1 : '0)
+				if ($signed(r1_data) < $signed(r2_data))
 				begin
 					pc_out = take_pc;
 				end
 			end
 			3'b101: //bge
 			begin
-				if (($signed(r1_data) > $signed(r2_data) || $signed(r1_data) == $signed(r2_data))? '1 : '0)
+				if (($signed(r1_data) > $signed(r2_data) || $signed(r1_data) == $signed(r2_data)))
 				begin
 					pc_out = take_pc;
 				end
 			end
 			3'b110: //bltu
 			begin
-				if (r1_data < r2_data ? '1 : '0)
+				if (r1_data < r2_data)
 				begin
 					pc_out = take_pc;
 				end
 			end
 			3'b111: //bgeu
 			begin
-				if ((r1_data > r2_data || r1_data ==r2_data) ? '1 : '0)
+				if ((r1_data > r2_data || r1_data == r2_data))
 				begin
 					pc_out = take_pc;
 				end
@@ -248,12 +251,16 @@ task compare_registers();
 endtask
 
 task compare_pc();
-	for(int i = 0; i < 8; i++) begin 
+	if(pc_out == pc) 
+		return;
+	if(~pc_load && pc_out == pc_mux_out)
+		return;
+	for(int i = 0; i < NUM_PC; i++) begin 
 		if(pc_out == pc_hist[i]) begin 
 			return;
 		end 
 	end 
-	// $error("%0t: PC mismatch", $time);
+	$error("%0t: PC mismatch", $time);
 endtask
 
 initial begin : TEST_VECTORS
@@ -270,18 +277,14 @@ end
 
 always_ff @(posedge tb_clk iff pc_load) begin
 	pc_hist[0] <= pc;
-	for(int i = 0; i < 8 - 1; i++) begin 
+	for(int i = 0; i < NUM_PC - 1; i++) begin 
 		pc_hist[i + 1] <= pc_hist[i];
 	end  
 end
 
 always @(posedge tb_clk iff commit) begin
-	for (int i = 0; i < size; i++) begin
-		if (~rdest[(i + flush.front_tag) % size].rdy) begin
-			continue;
-		end else begin
-			ingest_rd((i + flush.front_tag) % size);
-		end
+	for (int i = 0; i < num_deq && i < size; i++) begin
+		ingest_rd((i + flush.front_tag) % size);
 	end
 end
 
