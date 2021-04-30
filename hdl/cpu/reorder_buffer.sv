@@ -259,7 +259,7 @@ module reorder_buffer #(
 				end 
 
 				op_lui	: begin 
-					load_lsq 		= 1'b1;
+					load_acu_rs 	= 1'b1;
 					reg_ld_instr 	= 1'b1;
 				end 
 
