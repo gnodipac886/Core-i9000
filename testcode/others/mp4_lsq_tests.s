@@ -5,10 +5,10 @@ mp4_lsq_tests.s:
 	# Refer to the RISC-V ISA Spec for the functionality of
 	# the instructions in this test program.
 _start:
-    add x1,    x1,     x1
+    # addi x1,    x1,     1
     # la  x2,     bad
     # sw  x1,     (x2)
-	# lw 	x1, 	bad
+	lw 	x1, 	good
 	# lw 	x2, 	threshold
 	# lw 	x3, 	result
 	# lw 	x4, 	good 

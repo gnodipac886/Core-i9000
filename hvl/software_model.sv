@@ -30,6 +30,17 @@ logic clk;
 always #5 clk = clk === 1'b0;
 default clocking tb_clk @(posedge clk); endclocking
 
+/* Software Model Memory */
+/*
+	Method 1:
+	tb_itf.mem sm_mem_itf(clk);
+	memory #(1) sm_mem(.itf(sm_mem_itf));
+*/
+/*
+Method 2: 
+*/
+logic [7:0] sm_mem [logic [31:0]];
+
 reg_entry_t data[32];
 logic [31:0] r1_data;
 logic [31:0] r2_data;
@@ -40,6 +51,15 @@ logic [31:0] pc_hist[NUM_PC];
 int num_err, num_commit;
 
 task reset();
+	/*
+		Method 2:
+	*/
+	sm_mem.delete();
+	$readmemh("memory32.lst", sm_mem);
+	$display("Reset Software Model Memory");
+	$display("Addr: %x, data: %x", 32'h0, sm_mem[32'h0]);
+	$display("Addr: %x, data: %x", 32'h90, sm_mem[32'h90]);
+	$display("Addr: %x, data: %x", 32'h91, sm_mem[32'h91]);
 	pci = '{ opcode: op_imm, default: 0 };
 	r1_data = '0;
 	r2_data = '0;
@@ -191,9 +211,25 @@ task ingest_rd(int index);
 		op_load: // TODO: MAKE A MEANINGFUL LOAD CASE
 		begin
 			//currently looks in the rdest data, copies that to the software model
-			data[pci.rd].data = rdest[index].data;
+			// BEFORE
+			//data[pci.rd].data = rdest[index].data;
+			// AFTER
+			/*
+			for (int i = 0; i < 4; i++) begin
+				data[pci.rd].data[(8 * i) +: 8] = sm_mem[data[pci.rs1].data + pci.i_imm + i];
+			end
+			*/
+			data[pci.rd].data = { sm_mem[data[pci.rs1].data + pci.i_imm + 3], 
+								sm_mem[data[pci.rs1].data + pci.i_imm + 2],  
+								sm_mem[data[pci.rs1].data + pci.i_imm + 1],  
+								sm_mem[data[pci.rs1].data + pci.i_imm + 0] };
 		end
-		op_store:;
+		op_store:
+		begin
+			for (int i = 0; i < 4; i++) begin
+				// sm_mem[data[pci.rs1].data + pci.s_imm + i] = data[pci.rs2].data[(8 * (i + 1) - 1) : (8 * i)];
+			end
+		end
 		default:;
 	endcase // pci.opcode
 
