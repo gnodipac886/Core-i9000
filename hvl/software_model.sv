@@ -236,6 +236,7 @@ task ingest_rd(int index);
 											sm_mem[data[pci.rs1].data + pci.i_imm + 0] }; 
 				default: ;
 			endcase
+			//$display("Load (%0t PC: %x) Address: %x, Data %x", $time, pci.pc, data[pci.rs1].data + pci.i_imm, data[pci.rd].data);
 		end
 		op_store:
 		begin
@@ -254,6 +255,7 @@ task ingest_rd(int index);
 						sm_mem[data[pci.rs1].data + pci.s_imm + 3] = data[pci.rs2].data[31:24];
 					end
 			endcase
+			//$display("Store (%0t PC: %x) Address: %x, Data %x", $time, pci.pc, data[pci.rs1].data + pci.s_imm, data[pci.rs2].data);
 		end
 		default:;
 	endcase // pci.opcode

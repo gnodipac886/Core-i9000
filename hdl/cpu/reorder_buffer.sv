@@ -347,7 +347,8 @@ module reorder_buffer #(
 						arr[br_rs_o[i].tag].data <= br_rs_o[i].data;
 					end
 					if(arr[br_rs_o[i].tag].pc_info.opcode == op_jalr)
-						broadcast(br_rs_o[i]);
+						arr[br_rs_o[i].tag].data <= arr[br_rs_o[i].tag].pc_info.pc + 4;
+						broadcast('{tag: br_rs_o[i].tag, rdy: 1'b1, data: arr[br_rs_o[i].tag].pc_info.pc + 4});
 				end
 			end
 
