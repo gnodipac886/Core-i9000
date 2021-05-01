@@ -14,12 +14,12 @@ always_comb begin
 		out[idx].data = 0;
 		if (ready[idx]) begin
 			case (data[idx].cmp_opcode)
-				cmp_beq: out[idx].data = data[idx].r1 == data[idx].r2 ? '1 : '0;
-				cmp_bne: out[idx].data = data[idx].r1 != data[idx].r2 ? '1 : '0;
-				cmp_blt: out[idx].data = $signed(data[idx].r1) < $signed(data[idx].r2) ? '1 : '0;
-				cmp_bge: out[idx].data = ($signed(data[idx].r1) > $signed(data[idx].r2) || $signed(data[idx].r1) == $signed(data[idx].r2))? '1 : '0;
-				cmp_bltu: out[idx].data = data[idx].r1 < data[idx].r2 ? '1 : '0;
-				cmp_bgeu: out[idx].data = (data[idx].r1 > data[idx].r2 || data[idx].r1 ==data[idx].r2) ? '1 : '0;
+				cmp_beq: out[idx].data = data[idx].r1 == data[idx].r2 ? 32'd1 : 32'd0;
+				cmp_bne: out[idx].data = data[idx].r1 != data[idx].r2 ? 32'd1 : 32'd0;
+				cmp_blt: out[idx].data = $signed(data[idx].r1) < $signed(data[idx].r2) ? 32'd1 : 32'd0;
+				cmp_bge: out[idx].data = ($signed(data[idx].r1) > $signed(data[idx].r2) || $signed(data[idx].r1) == $signed(data[idx].r2))? 32'd1 : 32'd0;
+				cmp_bltu: out[idx].data = data[idx].r1 < data[idx].r2 ? 32'd1 : 32'd0;
+				cmp_bgeu: out[idx].data = (data[idx].r1 > data[idx].r2 || data[idx].r1 ==data[idx].r2) ? 32'd1 : 32'd0;
 				default:;
 			endcase
 			out[idx].rdy = 1'b1;

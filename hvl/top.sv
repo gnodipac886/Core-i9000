@@ -113,7 +113,7 @@ mp4 dut(
 // );
 
 software_model sm(
-	// .clk	(itf.clk),
+	.clk	(itf.clk),
 	.rst    (itf.rst),
 	.commit (dut.cpu.rob.deq),
 	.rdest  (dut.cpu.rob.rdest),
