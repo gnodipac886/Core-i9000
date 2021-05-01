@@ -99,6 +99,7 @@ module reservation_station #(parameter size = 8, parameter rob_size = 8)
 				data[next_rs].alu_opcode <= alu_ops'(pci.funct3);
 				data[next_rs].cmp_opcode <= cmp_ops'(pci.funct3);
 				data[next_rs].valid <= 1'b1;
+				data[next_rs].funct7 <= pci.opcode == op_reg ? pci.funct7 : 0;
 				unique case (pci.opcode) 
 					op_jal: begin 
 						data[next_rs].alu_opcode <= alu_add;

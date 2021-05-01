@@ -16,12 +16,12 @@ begin
         if (ready[idx])
         begin
             unique case (data[idx].alu_opcode)
-                alu_add:  out[idx].data = data[idx].r1 + data[idx].r2;
+                alu_add:  out[idx].data = ~data[idx].funct7[5] ? data[idx].r1 + data[idx].r2 : data[idx].r1 - data[idx].r2;
                 alu_sll:  out[idx].data = data[idx].r1 << data[idx].r2[4:0];
                 alu_sra:  out[idx].data = $signed(data[idx].r1) >>> data[idx].r2[4:0];
                 alu_sub:  out[idx].data = data[idx].r1 - data[idx].r2;
                 alu_xor:  out[idx].data = data[idx].r1 ^ data[idx].r2;
-                alu_srl:  out[idx].data = data[idx].r1 >> data[idx].r2[4:0];
+                alu_srl:  out[idx].data = ~data[idx].funct7[5] ? data[idx].r1 >> data[idx].r2[4:0] : $signed(data[idx].r1) >>> data[idx].r2[4:0];
                 alu_or:   out[idx].data = data[idx].r1 | data[idx].r2;
                 alu_and:  out[idx].data = data[idx].r1 & data[idx].r2;
             endcase
