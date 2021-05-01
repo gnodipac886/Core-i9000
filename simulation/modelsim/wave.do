@@ -236,7 +236,7 @@ add wave -noupdate -group lsq_cache -expand -group io /mp4_tb/dut/lsq_cache/mem_
 add wave -noupdate -group lsq_cache /mp4_tb/dut/lsq_cache/control/state
 add wave -noupdate -group lsq_cache /mp4_tb/dut/lsq_cache/control/next_state
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {2455000 ps} 1} {{Cursor 2} {692154379 ps} 0}
+WaveRestoreCursors {{Cursor 1} {3500000 ps} 1} {{Cursor 2} {3503140 ps} 0}
 quietly wave cursor active 2
 configure wave -namecolwidth 338
 configure wave -valuecolwidth 81
@@ -252,4 +252,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {0 ps} {1093265250 ps}
+WaveRestoreZoom {3467187 ps} {3532813 ps}

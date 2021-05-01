@@ -54,6 +54,8 @@ endtask
 task ingest_rd(int index);
 // get the pci from each entry, and then do a big case statement of opcodes
 	pci = rdest[index].pc_info;
+	if(pci.pc != pc_out)
+		$error("%0t: PC mismatch at pc: %0x, pc_out: %0x", $time, pci.pc, pc_out);
 
 	case (pci.opcode)
 		op_imm:
@@ -151,49 +153,19 @@ task ingest_rd(int index);
 			r2_data = data[pci.rs2].data;
 			take_pc = pci.branch_pc;
 			case (pci.funct3)
-			3'b000: //beq
-			begin
-				if (r1_data == r2_data)
-				begin
-					pc_out = take_pc;
-				end
-			end
-			3'b001: //bne
-			begin
-				if (r1_data != r2_data)
-				begin
-					pc_out = take_pc;
-				end
-			end
-			3'b100: //blt
-			begin
-				if ($signed(r1_data) < $signed(r2_data))
-				begin
-					pc_out = take_pc;
-				end
-			end
-			3'b101: //bge
-			begin
-				if (($signed(r1_data) > $signed(r2_data) || $signed(r1_data) == $signed(r2_data)))
-				begin
-					pc_out = take_pc;
-				end
-			end
-			3'b110: //bltu
-			begin
-				if (r1_data < r2_data)
-				begin
-					pc_out = take_pc;
-				end
-			end
-			3'b111: //bgeu
-			begin
-				if ((r1_data > r2_data || r1_data == r2_data))
-				begin
-					pc_out = take_pc;
-				end
-			end
-			default:;
+				3'b000: //beq
+						pc_out =  (r1_data == r2_data) ? take_pc : pc_out + 4;
+				3'b001: //bne
+						pc_out =  (r1_data != r2_data) ? take_pc : pc_out + 4;
+				3'b100: //blt
+						pc_out =  ($signed(r1_data) < $signed(r2_data)) ? take_pc : pc_out + 4;
+				3'b101: //bge
+						pc_out =  (($signed(r1_data) > $signed(r2_data) || $signed(r1_data) == $signed(r2_data))) ? take_pc : pc_out + 4;
+				3'b110: //bltu
+						pc_out =  (r1_data < r2_data) ? take_pc : pc_out + 4;
+				3'b111: //bgeu
+						pc_out =  ((r1_data > r2_data || r1_data == r2_data)) ? take_pc : pc_out + 4;
+				default:;
 			endcase
 		end
 		op_lui:

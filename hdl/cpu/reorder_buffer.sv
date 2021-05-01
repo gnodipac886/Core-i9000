@@ -301,12 +301,14 @@ module reorder_buffer #(
 						flush.valid 	= 1'b1;
 						flush_tag 		= (br_rs_o[i].tag + 1) % size;
 						flush_pc		= br_rs_o[i].data[0] ? arr[br_rs_o[i].tag].pc_info.branch_pc : arr[br_rs_o[i].tag].pc_info.pc + 4;
+						break;
 					end 
 				end 
 				else if(arr[br_rs_o[i].tag].pc_info.opcode == op_jalr) begin //JALR fake flush
 					flush.valid 	= 1'b1;
 					flush_tag 		= (br_rs_o[i].tag + 1) % size;
 					flush_pc		= br_rs_o[i].data;
+					break;
 				end 
 			end
 		end
