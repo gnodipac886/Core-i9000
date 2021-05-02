@@ -52,7 +52,7 @@ module load_store_q #(
 	int 			front, rear;
   	int				next_front, next_rear;
 	  	
-	assign 			enq 				= lsq_enq;
+	assign 			enq 				= lsq_enq && ~flush.valid;
 	assign 			deq 				= lsq_deq;
 	assign 			in 					= lsq_in;
 	assign 			lsq_empty 			= empty;
@@ -110,13 +110,13 @@ module load_store_q #(
 		end 
 	endfunction
 
-	function logic [3:0] flush_get_next_rear();
+	function int flush_get_next_rear();
 		if(empty) begin 
 			return rear;
 		end 
 		for(int i = 0; i < size; i++) begin 
 			if(flush.valid && ~check_valid_flush_tag(arr[(front + i) % size].rd_tag)) begin 
-				return (front + i) % size;
+				return (front + i) % size == 0 ? 7 : (front + i) % size - 1;
 			end 
 			if ((front + i) % size == rear) begin
 				return rear;
@@ -129,7 +129,7 @@ module load_store_q #(
 		if(~check_valid_flush_tag(arr[front].rd_tag)) begin 
 			flush_stall <= 1;
 		end 
-		if (~check_valid_flush_tag(arr[front].rd_tag)) begin
+		if (~check_valid_flush_tag(arr[front].rd_tag) || (mem_resp && ~check_valid_flush_tag(arr[(front + 1) % size].rd_tag))) begin
 			// reset the whole table
 			front 	<= -1;
 			rear 	<= -1;
@@ -316,11 +316,10 @@ module load_store_q #(
 
 		else if (flush.valid) begin
 			// remove all bad entries in lsq
-			flush_lsq();
-			
 			if(deq) begin 
 				dequeue();
 			end 
+			flush_lsq();
 			// prevent memory from overwriting bad lsq entries
 			if(lsq_out.rdy) begin 
 				lsq_out 		<= '{default: 0};
