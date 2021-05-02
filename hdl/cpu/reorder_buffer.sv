@@ -45,6 +45,7 @@ module reorder_buffer #(
 	int front, rear;
 	int num_deq, flush_tag;
 	int num_items;
+	logic halt;
 	
 	logic enq, deq, full, empty;
 
@@ -108,6 +109,10 @@ module reorder_buffer #(
 	task dequeue();
 		// Check if empty before dequeuing
 		for(int i = 0; i < num_deq && i < size; i++) begin 
+			if((arr[(front + i) % size].pc_info.opcode == op_br && arr[(front + i) % size].pc_info.pc == arr[(front + i) % size].pc_info.branch_pc)
+			|| arr[(front + i) % size].pc_info.opcode == op_jal && arr[(front + i) % size].pc_info.pc == arr[(front + i) % size].pc_info.jal_pc) begin 
+				halt <= 1'b1;
+			end 
 			arr[(front + i) % size] 				<= '{ default: 0, pc_info: '{ opcode: op_imm, default: 0 }};
 			rob_broadcast_bus[(front + i) % size] 	<= '{ default: 0 };
 		end 
@@ -134,6 +139,10 @@ module reorder_buffer #(
 		end 
 		else begin 
 			for(int i = 0; i < num_deq && i < size; i++) begin 
+				if((arr[(front + i) % size].pc_info.opcode == op_br && arr[(front + i) % size].pc_info.pc == arr[(front + i) % size].pc_info.branch_pc)
+				|| arr[(front + i) % size].pc_info.opcode == op_jal && arr[(front + i) % size].pc_info.pc == arr[(front + i) % size].pc_info.jal_pc) begin 
+					halt <= 1'b1;
+				end 
 				rob_broadcast_bus[(i + front) % size] 	<= '{ default: 0 };
 				arr[(i + front) % size]					<= '{ default: 0, pc_info: '{ opcode: op_imm, default: 0 }};
 			end 
@@ -326,6 +335,7 @@ module reorder_buffer #(
 		if(rst) begin
 			front <= -1;
 			rear <= -1;
+			halt <= 1'b0;
 			for(int i = 0; i < size; i = i + 1) begin 
 				arr[i] <= '{ default: 0, pc_info: '{ opcode: op_imm, default: 0 }};
 				rob_broadcast_bus[i] <= '{ default: 0 };

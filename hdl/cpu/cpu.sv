@@ -80,7 +80,6 @@ module cpu #(
 	logic 				pc_result_load;
 	logic [width-1:0]	flush_pc;
 	flush_t				flush;
-
 	
 	/* regfile logic */
 	logic 		reg_ld_instr;
