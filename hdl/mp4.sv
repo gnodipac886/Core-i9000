@@ -46,7 +46,7 @@ module mp4 #(parameter width = 32)
 		logic 		[255:0]	lsq_pmem_wdata_256_cla;
 	/*****************************************************************************/
 
-	/**************************** Signals Cache <-> Adaptor **********************/
+	/**************************** Signals Cache <-> Adaptor **********************/ // new L2 Cache <-> Adaptor?
 		logic 				pmem_read_cla;
 		logic 				pmem_write_cla;
 		logic 				pmem_resp_cla;
@@ -55,6 +55,14 @@ module mp4 #(parameter width = 32)
 		logic 		[255:0]	pmem_wdata_256_cla;
 	/*****************************************************************************/
 
+	/**************************** Arbiter <-> L2 Cache ***************************/
+		// logic 				l2_mem_read;
+		// logic 				l2_mem_write;
+		// logic 				l2_mem_resp;
+		// logic 		[31:0]	l2_mem_address;
+		// logic 		[255:0]	l2_mem_rdata_256;
+		// logic 		[255:0]	l2_mem_wdata_256;
+	/*****************************************************************************/
 	cpu cpu(.*);
 
 	// Keep cache named `cache` for RVFI Monitor
@@ -95,6 +103,24 @@ module mp4 #(parameter width = 32)
 	);
 
 	arbiter arbiter(.*);
+
+	// l2_cache l2_cache(
+	// 	.mem_address(pmem_address),
+	// 	.mem_read(pmem_read),
+	// 	.mem_write(pmem_write),
+	// 	.mem_wdata_cpu(pmem_wdata),
+	// 	.mem_byte_enable_cpu(pmem_byte_enable),
+	// 	.mem_rdata_cpu(pmem_rdata),
+	// 	.mem_resp(pmem_resp),
+
+	// 	.pmem_rdata(l2_mem_rdata_256),
+	// 	.pmem_resp(l2_mem_resp),
+	// 	.pmem_wdata(l2_mem_wdata_256),
+	// 	.pmem_address(l2_mem_address),
+	// 	.pmem_read(l2_mem_read),
+	// 	.pmem_write(l2_mem_write),
+	// 	.*
+	// );
 
 	// From MP1
 	cacheline_adaptor cacheline_adaptor(

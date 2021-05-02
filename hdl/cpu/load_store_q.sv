@@ -32,7 +32,7 @@ module load_store_q #(
 	// internals
 	logic 			front_is_ld, front_is_valid, next_front_is_ld, next_front_is_valid;
 	logic 	[1:0] 	remainder;
-	logic 	[31:0] 	shift_amt, mem_address_raw, mem_rdata_shifted;
+	logic 	[31:0] 	shift_amt, mem_address_raw, mem_rdata_shifted, mem_wdata_raw;
 
 	// load queue logic
 	logic 			lsq_enq, lsq_deq, lsq_empty, lsq_full, lsq_ready, is_lsq_instr, is_ld_instr, is_st_instr;
@@ -52,7 +52,7 @@ module load_store_q #(
 	int 			front, rear;
   	int				next_front, next_rear;
 	  	
-	assign 			enq 				= lsq_enq;
+	assign 			enq 				= lsq_enq && ~flush.valid;
 	assign 			deq 				= lsq_deq;
 	assign 			in 					= lsq_in;
 	assign 			lsq_empty 			= empty;
@@ -76,6 +76,7 @@ module load_store_q #(
 	assign 			remainder 			= mem_address_raw[1:0];
 	assign 			shift_amt 			= remainder << 3;
 	assign 			mem_rdata_shifted 	= mem_rdata >> shift_amt;
+	assign 			mem_wdata 			= mem_wdata_raw << shift_amt;
 	assign 			mem_address 		= mem_address_raw & 32'hFFFFFFFC;
 	
 	function void set_default();
@@ -109,13 +110,13 @@ module load_store_q #(
 		end 
 	endfunction
 
-	function logic [3:0] flush_get_next_rear();
+	function int flush_get_next_rear();
 		if(empty) begin 
 			return rear;
 		end 
 		for(int i = 0; i < size; i++) begin 
 			if(flush.valid && ~check_valid_flush_tag(arr[(front + i) % size].rd_tag)) begin 
-				return (front + i) % size;
+				return (front + i) % size == 0 ? 7 : (front + i) % size - 1;
 			end 
 			if ((front + i) % size == rear) begin
 				return rear;
@@ -128,7 +129,7 @@ module load_store_q #(
 		if(~check_valid_flush_tag(arr[front].rd_tag)) begin 
 			flush_stall <= 1;
 		end 
-		if (~check_valid_flush_tag(arr[front].rd_tag)) begin
+		if (~check_valid_flush_tag(arr[front].rd_tag) || (mem_resp && ~check_valid_flush_tag(arr[(front + 1) % size].rd_tag))) begin
 			// reset the whole table
 			front 	<= -1;
 			rear 	<= -1;
@@ -315,11 +316,10 @@ module load_store_q #(
 
 		else if (flush.valid) begin
 			// remove all bad entries in lsq
-			flush_lsq();
-			
 			if(deq) begin 
 				dequeue();
 			end 
+			flush_lsq();
 			// prevent memory from overwriting bad lsq entries
 			if(lsq_out.rdy) begin 
 				lsq_out 		<= '{default: 0};
@@ -370,7 +370,7 @@ module load_store_q #(
 
 				// write case (next instruction)
 				mem_write 			<= (~next_front_is_ld && next_front_is_valid) && (lsq_next_front.rd_tag == flush.front_tag && check_valid_flush_tag(lsq_next_front.rd_tag));
-				mem_wdata 			<= lsq_next_front.data;
+				mem_wdata_raw 		<= lsq_next_front.data;
 				if(mem_write  && check_valid_flush_tag(lsq_front.rd_tag)) begin // the current instruction
 					lsq_out 		<= '{tag: lsq_front.rd_tag, rdy: 1'b1, data: lsq_front.data}; // broadcast write done
 				end 
@@ -383,7 +383,7 @@ module load_store_q #(
 		
 				// write	
 				mem_write 			<= ~front_is_ld && (lsq_front.rd_tag == flush.front_tag) && check_valid_flush_tag(lsq_front.rd_tag); 
-				mem_wdata 			<= lsq_front.data;
+				mem_wdata_raw 		<= lsq_front.data;
 			end 
 
 		end else begin 
@@ -439,7 +439,7 @@ module load_store_q #(
 
 					// write case (next instruction)
 					mem_write 			<= (~next_front_is_ld && next_front_is_valid) && (lsq_next_front.rd_tag == flush.front_tag);
-					mem_wdata 			<= lsq_next_front.data;
+					mem_wdata_raw 		<= lsq_next_front.data;
 					if(mem_write) begin // the current instruction
 						lsq_out 		<= '{tag: lsq_front.rd_tag, rdy: 1'b1, data: lsq_front.data};
 					end 
@@ -453,7 +453,7 @@ module load_store_q #(
 		
 				// write	
 				mem_write 			<= ~front_is_ld && (lsq_front.rd_tag == flush.front_tag); 
-				mem_wdata 			<= lsq_front.data;
+				mem_wdata_raw 		<= lsq_front.data;
 			end 
 		end 
 	end 

@@ -147,6 +147,7 @@ typedef struct {
 typedef struct{
 	alu_ops 		alu_opcode; // set this to an actual struct like alu_ops;
 	cmp_ops 		cmp_opcode;
+	logic [6:0] 	funct7;
 	logic [3:0] 	tag;
 	logic 			busy_r1; // 1 if the r1 value is a tag, 0 if a constant value
 	logic 			busy_r2; // 1 if the r2 value is a tag, 0 if a constant value

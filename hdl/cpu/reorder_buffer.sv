@@ -45,8 +45,12 @@ module reorder_buffer #(
 	int front, rear;
 	int num_deq, flush_tag;
 	int num_items;
-
+	logic halt;
+	
 	logic enq, deq, full, empty;
+
+	logic test_signal;
+	assign test_signal = enq && ~flush.valid && (pci.opcode == op_load || pci.opcode == op_store);
 	assign instr_q_dequeue		= enq;
 	assign rob_front 			= front == -1 ? arr[0] : arr[front];
 
@@ -105,6 +109,10 @@ module reorder_buffer #(
 	task dequeue();
 		// Check if empty before dequeuing
 		for(int i = 0; i < num_deq && i < size; i++) begin 
+			if((arr[(front + i) % size].pc_info.opcode == op_br && arr[(front + i) % size].pc_info.pc == arr[(front + i) % size].pc_info.branch_pc)
+			|| arr[(front + i) % size].pc_info.opcode == op_jal && arr[(front + i) % size].pc_info.pc == arr[(front + i) % size].pc_info.jal_pc) begin 
+				halt <= 1'b1;
+			end 
 			arr[(front + i) % size] 				<= '{ default: 0, pc_info: '{ opcode: op_imm, default: 0 }};
 			rob_broadcast_bus[(front + i) % size] 	<= '{ default: 0 };
 		end 
@@ -131,6 +139,10 @@ module reorder_buffer #(
 		end 
 		else begin 
 			for(int i = 0; i < num_deq && i < size; i++) begin 
+				if((arr[(front + i) % size].pc_info.opcode == op_br && arr[(front + i) % size].pc_info.pc == arr[(front + i) % size].pc_info.branch_pc)
+				|| arr[(front + i) % size].pc_info.opcode == op_jal && arr[(front + i) % size].pc_info.pc == arr[(front + i) % size].pc_info.jal_pc) begin 
+					halt <= 1'b1;
+				end 
 				rob_broadcast_bus[(i + front) % size] 	<= '{ default: 0 };
 				arr[(i + front) % size]					<= '{ default: 0, pc_info: '{ opcode: op_imm, default: 0 }};
 			end 
@@ -168,6 +180,29 @@ module reorder_buffer #(
 
 	always_comb begin
 		set_load_rs_default();
+		// branch flushing logic
+		// ADD LOGIC FOR JALR HERE!!!!!!!!!!!!!!!!!!!
+		for (int i = 0; i < br_rs_size; i++) begin
+			if (br_rs_o[i].rdy & arr[br_rs_o[i].tag].valid) begin
+				if(arr[br_rs_o[i].tag].pc_info.is_br_instr) begin 
+					br_result 		= br_rs_o[i].data[0];
+					pc_result 		= arr[br_rs_o[i].tag].pc_info.pc;
+					pc_result_load 	= 1'b1;
+					if(br_rs_o[i].data[0] != arr[br_rs_o[i].tag].pc_info.br_pred) begin // Branch Mispredict flush
+						flush.valid 	= 1'b1;
+						flush_tag 		= (br_rs_o[i].tag + 1) % size;
+						flush_pc		= br_rs_o[i].data[0] ? arr[br_rs_o[i].tag].pc_info.branch_pc : arr[br_rs_o[i].tag].pc_info.pc + 4;
+						break;
+					end 
+				end 
+				else if(arr[br_rs_o[i].tag].pc_info.opcode == op_jalr) begin //JALR fake flush
+					flush.valid 	= 1'b1;
+					flush_tag 		= (br_rs_o[i].tag + 1) % size;
+					flush_pc		= br_rs_o[i].data;
+					break;
+				end 
+			end
+		end
 		if (rear >= front) begin
 			for (int i = 0; i <= (rear - front) && i < size; i++) begin 
 				if (~empty) begin 
@@ -230,17 +265,17 @@ module reorder_buffer #(
 		enq = 1'b0;
 		if ((pci.opcode == op_br) || (pci.opcode == op_jal) || (pci.opcode == op_jalr)) begin
 			if (~stall_br) begin
-				enq = (~full | (full & deq)) && (~instr_q_empty) || (~full | (full & deq)) && instr_q_empty && instr_mem_resp;
+				enq = ~flush.valid && ((~full | (full & deq)) && (~instr_q_empty) || (~full | (full & deq)) && instr_q_empty && instr_mem_resp);
 			end
 		end 
 		else if ((pci.opcode == op_lui) || (pci.opcode == op_load) || (pci.opcode == op_store)) begin
 			if (~stall_lsq) begin
-				enq = (~full | (full & deq)) && (~instr_q_empty) || (~full | (full & deq)) && instr_q_empty && instr_mem_resp;
+				enq = ~flush.valid && ((~full | (full & deq)) && (~instr_q_empty) || (~full | (full & deq)) && instr_q_empty && instr_mem_resp);
 			end
 		end 
 		else if ((pci.opcode == op_auipc) || (pci.opcode == op_imm) || (pci.opcode == op_reg)) begin
 			if (~stall_acu) begin
-				enq = (~full | (full & deq)) && (~instr_q_empty) || (~full | (full & deq)) && instr_q_empty && instr_mem_resp;
+				enq = ~flush.valid && ((~full | (full & deq)) && (~instr_q_empty) || (~full | (full & deq)) && instr_q_empty && instr_mem_resp);
 			end
 		end
 
@@ -288,34 +323,19 @@ module reorder_buffer #(
 				default :;
 			endcase
 		end
-
-		// branch flushing logic
-		// ADD LOGIC FOR JALR HERE!!!!!!!!!!!!!!!!!!!
-		for (int i = 0; i < br_rs_size; i++) begin
-			if (br_rs_o[i].rdy & arr[br_rs_o[i].tag].valid) begin
-				if(arr[br_rs_o[i].tag].pc_info.is_br_instr) begin 
-					br_result 		= br_rs_o[i].data[0];
-					pc_result 		= arr[br_rs_o[i].tag].pc_info.pc;
-					pc_result_load 	= 1'b1;
-					if(br_rs_o[i].data[0] != arr[br_rs_o[i].tag].pc_info.br_pred) begin // Branch Mispredict flush
-						flush.valid 	= 1'b1;
-						flush_tag 		= (br_rs_o[i].tag + 1) % size;
-						flush_pc		= br_rs_o[i].data[0] ? arr[br_rs_o[i].tag].pc_info.branch_pc : arr[br_rs_o[i].tag].pc_info.pc + 4;
-					end 
-				end 
-				else if(arr[br_rs_o[i].tag].pc_info.opcode == op_jalr) begin //JALR fake flush
-					flush.valid 	= 1'b1;
-					flush_tag 		= (br_rs_o[i].tag + 1) % size;
-					flush_pc		= br_rs_o[i].data;
-				end 
-			end
-		end
+		else begin 
+			load_br_rs = 0;
+			reg_ld_instr = 0;
+			load_lsq = 0;
+			load_acu_rs = 0;
+		end 
 	end
 
 	always_ff @(posedge clk) begin
 		if(rst) begin
 			front <= -1;
 			rear <= -1;
+			halt <= 1'b0;
 			for(int i = 0; i < size; i = i + 1) begin 
 				arr[i] <= '{ default: 0, pc_info: '{ opcode: op_imm, default: 0 }};
 				rob_broadcast_bus[i] <= '{ default: 0 };
@@ -345,7 +365,8 @@ module reorder_buffer #(
 						arr[br_rs_o[i].tag].data <= br_rs_o[i].data;
 					end
 					if(arr[br_rs_o[i].tag].pc_info.opcode == op_jalr)
-						broadcast(br_rs_o[i]);
+						arr[br_rs_o[i].tag].data <= arr[br_rs_o[i].tag].pc_info.pc + 4;
+						broadcast('{tag: br_rs_o[i].tag, rdy: 1'b1, data: arr[br_rs_o[i].tag].pc_info.pc + 4});
 				end
 			end
 

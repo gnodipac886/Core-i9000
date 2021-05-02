@@ -4,8 +4,7 @@ mp4_simple_tests.s:
 .globl _start
 	# Refer to the RISC-V ISA Spec for the functionality of
 	# the instructions in this test program.
-_start:
-	jal 	branch_pred_tests	
+_start:	
 	addi    x0,     x0,     0
 	addi    x2,     x0,     2
 	beq 	x2, 	x0, 	halt

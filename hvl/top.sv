@@ -23,7 +23,7 @@ initial order = 0;
 always @(posedge itf.clk iff commit) order <= order + 1;
 int timeout = 100000000;   // Feel Free to adjust the timeout value
 // assign itf.registers = dut.cpu.datapath.regfile.data;
-assign itf.halt = 0;//dut.cpu.pc_load & (dut.cpu.pc_mux_out == dut.cpu.pc_out);
+assign itf.halt = dut.cpu.rob.halt;
 /*****************************************************************************/
 
 /************************** Testbench Instantiation **************************/
@@ -113,7 +113,7 @@ mp4 dut(
 // );
 
 software_model sm(
-	// .clk	(itf.clk),
+	.clk	(itf.clk),
 	.rst    (itf.rst),
 	.commit (dut.cpu.rob.deq),
 	.rdest  (dut.cpu.rob.rdest),
