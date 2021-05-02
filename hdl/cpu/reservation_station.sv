@@ -126,6 +126,7 @@ module reservation_station #(parameter size = 8, parameter rob_size = 8)
 						acu_operation[next_rs] <= 1'b1;
 					end 
 					op_lui: begin
+						data[next_rs].alu_opcode <= alu_add;
 						data[next_rs].busy_r1 <= 1'b0;
 						data[next_rs].busy_r2 <= 1'b0;
 						data[next_rs].r1 <= pci.u_imm;
@@ -133,6 +134,7 @@ module reservation_station #(parameter size = 8, parameter rob_size = 8)
 						acu_operation[next_rs] <= 1'b0;
 					end
 					op_auipc: begin
+						data[next_rs].alu_opcode <= alu_add;
 						data[next_rs].busy_r1 <= 1'b0;
 						data[next_rs].busy_r2 <= 1'b0;
 						data[next_rs].r1 <= pci.pc;
