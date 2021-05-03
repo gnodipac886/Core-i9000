@@ -13,13 +13,14 @@ module mp4 #(parameter width = 32)
 );
 	/**************************** Signals CPU <-> Cache **************************/
 		logic 				i_mem_resp;
-		rv32i_word 			i_mem_rdata;
+		logic		[63:0]	i_mem_rdata;
 		logic 				i_mem_read;
 		logic 				i_mem_write;
 		logic 		[3:0] 	i_mem_byte_enable;
 		rv32i_word 			i_mem_address;
 		rv32i_word 			i_mem_wdata;
 		logic 				iq_empty;
+		logic				num_fetch;
 
 		logic 				lsq_mem_resp;
 		rv32i_word 			lsq_mem_rdata;
@@ -76,7 +77,7 @@ module mp4 #(parameter width = 32)
 	cpu cpu(.*);
 
 	// Keep cache named `cache` for RVFI Monitor
-	cache i_cache(
+	cache #(8, 3, 2) i_cache(
 		.mem_address(i_mem_address),
 		.mem_read(i_mem_read),
 		.mem_write(i_mem_write),
@@ -84,6 +85,7 @@ module mp4 #(parameter width = 32)
 		.mem_byte_enable_cpu(i_mem_byte_enable),
 		.mem_rdata_cpu(i_mem_rdata),
 		.mem_resp(i_mem_resp),
+		.num_fetch(num_fetch),
 
 		.pmem_rdata(i_pmem_rdata_256_cla),
 		.pmem_resp(i_pmem_resp_cla),
@@ -102,6 +104,7 @@ module mp4 #(parameter width = 32)
 		.mem_byte_enable_cpu(lsq_mem_byte_enable),
 		.mem_rdata_cpu(lsq_mem_rdata),
 		.mem_resp(lsq_mem_resp),
+		.num_fetch(1'b0),
 
 		.pmem_rdata(lsq_pmem_rdata_256_cla),
 		.pmem_resp(lsq_pmem_resp_cla),

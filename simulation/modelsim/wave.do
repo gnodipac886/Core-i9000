@@ -57,11 +57,17 @@ add wave -noupdate -group fetcher /mp4_tb/dut/cpu/fetcher/i_mem_resp
 add wave -noupdate -group fetcher /mp4_tb/dut/cpu/fetcher/i_mem_rdata
 add wave -noupdate -group fetcher /mp4_tb/dut/cpu/fetcher/i_mem_read
 add wave -noupdate -group fetcher /mp4_tb/dut/cpu/fetcher/i_mem_address
-add wave -noupdate -group decoder /mp4_tb/dut/cpu/decoder/instruction
-add wave -noupdate -group decoder /mp4_tb/dut/cpu/decoder/pc
-add wave -noupdate -group decoder /mp4_tb/dut/cpu/decoder/decoder_out
-add wave -noupdate -group decoder /mp4_tb/dut/cpu/decoder/data
-add wave -noupdate -group decoder -expand /mp4_tb/dut/cpu/decoder/pci
+add wave -noupdate -expand -group decoder /mp4_tb/dut/cpu/decoder/instruction
+add wave -noupdate -expand -group decoder /mp4_tb/dut/cpu/decoder/pc
+add wave -noupdate -expand -group decoder /mp4_tb/dut/cpu/decoder/decoder_out
+add wave -noupdate -expand -group decoder /mp4_tb/dut/cpu/decoder/data
+add wave -noupdate -expand -group decoder /mp4_tb/dut/cpu/decoder/pci
+add wave -noupdate -expand -group decoder1 /mp4_tb/dut/cpu/decoder1/pc
+add wave -noupdate -expand -group decoder1 /mp4_tb/dut/cpu/decoder1/br_taken
+add wave -noupdate -expand -group decoder1 /mp4_tb/dut/cpu/decoder1/decoder_out
+add wave -noupdate -expand -group decoder1 /mp4_tb/dut/cpu/decoder1/data
+add wave -noupdate -expand -group decoder1 /mp4_tb/dut/cpu/decoder1/instruction
+add wave -noupdate -expand -group decoder1 /mp4_tb/dut/cpu/decoder1/pci
 add wave -noupdate -group iq /mp4_tb/dut/cpu/iq/arr
 add wave -noupdate -group iq /mp4_tb/dut/cpu/iq/enq
 add wave -noupdate -group iq /mp4_tb/dut/cpu/iq/deq
@@ -342,7 +348,7 @@ add wave -noupdate -group prefetcher /mp4_tb/dut/pref/next_state
 add wave -noupdate /mp4_tb/num_inst
 add wave -noupdate /mp4_tb/num_rob_full
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {9145608 ps} 0}
+WaveRestoreCursors {{Cursor 1} {411258 ps} 0}
 quietly wave cursor active 1
 configure wave -namecolwidth 452
 configure wave -valuecolwidth 81
@@ -358,4 +364,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {574298981 ps} {576505317 ps}
+WaveRestoreZoom {364727 ps} {461525 ps}

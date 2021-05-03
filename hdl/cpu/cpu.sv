@@ -12,13 +12,14 @@ module cpu #(
 	input 	logic 					rst,
 
 	input 	logic 					i_mem_resp,
-	input 	logic [width-1:0] 		i_mem_rdata,
+	input 	logic [width * 2-1:0] 	i_mem_rdata,
 	output 	logic 					i_mem_read,
 	output 	logic 					i_mem_write,
 	output 	logic [(width/8)-1:0] 	i_mem_byte_enable,
 	output 	logic [width-1:0] 		i_mem_address,
 	output 	logic [width-1:0] 		i_mem_wdata,
 	output 	logic 					iq_empty,
+	output	logic					num_fetch,
 
 	input 	logic 					lsq_mem_resp,
 	input 	logic [width-1:0] 		lsq_mem_rdata,
@@ -55,10 +56,11 @@ module cpu #(
 	/*****************************************************************************/
 
 	/*fetcher logic*/
-	logic	[width-1:0]	fetch_out;
+	logic	[63:0]		fetch_out;
 	/*instruction queue logic*/
 	logic 				iq_enq, iq_deq, iq_full, iq_ready;
-	pci_t				iq_in, iq_out;
+	pci_t				iq_in, iq_in1, iq_out;
+	logic				num_enq;
 
 	/*pc_reg logic*/
 	logic 				pc_load;
@@ -98,8 +100,8 @@ module cpu #(
 	logic 					br_acu_operation[br_rs_size];
 
 	/*branch prediction logic*/
-	logic				br_taken;
-	logic	[width-1:0] br_addr;
+	logic				br_taken, br_taken1;
+	logic	[width-1:0] br_addr, br_addr1;
 	logic				br_miss_pc_load;
 	logic	[width-1:0] br_miss_pc_save;
 
@@ -121,8 +123,9 @@ module cpu #(
 	assign 			stall_br  	= br_num_available == 4'd0; // stall if br_rs is full
 
 	always_comb begin
-		br_next_pc = 0;
-		pc_mux_sel = 2'b00;
+		br_next_pc 	= 0;
+		pc_mux_sel 	= 2'b00;
+		num_enq 	= num_fetch;
 		
 		if(br_miss_pc_load) begin
 			pc_mux_sel			= 2'b11;
@@ -135,27 +138,48 @@ module cpu #(
 				op_jal	: begin 
 					br_next_pc  = iq_in.jal_pc;
 					pc_mux_sel 	= 2'b01;
+					num_enq 	= 1'b0;
 				end 
 
-				op_jalr	: begin 								// NEEEDDDD TO DO THIS!!!!!!!!!!!!!!!!!!!!!!!!!!! NEED TO STALL???
-					br_next_pc 	= rob_front.data;
-					pc_mux_sel 	= 2'b00;
-				end 
+				// op_jalr	: begin 								// NEEEDDDD TO DO THIS!!!!!!!!!!!!!!!!!!!!!!!!!!! NEED TO STALL???
+				// 	br_next_pc 	= rob_front.data;
+				// 	pc_mux_sel 	= 2'b00;
+				// end 
 
 				op_br	: begin 
 					br_next_pc 	= br_addr;
 					pc_mux_sel 	= 2'b01;
+					num_enq 	= 1'b0;
 				end 
 				
 				default	: begin 
-					br_next_pc = 0;
-					pc_mux_sel = 2'b00;
+					unique case(iq_in1.opcode)
+						op_jal	: begin 
+							br_next_pc  = iq_in1.jal_pc;
+							pc_mux_sel 	= 2'b01;
+						end 
+
+						// op_jalr	: begin 								// NEEEDDDD TO DO THIS!!!!!!!!!!!!!!!!!!!!!!!!!!! NEED TO STALL???
+						// 	br_next_pc 	= rob_front.data;
+						// 	pc_mux_sel 	= 2'b00;
+						// end 
+
+						op_br	: begin 
+							br_next_pc 	= br_addr1;
+							pc_mux_sel 	= 2'b01;
+						end 
+						
+						default	: begin 
+							br_next_pc = 0;
+							pc_mux_sel = 2'b00;
+						end
+					endcase 
 				end
 			endcase 
 		end
 
 		unique case(pc_mux_sel)
-			2'b00: pc_mux_out = pc_out + 4;
+			2'b00: pc_mux_out = pc_out + 4 + (4 * num_enq);
 			2'b01: pc_mux_out = br_next_pc;
 			2'b10: pc_mux_out = flush_pc;
 			2'b11: pc_mux_out = br_miss_pc_save;
@@ -187,7 +211,7 @@ module cpu #(
 		.*
 	);
 
-	fetcher fetcher(
+	fetcher #(64) fetcher(
 		.deq(~iq_full), 				// lazy br here CHECKPOINT 2
 		.pc_addr(pc_out),
 		.rdy(iq_enq),
@@ -196,16 +220,24 @@ module cpu #(
 	);
 
 	decoder decoder(
-		.instruction(fetch_out),
+		.instruction(fetch_out[31:0]),
 		.pc(pc_out),
 		.br_taken(br_taken),
 		.decoder_out(iq_in)
+	);
+
+	decoder decoder1(
+		.instruction(fetch_out[63:32]),
+		.pc(pc_out + 4),
+		.br_taken(br_taken1),
+		.decoder_out(iq_in1)
 	);
 
 	circular_q iq(
 		.enq(iq_enq & ~br_miss_pc_load),
 		.deq(iq_deq),
 		.in(iq_in),
+		.in1(iq_in1),
 		.empty(iq_empty),
 		.full(iq_full),
 		.ready(iq_ready),
@@ -284,11 +316,14 @@ module cpu #(
 
 	branch_predictor br_pred(
 		.pc_info(iq_in),
+		.pc_info1(iq_in1),
 		.br_result(br_result),
 		.pc_result(pc_result),
 		.pc_result_load(pc_result_load),
 		.br_taken(br_taken),
+		.br_taken1(br_taken1),
 		.br_addr(br_addr),
+		.br_addr1(br_addr1),
 		.*
 	);
 

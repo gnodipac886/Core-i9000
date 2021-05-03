@@ -5,11 +5,14 @@ module branch_predictor #(parameter size = 128)
 	input 	logic 			clk,
 	input 	logic 			rst,
 	input 	pci_t 			pc_info, 	// comes from decoder
+	input 	pci_t 			pc_info1,
 	input 	logic 			br_result,	// comes from rob
 	input 	logic 	[31:0] 	pc_result,	// comes from rob, pc of the jump instruction that is committed
 	input	logic			pc_result_load, // comes from rob, goes high whenever a branch is resolved/committed
 	output 	logic 			br_taken, 	// one bit, goes to PCMUX select bit (actually do we even need this)
-	output 	logic 	[31:0] 	br_addr 	// next PC value (predicted) PCMUX input 1
+	output 	logic 			br_taken1,
+	output 	logic 	[31:0] 	br_addr, 	// next PC value (predicted) PCMUX input 1
+	output 	logic 	[31:0] 	br_addr1
 );
 	/*********************************************************************************************/
 	/*NOTE THERE IS A BUG WITH JALR WHERE WE NEED PC + 4 IN RD, CURRENTLY JUMP ADDRESS GOES TO RD*/
@@ -17,12 +20,14 @@ module branch_predictor #(parameter size = 128)
 
 	br_pred_t 							arr[size - 1:0];
 	logic 		[$clog2(size) - 1:0] 	arr_idx;
+	logic 		[$clog2(size) - 1:0] 	arr_idx1;
 	logic 		[$clog2(size) - 1:0] 	result_idx;
 	logic 		[size - 1:0] 			lru;
 	logic 								hit;
 	int									hit_idx, next_avail_idx; // resume from here, write next_avail logic
 
 	assign arr_idx = pc_info.pc[$clog2(size) + 1:2];
+	assign arr_idx1 = pc_info1.pc[$clog2(size) + 1:2];
 	assign result_idx = pc_result[$clog2(size) + 1:2];
 
 
@@ -48,6 +53,18 @@ module branch_predictor #(parameter size = 128)
 			unique case(br_taken)
 				1'b0: br_addr = pc_info.pc + 4;
 				1'b1: br_addr = pc_info.branch_pc;
+			endcase
+		end
+	end
+
+	always_comb begin
+		br_taken1 = 1'b0;
+		br_addr1 = pc_info1.pc + 4;
+		if (pc_info1.is_br_instr) begin
+			br_taken1 = arr[arr_idx1].counter[1];
+			unique case(br_taken1)
+				1'b0: br_addr1 = pc_info1.pc + 4;
+				1'b1: br_addr1 = pc_info1.branch_pc;
 			endcase
 		end
 	end

@@ -89,7 +89,7 @@ task ingest_rd(int index);
 	// if(num_deq > 1) 
 	// 	$display("time: %d, num_deq flag, %d, pc: %x", $time, index, pci.pc);
 	if(cpu_pci.pc != sm_pc) begin 
-		$error("%0t: PC mismatch at pc: %0x, sm_pc: %0x", $time, pci.pc, sm_pc);
+		$error("%0t: PC mismatch at pc: %0x, sm_pc: %0x", $time, cpu_pci.pc, sm_pc);
 		$finish;
 	end 
 

@@ -2,14 +2,16 @@ import rv32i_types::*;
 
 
 module circular_q #(parameter width = 32,
-					parameter size 	= 15)
+					parameter size 	= 128)
 (
 	input 	logic 		clk,
 	input 	logic 		rst,
 	input 	logic 		enq,
 	input 	logic 		deq,
 	input	pci_t		in,
+	input 	pci_t 		in1,
 	input 	flush_t 	flush,
+	input 	logic 		num_enq,
 	output	logic 		empty,
 	output 	logic 		full,
 	output 	logic 		ready,
@@ -20,26 +22,29 @@ module circular_q #(parameter width = 32,
 	int 	front, rear;
 	logic 	wtf;
 
-	assign 	full 	= (front == 0 && rear == size - 1) || (rear == (front - 1) % (size - 1));
+	// assign 	full 	= (front == 0 && rear == size - 1) || (rear == (front - 1) % (size - 1));
+	assign 	full = (front == (rear + 1) % size) || (front == (rear + 2) % size);
 	assign 	empty 	= front == -1;
 	assign	out = enq && deq && front == -1 ? in : arr[front];
 
-	task enqueue(pci_t data_in);
+	task enqueue(pci_t data_in, pci_t data_in1);
 		ready 				<= 0;
 		// full
-		if((front == 0 && rear == size - 1) || (rear == (front - 1) % (size - 1))) begin 
+		if(full) begin 
 			return;
 		end 
 		// first element
-		else if(front == -1) begin 
+		else if(front == -1) begin
 			front 			<= 0;
-			rear 			<= 0;
+			rear 			<= (~num_enq) ? 0 : 1;
 			arr[0]			<= data_in;
+			arr[1]			<= (num_enq) ? data_in1 : arr[1];
 		end
 		// otherwise
 		else begin 
-			rear 					<= (rear + 1) % size;
-			arr[(rear + 1) % size] 	<= data_in; 
+			rear 					<= (~num_enq) ? (rear + 1) % size : (rear + 2) % size;
+			arr[(rear + 1) % size] 	<= data_in;
+			arr[(rear + 2) % size]	<= (num_enq) ? data_in1 : arr[(rear + 2) % size];
 		end 
 	endtask : enqueue
 
@@ -64,7 +69,7 @@ module circular_q #(parameter width = 32,
 		end 
 	endtask : dequeue
 
-	task endequeue(pci_t data_in);
+	task endequeue(pci_t data_in, pci_t data_in1);
 		// if empty
 		if(front == -1) begin 
 			wtf 					<= 1;
@@ -75,12 +80,13 @@ module circular_q #(parameter width = 32,
 		else begin 
 			// out 					<= arr[front];
 			front 					<= (front + 1) % size;
-			rear 					<= (rear + 1) % size;
+			rear 					<= (~num_enq) ? (rear + 1) % size : (rear + 2) % size;
 			ready 					<= 1;
 			if (~full) begin
 				arr[front] 				<= '{ default: 0, opcode: op_imm};
-				arr[(rear + 1) % size] 	<= data_in; 
-			end else begin
+				arr[(rear + 1) % size] 	<= data_in;
+				arr[(rear + 2) % size]	<= data_in1;
+			end else begin	// Never can happen
 				arr[front]			<= data_in;
 			end
 		end 
@@ -96,7 +102,7 @@ module circular_q #(parameter width = 32,
 			end 
 		end
 		else if(enq && ~deq) begin
-			enqueue(in);
+			enqueue(in, in1);
 			// $display("enqueue!");
 		end 
 		else if(~enq && deq) begin 
@@ -104,7 +110,7 @@ module circular_q #(parameter width = 32,
 			// $display("dequeue!");
 		end 
 		else if(enq && deq) begin 
-			endequeue(in);
+			endequeue(in, in1);
 			// $display("endeque!");
 		end 
 	end
