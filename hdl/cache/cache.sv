@@ -1,4 +1,6 @@
-module cache (
+module cache #(parameter NUM_WAYS = 8,
+              parameter WAYS_LOG_2 = $clog2(NUM_WAYS)) 
+(
   input clk,
 
   /* Physical memory signals */
@@ -25,6 +27,12 @@ logic dirty_load;
 logic dirty_in;
 logic dirty_out;
 
+logic lru_load[NUM_WAYS];
+logic [WAYS_LOG_2 - 1:0] lru_in [NUM_WAYS];
+logic [WAYS_LOG_2 - 1:0] lru_out[NUM_WAYS];
+logic [WAYS_LOG_2 - 1:0] _idx;
+logic valid_out[NUM_WAYS];
+
 logic hit;
 logic [1:0] writing;
 
@@ -32,8 +40,8 @@ logic [255:0] mem_wdata;
 logic [255:0] mem_rdata;
 logic [31:0] mem_byte_enable;
 
-cache_control control(.*);
-cache_datapath datapath(.*);
+cache_control #(NUM_WAYS, WAYS_LOG_2) control(.*);
+cache_datapath #(NUM_WAYS, WAYS_LOG_2) datapath(.*);
 
 line_adapter bus (
     .mem_wdata_line(mem_wdata),

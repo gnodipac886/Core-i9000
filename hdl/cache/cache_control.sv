@@ -1,4 +1,6 @@
-module cache_control (
+module cache_control #(parameter NUM_WAYS = 8,
+                        parameter WAYS_LOG_2 = $clog2(NUM_WAYS))
+(
   input clk,
 
   /* CPU memory data signals */
@@ -19,7 +21,13 @@ module cache_control (
   input logic dirty_out,
 
   input logic hit,
-  output logic [1:0] writing
+  output logic [1:0] writing,
+
+  input logic [WAYS_LOG_2 - 1:0] lru_out[NUM_WAYS],
+  input logic [WAYS_LOG_2 - 1 : 0] _idx,
+  input logic valid_out[NUM_WAYS],
+  output logic lru_load[NUM_WAYS],
+  output logic [WAYS_LOG_2 - 1:0] lru_in [NUM_WAYS]
 );
 
 /* State Enumeration */
@@ -28,6 +36,21 @@ enum int unsigned
   check_hit,
 	read_mem
 } state, next_state;
+
+//          0 1 2 3 4 5 6 7
+// valid:   1 0 0 0 0 0 0 0
+// lru:     0 7 7 7 7 7 7 7
+
+function void update_lru();
+  for (int i = 0; i < NUM_WAYS; i++ ) begin
+    if (valid_out[i] && (lru_out[i] < lru_out[_idx])) begin
+      lru_load[i] = 1'b1;
+      lru_in[i] = lru_out[i] + 1;
+    end
+  end
+  lru_load[_idx] = 1'b1;
+  lru_in[_idx] = '0;
+endfunction
 
 /* State Control Signals */
 always_comb begin : state_actions
@@ -43,6 +66,11 @@ always_comb begin : state_actions
 	pmem_write = 1'b0;
 	pmem_read = 1'b0;
 
+  for(int i = 0; i < NUM_WAYS; i++) begin 
+    lru_load[i] = 1'b0;
+    lru_in[i] = 0;
+  end 
+
 	case(state)
     check_hit: begin
       if (mem_read || mem_write) begin
@@ -53,6 +81,7 @@ always_comb begin : state_actions
             dirty_in = 1'b1;
             writing = 2'b01;
           end
+          update_lru();
         end else begin
           if (dirty_out)
             pmem_write = 1'b1;

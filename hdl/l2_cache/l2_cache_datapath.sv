@@ -1,290 +1,231 @@
-/* MODIFY. The cache datapath. It contains the data,
-valid, dirty, tag, and LRU arrays, comparators, muxes,
-logic gates and other supporting logic. */
-`define BAD_MUX_SEL $fatal("%0t %s %0d: Illegal mux select", $time, `__FILE__, `__LINE__)
-
-import data_write_en_mux::*;
-import data_out_mux::*;
-import data_datain_mux::*;
-
-module l2_cache_datapath #(
-	parameter s_offset = 5, 						// for which byte
-	parameter s_index  = 3, 						// index to which of the 8 sets
-	parameter s_tag    = 32 - s_offset - s_index,	// 24
-	parameter s_mask   = 2**s_offset,				// 32
-	parameter s_line   = 8*s_mask,					// 256
-	parameter num_sets = 2**s_index					// 8
-)
+module l2_cache_datapath #(parameter NUM_WAYS = 8,
+                        parameter WAYS_LOG_2 = $clog2(NUM_WAYS))
 (
-	clk,
-	rst,
-	cpu_address_i,
-	cpu_read_i,
-	cpu_write_i,
-	cpu_wdata256_i,
-	cpu_byte_enable256_i,
-	cpu_rdata256_o,
-	mem_line_i,
-	mem_line_o,
-	mem_address_o,
-	tag0_load,
-	tag1_load,
-	lru_load,
-	lru_datain,
-	dirty0_load,
-	dirty0_datain,
-	dirty1_load,
-	dirty1_datain,
-	valid0_load,
-	valid0_datain,
-	valid1_load,
-	valid1_datain,
-	arr_read,
-	data0_write_en_mux_sel,
-	data1_write_en_mux_sel,
-	data_out_mux_sel,
-	data0_datain_mux_sel,
-	data1_datain_mux_sel,
-	mem_addr_mux_sel,
-	_hit,
-	tag0_comp,
-	tag1_comp,
-	lru_dataout,
-	dirty0_dataout, 
-	dirty1_dataout,
-	valid0_dataout,
-	valid1_dataout
+  input clk,
+
+  /* CPU memory data signals */
+  input logic  [31:0]  mem_byte_enable,
+  input logic  [31:0]  mem_address,
+  input logic  [255:0] mem_wdata,
+  output logic [255:0] mem_rdata,
+
+  /* Physical memory data signals */
+  input  logic [255:0] pmem_rdata,
+  output logic [255:0] pmem_wdata,
+  output logic [31:0]  pmem_address,
+
+  /* Control signals */
+  input logic tag_load,
+  input logic valid_load,
+  input logic dirty_load,
+  input logic dirty_in,
+  output logic dirty_out,
+
+  output logic hit,
+  input logic [1:0] writing,
+  
+  input logic lru_load[NUM_WAYS],
+  input logic [WAYS_LOG_2 - 1:0] lru_in [NUM_WAYS],
+  output logic [WAYS_LOG_2 - 1:0] lru_out[NUM_WAYS],
+  output logic [WAYS_LOG_2 - 1:0] _idx,
+  output logic valid_out[NUM_WAYS]
 );
-	input 	logic 						clk;
-	input 	logic 						rst;
-	// from/to BUS adaptor and CPU
-	input 	logic 	[s_mask - 1:0] 		cpu_address_i;
-	input 	logic 						cpu_read_i;
-	input 	logic 						cpu_write_i;
-	input 	logic 	[s_line - 1:0]		cpu_wdata256_i;
-	input 	logic 	[s_mask - 1:0]		cpu_byte_enable256_i;
 
-	output 	logic 	[s_line - 1:0] 		cpu_rdata256_o;
-	// output 	logic 						cpu_resp_o;
+logic _tag_load[NUM_WAYS];
+logic _valid_load[NUM_WAYS];
+logic _dirty_load[NUM_WAYS];
+// logic _dirty_in[NUM_WAYS];
+logic _dirty_out[NUM_WAYS];
+logic _hit[NUM_WAYS];
 
-	// from/to cacheline adaptor and memory
-	input 	logic 	[s_line - 1:0]		mem_line_i;
-	// input 	logic 						mem_resp_i;
+logic [255:0] line_in, line_out[NUM_WAYS];
+logic [23:0] address_tag, tag_out[NUM_WAYS];
+logic [2:0]  set_index;
+logic [31:0] mask[NUM_WAYS];
 
-	output 	logic 	[s_line - 1:0]		mem_line_o;
-	output 	logic 	[s_mask - 1:0] 		mem_address_o;
-	// output 	logic 						mem_read_o;
-	// output 	logic 						mem_write_o;
+function void set_defaults();
+  address_tag = mem_address[31:8];
+  set_index = mem_address[7:5];
+  _idx = 0;
+  for (int i = 0; i < NUM_WAYS; i++) begin
+    _tag_load[i] = 1'b0;
+    _valid_load[i] = 1'b0;
+    _dirty_load[i] = 1'b0;
+    // _dirty_in[i] = 1'b0;
+    mask[i] = 32'b0;
+  end
+endfunction
 
-	// from/to control
-	input 	logic 						tag0_load;
-	input 	logic 						tag1_load;
-	input 	logic  						lru_load;
-	input 	logic  						lru_datain;
-	input 	logic 						dirty0_load;
-	input 	logic  						dirty0_datain;
-	input 	logic 						dirty1_load;
-	input 	logic  						dirty1_datain;
-	input 	logic 						valid0_load;
-	input 	logic  						valid0_datain;
-	input 	logic 						valid1_load;
-	input 	logic  						valid1_datain;
-	input 	logic 						arr_read;
-	input 	logic  	[1:0] 				data0_write_en_mux_sel;
-	input 	logic  	[1:0] 				data1_write_en_mux_sel;
-	input 	logic  	[1:0] 				data_out_mux_sel;
-	input 	logic  	[1:0] 				data0_datain_mux_sel;
-	input 	logic  	[1:0] 				data1_datain_mux_sel;
-	input 	logic 	[1:0] 				mem_addr_mux_sel;
+function logic [WAYS_LOG_2 - 1 : 0] find_idx();
+  // Find idx if it is a hit
+  for (logic [WAYS_LOG_2 : 0] i = 0; i < NUM_WAYS; i++) begin
+    if (valid_out[i] && (tag_out[i] == address_tag)) begin
+      return i;
+    end
+  end
+  // Find first invalid idx
+  for (logic [WAYS_LOG_2 : 0] i = 0; i < NUM_WAYS; i++) begin
+    if (~valid_out[i]) begin
+      return i;
+    end
+  end
 
-	output 	logic						_hit;
-	output 	logic 						tag0_comp;
-	output 	logic 						tag1_comp;
-	output 	logic 						lru_dataout; 		// lru = 1: data0; lru = 0: data1
-	output 	logic						dirty0_dataout; 
-	output 	logic						dirty1_dataout;
-	output 	logic						valid0_dataout; 
-	output 	logic						valid1_dataout;
+  // Find LRU
+  for (logic [WAYS_LOG_2 : 0] i = 0; i < NUM_WAYS; i++) begin
+    if (lru_out[i] == (NUM_WAYS - 1)) begin
+      return i;
+    end
+  end
+  return 0;
+endfunction
 
+always_comb begin
+  set_defaults();
 
-	// data array logic
-	logic 	[s_mask - 1:0] 		data0_write_en_mux_out, data1_write_en_mux_out; 	
-	logic 	[s_line - 1:0] 		data0_dataout, data1_dataout;
+  _idx = find_idx();
+  _tag_load[_idx] = tag_load; 
+  _valid_load[_idx] = valid_load; 
+  _dirty_load[_idx] = dirty_load; 
+  // _dirty_in[_idx] = dirty_in; 
+  dirty_out = _dirty_out[_idx];
+  
+  hit = valid_out[_idx] && (tag_out[_idx] == address_tag);
+  pmem_address = (_dirty_out[_idx]) ? {tag_out[_idx], mem_address[7:0]} : mem_address;
+  mem_rdata = line_out[_idx];
+  pmem_wdata = line_out[_idx];
 
-	// tag array logic
-	logic 	[s_tag - 1:0] 		tag0_dataout, tag1_dataout;
-	logic 	[s_line - 1:0] 		mem_line_o_mod;
+  case(writing)
+    2'b00: begin // load from memory
+      mask[_idx] = 32'hFFFFFFFF;
+      line_in = pmem_rdata;
+    end
+    2'b01: begin // write from cpu
+      mask[_idx] = mem_byte_enable;
+      line_in = mem_wdata;
+    end
+    default: begin // don't change data
+      mask[_idx] = 32'b0;
+      line_in = mem_wdata;
+    end
+	endcase
+end
 
-	// muxes
-	logic 	[s_line - 1:0]		data_out_mux_out; // to physical write and cpu read
-	logic 	[s_line - 1:0] 		data0_datain_mux_out, data1_datain_mux_out; 
-	logic 	[s_mask - 1:0] 		mem_addr_mux_out;
+genvar i;
+generate
+  for (i = 0; i < NUM_WAYS; i++) begin : multiple_way_arrays
+    data_array DM_cache (clk, mask[i], set_index, set_index, line_in, line_out[i]);
+    array #(24, 0, 0) tag (clk, _tag_load[i], set_index, set_index, address_tag, tag_out[i]);
+    array #(1, 0, 0) valid (clk, _valid_load[i], set_index, set_index, 1'b1, valid_out[i]);
+    array #(1, 0, 0) dirty (clk, _dirty_load[i], set_index, set_index, dirty_in, _dirty_out[i]);
+    array #(WAYS_LOG_2, NUM_WAYS-1, 1) lru (clk, lru_load[i], set_index, set_index, lru_in[i], lru_out[i]);
+  end
+endgenerate
 
+/*
+            control
+               
+              /
+        0 1 2 3 4 5 6 7
+valid:  1 1 0 0 0 0 0 0
+lru:    1 0 0 0 0 0 0 0
 
-	// internal logic
-	logic 	[2:0] 				index;
-	logic 	[23:0] 				tag;
-	logic 	[4:0] 				offset;
+for (int i = 0; i < 8; i++) begin
+  array #(3) lru[i] (clk, lru_load[i], set_index, set_index, lru_in[i], lru_out[i]);
+end
 
-	assign 	index 	= 	cpu_address_i[7:5];
-	assign 	tag 	=	cpu_address_i[31:8];
-	assign 	offset 	= 	cpu_address_i[4:0];
+read/write:
+if _idx is a hit:
+  for (int j = 0; j < 8; j++) begin
+    if (valid[j] && (lru_out[j] < lru_out[_idx])) begin
+      lru_load[j] = 1'b1;
+      lru_in[j] = lru_out[j] + 1;
+    end
+  begin
+  lru_Load[_idx] = 1'b1;
+  lru_in[_idx] = 3'b0;
 
-	//module declaration
-	data_array data0_array(
-		.read 		(arr_read),
-		.write_en 	(data0_write_en_mux_out),
-		.rindex  	(cpu_address_i[7:5]),
-		.windex  	(cpu_address_i[7:5]),
-		.datain  	(data0_datain_mux_out),
-		.dataout 	(data0_dataout),
-		.*
-	);
+miss:
+  if (all_valid) begin
+    for (int j = 0; j < NUM_WAYS; j++) begin
+      lru_load[j] = 1'b1;
+      lru_in[j] = lru_out[j] + 1;
+    begin
+  end else
+    // go through valid arrays, find first idx that is invalid (idx)
+    // idx = 0;
+    // for (int i = 0; i < NUM_WAYS; i++) begin
+    //   if (valid[i]) begin
+    //     idx++;
+    //   end
+    // end
+    for (int i = 0; i < _idx && i < NUM_WAYS; i++) begin
+      lru_load[i] = 1'b1;
+      lru_in[i] = lru_out[i] + 1;
+    end
+    lru_load[_idx] = 1'b1
+    lru_in[_idx] = 3'b0;
+  end
+*/
+endmodule : l2_cache_datapath
 
-	data_array data1_array(
-		.read 		(arr_read),
-		.write_en 	(data1_write_en_mux_out),
-		.rindex  	(cpu_address_i[7:5]),
-		.windex  	(cpu_address_i[7:5]),
-		.datain  	(data1_datain_mux_out),
-		.dataout 	(data1_dataout),
-		.*
-	);
+// module cache_datapath (
+//   input clk,
 
-	array #(s_index, s_tag) tag0_array(
-		.read 		(arr_read),
-		.load 		(tag0_load),
-		.rindex 	(cpu_address_i[7:5]),
-		.windex 	(cpu_address_i[7:5]),
-		.datain 	(cpu_address_i[31:8]),
-		.dataout 	(tag0_dataout),
-		.*
-	);
+//   /* CPU memory data signals */
+//   input logic  [31:0]  mem_byte_enable,
+//   input logic  [31:0]  mem_address,
+//   input logic  [255:0] mem_wdata,
+//   output logic [255:0] mem_rdata,
 
-	array #(s_index, s_tag) tag1_array(
-		.read 		(arr_read),
-		.load 		(tag1_load),
-		.rindex 	(cpu_address_i[7:5]),
-		.windex 	(cpu_address_i[7:5]),
-		.datain 	(cpu_address_i[31:8]),
-		.dataout 	(tag1_dataout),
-		.*
-	);
+//   /* Physical memory data signals */
+//   input  logic [255:0] pmem_rdata,
+//   output logic [255:0] pmem_wdata,
+//   output logic [31:0]  pmem_address,
 
-	array lru_array(
-		.read 		(arr_read),
-		.load 		(lru_load),
-		.rindex 	(cpu_address_i[7:5]),
-		.windex 	(cpu_address_i[7:5]),
-		.datain 	(lru_datain),
-		.dataout 	(lru_dataout),
-		.*
-	);
+//   /* Control signals */
+//   input logic tag_load,
+//   input logic valid_load,
+//   input logic dirty_load,
+//   input logic dirty_in,
+//   output logic dirty_out,
 
-	array dirty0_array(
-		.read 		(arr_read),
-		.load 		(dirty0_load),
-		.rindex 	(cpu_address_i[7:5]),
-		.windex 	(cpu_address_i[7:5]),
-		.datain 	(dirty0_datain),
-		.dataout 	(dirty0_dataout),
-		.*
-	);
+//   output logic hit,
+//   input logic [1:0] writing
+// );
 
-	array dirty1_array(
-		.read 		(arr_read),
-		.load 		(dirty1_load),
-		.rindex 	(cpu_address_i[7:5]),
-		.windex 	(cpu_address_i[7:5]),
-		.datain 	(dirty1_datain),
-		.dataout 	(dirty1_dataout),
-		.*
-	);
+// logic [255:0] line_in, line_out;
+// logic [23:0] address_tag, tag_out;
+// logic [2:0]  set_index;
+// logic [31:0] mask;
+// logic valid_out;
 
-	array valid0_array(
-		.read 		(arr_read),
-		.load 		(valid0_load),
-		.rindex 	(cpu_address_i[7:5]),
-		.windex 	(cpu_address_i[7:5]),
-		.datain 	(valid0_datain),
-		.dataout 	(valid0_dataout),
-		.*
-	);
+// always_comb begin
+//   address_tag = mem_address[31:8];
+//   set_index = mem_address[7:5];
+//   hit = valid_out && (tag_out == address_tag);
+//   pmem_address = (dirty_out) ? {tag_out, mem_address[7:0]} : mem_address;
+//   mem_rdata = line_out;
+//   pmem_wdata = line_out;
 
-	array valid1_array(
-		.read 		(arr_read),
-		.load 		(valid1_load),
-		.rindex 	(cpu_address_i[7:5]),
-		.windex 	(cpu_address_i[7:5]),
-		.datain 	(valid1_datain),
-		.dataout 	(valid1_dataout),
-		.*
-	);
+//   case(writing)
+//     2'b00: begin // load from memory
+//       mask = 32'hFFFFFFFF;
+//       line_in = pmem_rdata;
+//     end
+//     2'b01: begin // write from cpu
+//       mask = mem_byte_enable;
+//       line_in = mem_wdata;
+//     end
+//     default: begin // don't change data
+//       mask = 32'b0;
+//       line_in = mem_wdata;
+//     end
+// 	endcase
+// end
 
+// data_array DM_cache (clk, mask, set_index, set_index, line_in, line_out);
+// array #(24) tag (clk, tag_load, set_index, set_index, address_tag, tag_out);
+// array #(1) valid (clk, valid_load, set_index, set_index, 1'b1, valid_out);
+// array #(1) dirty (clk, dirty_load, set_index, set_index, dirty_in, dirty_out);
 
-	// combinational logic
-	always_comb begin 
-		mem_address_o 	= mem_addr_mux_out; 	// need to worry about tag address when evicting
-		cpu_rdata256_o 	= data_out_mux_out;
-		mem_line_o 		= data_out_mux_out;
-		tag0_comp 		= tag0_dataout == cpu_address_i[31:8];
-		tag1_comp 		= tag1_dataout == cpu_address_i[31:8];
-		_hit 			= (tag0_comp && valid0_dataout) || (tag1_comp && valid1_dataout);
-
-		for(int i = 0; i < s_mask; i++) begin
-			mem_line_o_mod[8 * i +: 8]	= cpu_byte_enable256_i[i] ? cpu_wdata256_i[8 * i +: 8]: mem_line_i[8 * i +: 8];
-		end 
-
-	end 
-
-	always_comb begin
-		data0_write_en_mux_out	= 0;
-		data1_write_en_mux_out	= 0;
-		data_out_mux_out		= 0;
-		data0_datain_mux_out	= 0;
-		data1_datain_mux_out	= 0;
-
-		unique case(data0_write_en_mux_sel)
-			data_write_en_mux::zero 			: data0_write_en_mux_out 	= 32'd0;
-			data_write_en_mux::all_ones 		: data0_write_en_mux_out 	= 32'hFFFFFFFF;
-			data_write_en_mux::byte_enable 		: data0_write_en_mux_out 	= cpu_byte_enable256_i;
-			// default 							: `BAD_MUX_SEL;
-			default 							: ;//$fatal("%0t %s %0d, mux_sel:%0d: Illegal mux select", $time, `__FILE__, `__LINE__, data0_write_en_mux_sel);
-		endcase
-
-		unique case(data1_write_en_mux_sel)
-			data_write_en_mux::zero 			: data1_write_en_mux_out 	= 32'd0;
-			data_write_en_mux::all_ones 		: data1_write_en_mux_out 	= 32'hFFFFFFFF;
-			data_write_en_mux::byte_enable 		: data1_write_en_mux_out 	= cpu_byte_enable256_i;
-			default 							: ;//`BAD_MUX_SEL;
-		endcase
-
-		unique case(data_out_mux_sel)
-			data_out_mux::data0_hit 			: data_out_mux_out 			= data0_dataout;
-			data_out_mux::data1_hit 			: data_out_mux_out 			= data1_dataout;
-			data_out_mux::no_hit 				: data_out_mux_out 			= 0;
-			default 							: ;//`BAD_MUX_SEL;
-		endcase 
-
-		unique case(data0_datain_mux_sel)
-			data_datain_mux::r_data_mod 		: data0_datain_mux_out 		= mem_line_o_mod;
-			data_datain_mux::w_data 			: data0_datain_mux_out 		= cpu_wdata256_i;
-			data_datain_mux::r_data 			: data0_datain_mux_out 		= mem_line_i;
-			default 							: ;//`BAD_MUX_SEL;
-		endcase 
-
-		unique case(data1_datain_mux_sel)
-			data_datain_mux::r_data_mod 		: data1_datain_mux_out 		= mem_line_o_mod;
-			data_datain_mux::w_data 			: data1_datain_mux_out 		= cpu_wdata256_i;
-			data_datain_mux::r_data 			: data1_datain_mux_out 		= mem_line_i;
-			default 							: ;//`BAD_MUX_SEL;
-		endcase 
-
-		unique case(mem_addr_mux_sel)
-			mem_addr_mux::cpu_addr 				: mem_addr_mux_out 			= {cpu_address_i[31:5], 5'd0};
-			mem_addr_mux::tag0_addr 			: mem_addr_mux_out 			= {tag0_dataout, index, 5'd0};
-			mem_addr_mux::tag1_addr 			: mem_addr_mux_out 			= {tag1_dataout, index, 5'd0};
-		endcase
-	end 
-
-endmodule:cache_datapath
+// endmodule : cache_datapath

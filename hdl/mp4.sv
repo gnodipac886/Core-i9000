@@ -46,6 +46,16 @@ module mp4 #(parameter width = 32)
 		logic 		[255:0]	lsq_pmem_wdata_256_cla;
 	/*****************************************************************************/
 
+	/************************* Prefetcher <-> Arbiter ****************************/
+		logic 				pref_pmem_resp_cla;
+		logic 		[255:0]	pref_pmem_rdata_256_cla;
+		logic 				arbiter_idle;
+		logic 				pref_pmem_read_cla;
+		logic 				pref_pmem_write_cla;
+		logic 		[31:0]	pref_pmem_address_cla;
+		logic 		[255:0]	pref_pmem_wdata_256_cla;
+	/*****************************************************************************/
+
 	/**************************** Signals Cache <-> Adaptor **********************/ // new L2 Cache <-> Adaptor?
 		logic 				pmem_read_cla;
 		logic 				pmem_write_cla;
@@ -56,12 +66,12 @@ module mp4 #(parameter width = 32)
 	/*****************************************************************************/
 
 	/**************************** Arbiter <-> L2 Cache ***************************/
-		// logic 				l2_mem_read;
-		// logic 				l2_mem_write;
-		// logic 				l2_mem_resp;
-		// logic 		[31:0]	l2_mem_address;
-		// logic 		[255:0]	l2_mem_rdata_256;
-		// logic 		[255:0]	l2_mem_wdata_256;
+		logic 				l2_mem_read;
+		logic 				l2_mem_write;
+		logic 				l2_mem_resp;
+		logic 		[31:0]	l2_mem_address;
+		logic 		[255:0]	l2_mem_rdata_256;
+		logic 		[255:0]	l2_mem_wdata_256;
 	/*****************************************************************************/
 	cpu cpu(.*);
 
@@ -84,7 +94,7 @@ module mp4 #(parameter width = 32)
 		.*
 	);
 
-	cache lsq_cache(
+	cache #(16) lsq_cache(
 		.mem_address(lsq_mem_address),
 		.mem_read(lsq_mem_read),
 		.mem_write(lsq_mem_write),
@@ -102,25 +112,34 @@ module mp4 #(parameter width = 32)
 		.*
 	);
 
-	arbiter arbiter(.*);
+	prefetcher pref(.*);
 
-	// l2_cache l2_cache(
-	// 	.mem_address(pmem_address),
-	// 	.mem_read(pmem_read),
-	// 	.mem_write(pmem_write),
-	// 	.mem_wdata_cpu(pmem_wdata),
-	// 	.mem_byte_enable_cpu(pmem_byte_enable),
-	// 	.mem_rdata_cpu(pmem_rdata),
-	// 	.mem_resp(pmem_resp),
+	arbiter arbiter(
+		.pmem_resp_cla(l2_mem_resp),
+		.pmem_rdata_256_cla(l2_mem_rdata_256),
+		.pmem_read_cla(l2_mem_read),
+		.pmem_write_cla(l2_mem_write),
+		.pmem_address_cla(l2_mem_address),
+		.pmem_wdata_256_cla(l2_mem_wdata_256),
+		.*
+	);
 
-	// 	.pmem_rdata(l2_mem_rdata_256),
-	// 	.pmem_resp(l2_mem_resp),
-	// 	.pmem_wdata(l2_mem_wdata_256),
-	// 	.pmem_address(l2_mem_address),
-	// 	.pmem_read(l2_mem_read),
-	// 	.pmem_write(l2_mem_write),
-	// 	.*
-	// );
+	l2_cache #(32) l2_cache(
+		.mem_address(l2_mem_address),
+		.mem_read(l2_mem_read),
+		.mem_write(l2_mem_write),
+		.mem_wdata_l1(l2_mem_wdata_256),
+		.mem_rdata_l1(l2_mem_rdata_256),
+		.mem_resp(l2_mem_resp),
+
+		.pmem_rdata(pmem_rdata_256_cla),
+		.pmem_resp(pmem_resp_cla),
+		.pmem_wdata(pmem_wdata_256_cla),
+		.pmem_address(pmem_address_cla),
+		.pmem_read(pmem_read_cla),
+		.pmem_write(pmem_write_cla),
+		.*
+	);
 
 	// From MP1
 	cacheline_adaptor cacheline_adaptor(

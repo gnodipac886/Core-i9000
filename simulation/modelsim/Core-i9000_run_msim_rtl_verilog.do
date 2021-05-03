@@ -29,6 +29,11 @@ vlog -sv -work work +incdir+C:/Users/Eric/Desktop/UIUC/SP\ 2021/ECE\ 411/Core-i9
 vlog -sv -work work +incdir+C:/Users/Eric/Desktop/UIUC/SP\ 2021/ECE\ 411/Core-i9000/hdl/cpu {C:/Users/Eric/Desktop/UIUC/SP 2021/ECE 411/Core-i9000/hdl/cpu/acu.sv}
 vlog -sv -work work +incdir+C:/Users/Eric/Desktop/UIUC/SP\ 2021/ECE\ 411/Core-i9000/hdl/cpu {C:/Users/Eric/Desktop/UIUC/SP 2021/ECE 411/Core-i9000/hdl/cpu/cpu.sv}
 vlog -sv -work work +incdir+C:/Users/Eric/Desktop/UIUC/SP\ 2021/ECE\ 411/Core-i9000/hdl {C:/Users/Eric/Desktop/UIUC/SP 2021/ECE 411/Core-i9000/hdl/mp4.sv}
+vlog -sv -work work +incdir+C:/Users/Eric/Desktop/UIUC/SP\ 2021/ECE\ 411/Core-i9000/hdl/l2_cache {C:/Users/Eric/Desktop/UIUC/SP 2021/ECE 411/Core-i9000/hdl/l2_cache/l2_cache_datapath.sv}
+vlog -sv -work work +incdir+C:/Users/Eric/Desktop/UIUC/SP\ 2021/ECE\ 411/Core-i9000/hdl/l2_cache {C:/Users/Eric/Desktop/UIUC/SP 2021/ECE 411/Core-i9000/hdl/l2_cache/l2_cache_control.sv}
+vlog -sv -work work +incdir+C:/Users/Eric/Desktop/UIUC/SP\ 2021/ECE\ 411/Core-i9000/hdl/l2_cache {C:/Users/Eric/Desktop/UIUC/SP 2021/ECE 411/Core-i9000/hdl/l2_cache/l2_cache.sv}
+vlog -sv -work work +incdir+C:/Users/Eric/Desktop/UIUC/SP\ 2021/ECE\ 411/Core-i9000/hdl/cache {C:/Users/Eric/Desktop/UIUC/SP 2021/ECE 411/Core-i9000/hdl/cache/prefetcher.sv}
+vlog -sv -work work +incdir+C:/Users/Eric/Desktop/UIUC/SP\ 2021/ECE\ 411/Core-i9000/hdl/cpu {C:/Users/Eric/Desktop/UIUC/SP 2021/ECE 411/Core-i9000/hdl/cpu/register.sv}
 
 vlog -sv -work work +incdir+C:/Users/Eric/Desktop/UIUC/SP\ 2021/ECE\ 411/Core-i9000/hvl {C:/Users/Eric/Desktop/UIUC/SP 2021/ECE 411/Core-i9000/hvl/cache_monitor_itf.sv}
 vlog -sv -work work +incdir+C:/Users/Eric/Desktop/UIUC/SP\ 2021/ECE\ 411/Core-i9000/hvl {C:/Users/Eric/Desktop/UIUC/SP 2021/ECE 411/Core-i9000/hvl/param_memory.sv}

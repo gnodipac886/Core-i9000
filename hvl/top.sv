@@ -119,6 +119,7 @@ software_model sm(
 	.rdest  (dut.cpu.rob.rdest),
 	.rd_bus (dut.cpu.rob.rd_bus),
 	.cpu_registers(dut.cpu.registers.data),
+	// .cpu_branch_prediction(dut.cpu.branch_prediction.data),
 	.pc(dut.cpu.pc_out),
 	.flush(dut.cpu.rob.flush),
 	.halt(itf.halt),

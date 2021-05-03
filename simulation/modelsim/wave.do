@@ -17,27 +17,27 @@ add wave -noupdate -group cpu_io /mp4_tb/dut/cpu/lsq_mem_write
 add wave -noupdate -group cpu_io /mp4_tb/dut/cpu/lsq_mem_byte_enable
 add wave -noupdate -group cpu_io /mp4_tb/dut/cpu/lsq_mem_address
 add wave -noupdate -group cpu_io /mp4_tb/dut/cpu/lsq_mem_wdata
-add wave -noupdate -group arbiter /mp4_tb/dut/arbiter/state
-add wave -noupdate -group arbiter /mp4_tb/dut/arbiter/next_state
-add wave -noupdate -group arbiter /mp4_tb/dut/arbiter/iq_empty
-add wave -noupdate -group arbiter -group instruction /mp4_tb/dut/arbiter/i_pmem_read_cla
-add wave -noupdate -group arbiter -group instruction /mp4_tb/dut/arbiter/i_pmem_write_cla
-add wave -noupdate -group arbiter -group instruction /mp4_tb/dut/arbiter/i_pmem_address_cla
-add wave -noupdate -group arbiter -group instruction /mp4_tb/dut/arbiter/i_pmem_wdata_256_cla
-add wave -noupdate -group arbiter -group instruction /mp4_tb/dut/arbiter/i_pmem_resp_cla
-add wave -noupdate -group arbiter -group instruction /mp4_tb/dut/arbiter/i_pmem_rdata_256_cla
-add wave -noupdate -group arbiter -expand -group lsq /mp4_tb/dut/arbiter/lsq_pmem_read_cla
-add wave -noupdate -group arbiter -expand -group lsq /mp4_tb/dut/arbiter/lsq_pmem_write_cla
-add wave -noupdate -group arbiter -expand -group lsq /mp4_tb/dut/arbiter/lsq_pmem_address_cla
-add wave -noupdate -group arbiter -expand -group lsq /mp4_tb/dut/arbiter/lsq_pmem_wdata_256_cla
-add wave -noupdate -group arbiter -expand -group lsq /mp4_tb/dut/arbiter/lsq_pmem_resp_cla
-add wave -noupdate -group arbiter -expand -group lsq /mp4_tb/dut/arbiter/lsq_pmem_rdata_256_cla
-add wave -noupdate -group arbiter -group p_mem /mp4_tb/dut/arbiter/pmem_resp_cla
-add wave -noupdate -group arbiter -group p_mem /mp4_tb/dut/arbiter/pmem_rdata_256_cla
-add wave -noupdate -group arbiter -group p_mem /mp4_tb/dut/arbiter/pmem_read_cla
-add wave -noupdate -group arbiter -group p_mem /mp4_tb/dut/arbiter/pmem_write_cla
-add wave -noupdate -group arbiter -group p_mem /mp4_tb/dut/arbiter/pmem_address_cla
-add wave -noupdate -group arbiter -group p_mem /mp4_tb/dut/arbiter/pmem_wdata_256_cla
+add wave -noupdate -expand -group arbiter /mp4_tb/dut/arbiter/state
+add wave -noupdate -expand -group arbiter /mp4_tb/dut/arbiter/next_state
+add wave -noupdate -expand -group arbiter /mp4_tb/dut/arbiter/iq_empty
+add wave -noupdate -expand -group arbiter -group instruction /mp4_tb/dut/arbiter/i_pmem_read_cla
+add wave -noupdate -expand -group arbiter -group instruction /mp4_tb/dut/arbiter/i_pmem_write_cla
+add wave -noupdate -expand -group arbiter -group instruction /mp4_tb/dut/arbiter/i_pmem_address_cla
+add wave -noupdate -expand -group arbiter -group instruction /mp4_tb/dut/arbiter/i_pmem_wdata_256_cla
+add wave -noupdate -expand -group arbiter -group instruction /mp4_tb/dut/arbiter/i_pmem_resp_cla
+add wave -noupdate -expand -group arbiter -group instruction /mp4_tb/dut/arbiter/i_pmem_rdata_256_cla
+add wave -noupdate -expand -group arbiter -group lsq /mp4_tb/dut/arbiter/lsq_pmem_read_cla
+add wave -noupdate -expand -group arbiter -group lsq /mp4_tb/dut/arbiter/lsq_pmem_write_cla
+add wave -noupdate -expand -group arbiter -group lsq /mp4_tb/dut/arbiter/lsq_pmem_address_cla
+add wave -noupdate -expand -group arbiter -group lsq /mp4_tb/dut/arbiter/lsq_pmem_wdata_256_cla
+add wave -noupdate -expand -group arbiter -group lsq /mp4_tb/dut/arbiter/lsq_pmem_resp_cla
+add wave -noupdate -expand -group arbiter -group lsq /mp4_tb/dut/arbiter/lsq_pmem_rdata_256_cla
+add wave -noupdate -expand -group arbiter -expand -group p_mem /mp4_tb/dut/arbiter/pmem_resp_cla
+add wave -noupdate -expand -group arbiter -expand -group p_mem /mp4_tb/dut/arbiter/pmem_rdata_256_cla
+add wave -noupdate -expand -group arbiter -expand -group p_mem /mp4_tb/dut/arbiter/pmem_read_cla
+add wave -noupdate -expand -group arbiter -expand -group p_mem /mp4_tb/dut/arbiter/pmem_write_cla
+add wave -noupdate -expand -group arbiter -expand -group p_mem /mp4_tb/dut/arbiter/pmem_address_cla
+add wave -noupdate -expand -group arbiter -expand -group p_mem /mp4_tb/dut/arbiter/pmem_wdata_256_cla
 add wave -noupdate -group pc_reg /mp4_tb/dut/cpu/pc_reg/load
 add wave -noupdate -group pc_reg /mp4_tb/dut/cpu/pc_load
 add wave -noupdate -group pc_reg /mp4_tb/dut/cpu/pc_out
@@ -49,14 +49,14 @@ add wave -noupdate -group pc_reg /mp4_tb/dut/cpu/pc_mux_sel
 add wave -noupdate -group pc_reg /mp4_tb/dut/cpu/pc_mux_out
 add wave -noupdate -group pc_reg /mp4_tb/dut/cpu/br_next_pc
 add wave -noupdate -group pc_reg /mp4_tb/dut/cpu/rob_front
-add wave -noupdate -expand -group fetcher /mp4_tb/dut/cpu/fetcher/deq
-add wave -noupdate -expand -group fetcher /mp4_tb/dut/cpu/fetcher/pc_addr
-add wave -noupdate -expand -group fetcher /mp4_tb/dut/cpu/fetcher/rdy
-add wave -noupdate -expand -group fetcher /mp4_tb/dut/cpu/fetcher/out
-add wave -noupdate -expand -group fetcher /mp4_tb/dut/cpu/fetcher/i_mem_resp
-add wave -noupdate -expand -group fetcher /mp4_tb/dut/cpu/fetcher/i_mem_rdata
-add wave -noupdate -expand -group fetcher /mp4_tb/dut/cpu/fetcher/i_mem_read
-add wave -noupdate -expand -group fetcher /mp4_tb/dut/cpu/fetcher/i_mem_address
+add wave -noupdate -group fetcher /mp4_tb/dut/cpu/fetcher/deq
+add wave -noupdate -group fetcher /mp4_tb/dut/cpu/fetcher/pc_addr
+add wave -noupdate -group fetcher /mp4_tb/dut/cpu/fetcher/rdy
+add wave -noupdate -group fetcher /mp4_tb/dut/cpu/fetcher/out
+add wave -noupdate -group fetcher /mp4_tb/dut/cpu/fetcher/i_mem_resp
+add wave -noupdate -group fetcher /mp4_tb/dut/cpu/fetcher/i_mem_rdata
+add wave -noupdate -group fetcher /mp4_tb/dut/cpu/fetcher/i_mem_read
+add wave -noupdate -group fetcher /mp4_tb/dut/cpu/fetcher/i_mem_address
 add wave -noupdate -group decoder /mp4_tb/dut/cpu/decoder/instruction
 add wave -noupdate -group decoder /mp4_tb/dut/cpu/decoder/pc
 add wave -noupdate -group decoder /mp4_tb/dut/cpu/decoder/decoder_out
@@ -240,66 +240,107 @@ add wave -noupdate -group lsq_cache -expand -group io /mp4_tb/dut/lsq_cache/mem_
 add wave -noupdate -group lsq_cache -expand -group io /mp4_tb/dut/lsq_cache/mem_byte_enable
 add wave -noupdate -group lsq_cache /mp4_tb/dut/lsq_cache/control/state
 add wave -noupdate -group lsq_cache /mp4_tb/dut/lsq_cache/control/next_state
-add wave -noupdate -expand -group i_cache -group datapath -expand -group io /mp4_tb/dut/i_cache/datapath/mem_byte_enable
-add wave -noupdate -expand -group i_cache -group datapath -expand -group io /mp4_tb/dut/i_cache/datapath/mem_address
-add wave -noupdate -expand -group i_cache -group datapath -expand -group io /mp4_tb/dut/i_cache/datapath/mem_wdata
-add wave -noupdate -expand -group i_cache -group datapath -expand -group io /mp4_tb/dut/i_cache/datapath/mem_rdata
-add wave -noupdate -expand -group i_cache -group datapath -expand -group io /mp4_tb/dut/i_cache/datapath/pmem_rdata
-add wave -noupdate -expand -group i_cache -group datapath -expand -group io /mp4_tb/dut/i_cache/datapath/pmem_wdata
-add wave -noupdate -expand -group i_cache -group datapath -expand -group io /mp4_tb/dut/i_cache/datapath/pmem_address
-add wave -noupdate -expand -group i_cache -group datapath -expand -group io /mp4_tb/dut/i_cache/datapath/tag_load
-add wave -noupdate -expand -group i_cache -group datapath -expand -group io /mp4_tb/dut/i_cache/datapath/valid_load
-add wave -noupdate -expand -group i_cache -group datapath -expand -group io /mp4_tb/dut/i_cache/datapath/dirty_load
-add wave -noupdate -expand -group i_cache -group datapath -expand -group io /mp4_tb/dut/i_cache/datapath/dirty_in
-add wave -noupdate -expand -group i_cache -group datapath -expand -group io /mp4_tb/dut/i_cache/datapath/dirty_out
-add wave -noupdate -expand -group i_cache -group datapath -expand -group io /mp4_tb/dut/i_cache/datapath/hit
-add wave -noupdate -expand -group i_cache -group datapath -expand -group io /mp4_tb/dut/i_cache/datapath/writing
-add wave -noupdate -expand -group i_cache -group datapath -group others /mp4_tb/dut/i_cache/datapath/_idx
-add wave -noupdate -expand -group i_cache -group datapath -group others /mp4_tb/dut/i_cache/datapath/_tag_load
-add wave -noupdate -expand -group i_cache -group datapath -group others /mp4_tb/dut/i_cache/datapath/_valid_load
-add wave -noupdate -expand -group i_cache -group datapath -group others /mp4_tb/dut/i_cache/datapath/_dirty_load
-add wave -noupdate -expand -group i_cache -group datapath -group others /mp4_tb/dut/i_cache/datapath/_dirty_in
-add wave -noupdate -expand -group i_cache -group datapath -group others /mp4_tb/dut/i_cache/datapath/_dirty_out
-add wave -noupdate -expand -group i_cache -group datapath -group others /mp4_tb/dut/i_cache/datapath/_hit
-add wave -noupdate -expand -group i_cache -group datapath -group others /mp4_tb/dut/i_cache/datapath/line_in
-add wave -noupdate -expand -group i_cache -group datapath -group others /mp4_tb/dut/i_cache/datapath/line_out
-add wave -noupdate -expand -group i_cache -group datapath -group others /mp4_tb/dut/i_cache/datapath/address_tag
-add wave -noupdate -expand -group i_cache -group datapath -group others /mp4_tb/dut/i_cache/datapath/tag_out
-add wave -noupdate -expand -group i_cache -group datapath -group others /mp4_tb/dut/i_cache/datapath/index
-add wave -noupdate -expand -group i_cache -group datapath -group others -expand /mp4_tb/dut/i_cache/datapath/mask
-add wave -noupdate -expand -group i_cache -group datapath -group others /mp4_tb/dut/i_cache/datapath/valid_out
-add wave -noupdate -expand -group i_cache -group datapath -group others /mp4_tb/dut/i_cache/datapath/lru_load
-add wave -noupdate -expand -group i_cache -group datapath -group others /mp4_tb/dut/i_cache/datapath/lru_in
-add wave -noupdate -expand -group i_cache -group datapath -group others /mp4_tb/dut/i_cache/datapath/lru_out
-add wave -noupdate -expand -group i_cache -group datapath -group others {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[1]/valid/data}
-add wave -noupdate -expand -group i_cache -group datapath -group others {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[0]/valid/data}
-add wave -noupdate -expand -group i_cache -group control /mp4_tb/dut/i_cache/control/mem_read
-add wave -noupdate -expand -group i_cache -group control /mp4_tb/dut/i_cache/control/mem_write
-add wave -noupdate -expand -group i_cache -group control /mp4_tb/dut/i_cache/control/mem_resp
-add wave -noupdate -expand -group i_cache -group control /mp4_tb/dut/i_cache/control/pmem_resp
-add wave -noupdate -expand -group i_cache -group control /mp4_tb/dut/i_cache/control/pmem_read
-add wave -noupdate -expand -group i_cache -group control /mp4_tb/dut/i_cache/control/pmem_write
-add wave -noupdate -expand -group i_cache -group control /mp4_tb/dut/i_cache/control/tag_load
-add wave -noupdate -expand -group i_cache -group control /mp4_tb/dut/i_cache/control/valid_load
-add wave -noupdate -expand -group i_cache -group control /mp4_tb/dut/i_cache/control/dirty_load
-add wave -noupdate -expand -group i_cache -group control /mp4_tb/dut/i_cache/control/dirty_in
-add wave -noupdate -expand -group i_cache -group control /mp4_tb/dut/i_cache/control/dirty_out
-add wave -noupdate -expand -group i_cache -group control /mp4_tb/dut/i_cache/control/hit
-add wave -noupdate -expand -group i_cache -group control /mp4_tb/dut/i_cache/control/writing
-add wave -noupdate -expand -group i_cache -group control /mp4_tb/dut/i_cache/control/state
-add wave -noupdate -expand -group i_cache -group control /mp4_tb/dut/i_cache/control/next_state
-add wave -noupdate -expand -group i_cache -group data_arr_0 {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[0]/DM_cache/write_en}
-add wave -noupdate -expand -group i_cache -group data_arr_0 {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[0]/DM_cache/rindex}
-add wave -noupdate -expand -group i_cache -group data_arr_0 {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[0]/DM_cache/windex}
-add wave -noupdate -expand -group i_cache -group data_arr_0 {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[0]/DM_cache/datain}
-add wave -noupdate -expand -group i_cache -group data_arr_0 {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[0]/DM_cache/dataout}
-add wave -noupdate -expand -group i_cache -group data_arr_1 {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[1]/DM_cache/write_en}
-add wave -noupdate -expand -group i_cache -group data_arr_1 {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[1]/DM_cache/rindex}
-add wave -noupdate -expand -group i_cache -group data_arr_1 {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[1]/DM_cache/windex}
-add wave -noupdate -expand -group i_cache -group data_arr_1 {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[1]/DM_cache/datain}
-add wave -noupdate -expand -group i_cache -group data_arr_1 {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[1]/DM_cache/dataout}
+add wave -noupdate -group i_cache -group datapath -expand -group io /mp4_tb/dut/i_cache/datapath/mem_byte_enable
+add wave -noupdate -group i_cache -group datapath -expand -group io /mp4_tb/dut/i_cache/datapath/mem_address
+add wave -noupdate -group i_cache -group datapath -expand -group io /mp4_tb/dut/i_cache/datapath/mem_wdata
+add wave -noupdate -group i_cache -group datapath -expand -group io /mp4_tb/dut/i_cache/datapath/mem_rdata
+add wave -noupdate -group i_cache -group datapath -expand -group io /mp4_tb/dut/i_cache/datapath/pmem_rdata
+add wave -noupdate -group i_cache -group datapath -expand -group io /mp4_tb/dut/i_cache/datapath/pmem_wdata
+add wave -noupdate -group i_cache -group datapath -expand -group io /mp4_tb/dut/i_cache/datapath/pmem_address
+add wave -noupdate -group i_cache -group datapath -expand -group io /mp4_tb/dut/i_cache/datapath/tag_load
+add wave -noupdate -group i_cache -group datapath -expand -group io /mp4_tb/dut/i_cache/datapath/valid_load
+add wave -noupdate -group i_cache -group datapath -expand -group io /mp4_tb/dut/i_cache/datapath/dirty_load
+add wave -noupdate -group i_cache -group datapath -expand -group io /mp4_tb/dut/i_cache/datapath/dirty_in
+add wave -noupdate -group i_cache -group datapath -expand -group io /mp4_tb/dut/i_cache/datapath/dirty_out
+add wave -noupdate -group i_cache -group datapath -expand -group io /mp4_tb/dut/i_cache/datapath/hit
+add wave -noupdate -group i_cache -group datapath -expand -group io /mp4_tb/dut/i_cache/datapath/writing
+add wave -noupdate -group i_cache -group datapath -group others /mp4_tb/dut/i_cache/datapath/_idx
+add wave -noupdate -group i_cache -group datapath -group others /mp4_tb/dut/i_cache/datapath/_tag_load
+add wave -noupdate -group i_cache -group datapath -group others /mp4_tb/dut/i_cache/datapath/_valid_load
+add wave -noupdate -group i_cache -group datapath -group others /mp4_tb/dut/i_cache/datapath/_dirty_load
+add wave -noupdate -group i_cache -group datapath -group others /mp4_tb/dut/i_cache/datapath/_dirty_out
+add wave -noupdate -group i_cache -group datapath -group others /mp4_tb/dut/i_cache/datapath/_hit
+add wave -noupdate -group i_cache -group datapath -group others /mp4_tb/dut/i_cache/datapath/line_in
+add wave -noupdate -group i_cache -group datapath -group others /mp4_tb/dut/i_cache/datapath/line_out
+add wave -noupdate -group i_cache -group datapath -group others /mp4_tb/dut/i_cache/datapath/address_tag
+add wave -noupdate -group i_cache -group datapath -group others /mp4_tb/dut/i_cache/datapath/tag_out
+add wave -noupdate -group i_cache -group datapath -group others -expand /mp4_tb/dut/i_cache/datapath/mask
+add wave -noupdate -group i_cache -group datapath -group others /mp4_tb/dut/i_cache/datapath/valid_out
+add wave -noupdate -group i_cache -group datapath -group others /mp4_tb/dut/i_cache/datapath/lru_load
+add wave -noupdate -group i_cache -group datapath -group others /mp4_tb/dut/i_cache/datapath/lru_in
+add wave -noupdate -group i_cache -group datapath -group others /mp4_tb/dut/i_cache/datapath/lru_out
+add wave -noupdate -group i_cache -group datapath -group others {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[1]/valid/data}
+add wave -noupdate -group i_cache -group datapath -group others {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[0]/valid/data}
+add wave -noupdate -group i_cache -group control /mp4_tb/dut/i_cache/control/mem_read
+add wave -noupdate -group i_cache -group control /mp4_tb/dut/i_cache/control/mem_write
+add wave -noupdate -group i_cache -group control /mp4_tb/dut/i_cache/control/mem_resp
+add wave -noupdate -group i_cache -group control /mp4_tb/dut/i_cache/control/pmem_resp
+add wave -noupdate -group i_cache -group control /mp4_tb/dut/i_cache/control/pmem_read
+add wave -noupdate -group i_cache -group control /mp4_tb/dut/i_cache/control/pmem_write
+add wave -noupdate -group i_cache -group control /mp4_tb/dut/i_cache/control/tag_load
+add wave -noupdate -group i_cache -group control /mp4_tb/dut/i_cache/control/valid_load
+add wave -noupdate -group i_cache -group control /mp4_tb/dut/i_cache/control/dirty_load
+add wave -noupdate -group i_cache -group control /mp4_tb/dut/i_cache/control/dirty_in
+add wave -noupdate -group i_cache -group control /mp4_tb/dut/i_cache/control/dirty_out
+add wave -noupdate -group i_cache -group control /mp4_tb/dut/i_cache/control/hit
+add wave -noupdate -group i_cache -group control /mp4_tb/dut/i_cache/control/writing
+add wave -noupdate -group i_cache -group control /mp4_tb/dut/i_cache/control/state
+add wave -noupdate -group i_cache -group control /mp4_tb/dut/i_cache/control/next_state
+add wave -noupdate -group i_cache -group data_arr_0 {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[0]/DM_cache/write_en}
+add wave -noupdate -group i_cache -group data_arr_0 {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[0]/DM_cache/rindex}
+add wave -noupdate -group i_cache -group data_arr_0 {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[0]/DM_cache/windex}
+add wave -noupdate -group i_cache -group data_arr_0 {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[0]/DM_cache/datain}
+add wave -noupdate -group i_cache -group data_arr_0 {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[0]/DM_cache/dataout}
+add wave -noupdate -group i_cache -group data_arr_1 {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[1]/DM_cache/write_en}
+add wave -noupdate -group i_cache -group data_arr_1 {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[1]/DM_cache/rindex}
+add wave -noupdate -group i_cache -group data_arr_1 {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[1]/DM_cache/windex}
+add wave -noupdate -group i_cache -group data_arr_1 {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[1]/DM_cache/datain}
+add wave -noupdate -group i_cache -group data_arr_1 {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[1]/DM_cache/dataout}
+add wave -noupdate -group i_cache -group valid0 {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[0]/valid/load}
+add wave -noupdate -group i_cache -group valid0 {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[0]/valid/rindex}
+add wave -noupdate -group i_cache -group valid0 {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[0]/valid/windex}
+add wave -noupdate -group i_cache -group valid0 {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[0]/valid/datain}
+add wave -noupdate -group i_cache -group valid0 {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[0]/valid/dataout}
+add wave -noupdate -group i_cache -group valid0 {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[0]/valid/data}
+add wave -noupdate -group i_cache -group lru0 {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[0]/lru/load}
+add wave -noupdate -group i_cache -group lru0 {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[0]/lru/data}
+add wave -noupdate -group i_cache -group lru0 {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[0]/lru/rindex}
+add wave -noupdate -group i_cache -group lru0 {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[0]/lru/windex}
+add wave -noupdate -group i_cache -group lru0 {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[0]/lru/datain}
+add wave -noupdate -group i_cache -group lru0 {/mp4_tb/dut/i_cache/datapath/multiple_way_arrays[0]/lru/dataout}
+add wave -noupdate -group lru {/mp4_tb/dut/lsq_cache/datapath/multiple_way_arrays[0]/lru/data}
+add wave -noupdate -group lru {/mp4_tb/dut/lsq_cache/datapath/multiple_way_arrays[1]/lru/data}
+add wave -noupdate -group lru {/mp4_tb/dut/lsq_cache/datapath/multiple_way_arrays[2]/lru/data}
+add wave -noupdate -group lru {/mp4_tb/dut/lsq_cache/datapath/multiple_way_arrays[3]/lru/data}
+add wave -noupdate -group lru {/mp4_tb/dut/lsq_cache/datapath/multiple_way_arrays[4]/lru/data}
+add wave -noupdate -group lru {/mp4_tb/dut/lsq_cache/datapath/multiple_way_arrays[5]/lru/data}
+add wave -noupdate -group lru {/mp4_tb/dut/lsq_cache/datapath/multiple_way_arrays[6]/lru/data}
+add wave -noupdate -group lru {/mp4_tb/dut/lsq_cache/datapath/multiple_way_arrays[7]/lru/data}
+add wave -noupdate -group lru {/mp4_tb/dut/lsq_cache/datapath/multiple_way_arrays[8]/lru/data}
+add wave -noupdate -group lru {/mp4_tb/dut/lsq_cache/datapath/multiple_way_arrays[9]/lru/data}
+add wave -noupdate -group lru {/mp4_tb/dut/lsq_cache/datapath/multiple_way_arrays[10]/lru/data}
+add wave -noupdate -group lru {/mp4_tb/dut/lsq_cache/datapath/multiple_way_arrays[11]/lru/data}
+add wave -noupdate -group lru {/mp4_tb/dut/lsq_cache/datapath/multiple_way_arrays[12]/lru/data}
+add wave -noupdate -group lru {/mp4_tb/dut/lsq_cache/datapath/multiple_way_arrays[13]/lru/data}
+add wave -noupdate -group lru {/mp4_tb/dut/lsq_cache/datapath/multiple_way_arrays[14]/lru/data}
+add wave -noupdate -group lru {/mp4_tb/dut/lsq_cache/datapath/multiple_way_arrays[15]/lru/data}
+add wave -noupdate -group prefetcher /mp4_tb/dut/pref/lsq_pmem_read_cla
+add wave -noupdate -group prefetcher /mp4_tb/dut/pref/lsq_pmem_write_cla
+add wave -noupdate -group prefetcher /mp4_tb/dut/pref/pref_pmem_resp_cla
+add wave -noupdate -group prefetcher /mp4_tb/dut/pref/lsq_pmem_address_cla
+add wave -noupdate -group prefetcher /mp4_tb/dut/pref/pref_pmem_rdata_256_cla
+add wave -noupdate -group prefetcher /mp4_tb/dut/pref/arbiter_idle
+add wave -noupdate -group prefetcher /mp4_tb/dut/pref/pref_pmem_read_cla
+add wave -noupdate -group prefetcher /mp4_tb/dut/pref/pref_pmem_write_cla
+add wave -noupdate -group prefetcher /mp4_tb/dut/pref/pref_pmem_address_cla
+add wave -noupdate -group prefetcher /mp4_tb/dut/pref/pref_pmem_wdata_256_cla
+add wave -noupdate -group prefetcher /mp4_tb/dut/pref/pref_addr_in
+add wave -noupdate -group prefetcher /mp4_tb/dut/pref/pref_addr_load
+add wave -noupdate -group prefetcher /mp4_tb/dut/pref/valid
+add wave -noupdate -group prefetcher /mp4_tb/dut/pref/state
+add wave -noupdate -group prefetcher /mp4_tb/dut/pref/next_state
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {365806 ps} 0}
+WaveRestoreCursors {{Cursor 1} {9145608 ps} 0}
 quietly wave cursor active 1
 configure wave -namecolwidth 452
 configure wave -valuecolwidth 81
@@ -315,4 +356,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {0 ps} {953468 ps}
+WaveRestoreZoom {15995853 ps} {18202189 ps}

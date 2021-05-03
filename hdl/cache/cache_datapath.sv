@@ -22,10 +22,15 @@ module cache_datapath #(parameter NUM_WAYS = 8,
   output logic dirty_out,
 
   output logic hit,
-  input logic [1:0] writing
+  input logic [1:0] writing,
+  
+  input logic lru_load[NUM_WAYS],
+  input logic [WAYS_LOG_2 - 1:0] lru_in [NUM_WAYS],
+  output logic [WAYS_LOG_2 - 1:0] lru_out[NUM_WAYS],
+  output logic [WAYS_LOG_2 - 1:0] _idx,
+  output logic valid_out[NUM_WAYS]
 );
 
-logic [WAYS_LOG_2 - 1 : 0] _idx;
 logic _tag_load[NUM_WAYS];
 logic _valid_load[NUM_WAYS];
 logic _dirty_load[NUM_WAYS];
@@ -35,17 +40,12 @@ logic _hit[NUM_WAYS];
 
 logic [255:0] line_in, line_out[NUM_WAYS];
 logic [23:0] address_tag, tag_out[NUM_WAYS];
-logic [2:0]  index;
+logic [2:0]  set_index;
 logic [31:0] mask[NUM_WAYS];
-logic valid_out[NUM_WAYS];
-
-logic lru_load[NUM_WAYS];
-logic [2:0] lru_in [NUM_WAYS];
-logic [2:0] lru_out[NUM_WAYS];
 
 function void set_defaults();
   address_tag = mem_address[31:8];
-  index = mem_address[7:5];
+  set_index = mem_address[7:5];
   _idx = 0;
   for (int i = 0; i < NUM_WAYS; i++) begin
     _tag_load[i] = 1'b0;
@@ -113,11 +113,11 @@ end
 genvar i;
 generate
   for (i = 0; i < NUM_WAYS; i++) begin : multiple_way_arrays
-    data_array DM_cache (clk, mask[i], index, index, line_in, line_out[i]);
-    array #(24) tag (clk, _tag_load[i], index, index, address_tag, tag_out[i]);
-    array #(1) valid (clk, _valid_load[i], index, index, 1'b1, valid_out[i]);
-    array #(1) dirty (clk, _dirty_load[i], index, index, dirty_in, _dirty_out[i]);
-    array #(3) lru (clk, lru_load[i], index, index, lru_in[i], lru_out[i]);
+    data_array DM_cache (clk, mask[i], set_index, set_index, line_in, line_out[i]);
+    array #(24, 0, 0) tag (clk, _tag_load[i], set_index, set_index, address_tag, tag_out[i]);
+    array #(1, 0, 0) valid (clk, _valid_load[i], set_index, set_index, 1'b1, valid_out[i]);
+    array #(1, 0, 0) dirty (clk, _dirty_load[i], set_index, set_index, dirty_in, _dirty_out[i]);
+    array #(WAYS_LOG_2, NUM_WAYS-1, 1) lru (clk, lru_load[i], set_index, set_index, lru_in[i], lru_out[i]);
   end
 endgenerate
 
@@ -130,48 +130,40 @@ valid:  1 1 0 0 0 0 0 0
 lru:    1 0 0 0 0 0 0 0
 
 for (int i = 0; i < 8; i++) begin
-  array #(3) lru[i] (clk, lru_load[i], index, index, lru_in[i], lru_out[i]);
+  array #(3) lru[i] (clk, lru_load[i], set_index, set_index, lru_in[i], lru_out[i]);
 end
 
 read/write:
-if i is a hit:
+if _idx is a hit:
   for (int j = 0; j < 8; j++) begin
-    if (lru_out[j] < lru_out[i]) begin
+    if (valid[j] && (lru_out[j] < lru_out[_idx])) begin
       lru_load[j] = 1'b1;
       lru_in[j] = lru_out[j] + 1;
     end
   begin
-  lru_Load[i] = 1'b1;
-  lru_in = 3'b0;
+  lru_Load[_idx] = 1'b1;
+  lru_in[_idx] = 3'b0;
 
 miss:
   if (all_valid) begin
-    i = 7;
-    for (int j = 0; j < 8; j++) begin
-    if (lru_out[j] < lru_out[i]) begin
+    for (int j = 0; j < NUM_WAYS; j++) begin
       lru_load[j] = 1'b1;
       lru_in[j] = lru_out[j] + 1;
-    end
     begin
-    lru_Load[i] <= 1'b1
-    lru_in = 3'b0;
   end else
     // go through valid arrays, find first idx that is invalid (idx)
     // idx = 0;
-    // for (int i = 0; i < 8; i++) begin
+    // for (int i = 0; i < NUM_WAYS; i++) begin
     //   if (valid[i]) begin
     //     idx++;
     //   end
     // end
-    for (int i = 0; i < 8; i++) begin
-      if (i >= idx)
-        break;
+    for (int i = 0; i < _idx && i < NUM_WAYS; i++) begin
       lru_load[i] = 1'b1;
       lru_in[i] = lru_out[i] + 1;
     end
-    lru_load[idx] = 1'b1
-    lru_in[idx] = 3'b0;
-    valid_load[idx] = 1'b1;
+    lru_load[_idx] = 1'b1
+    lru_in[_idx] = 3'b0;
   end
 */
 endmodule : cache_datapath
@@ -203,13 +195,13 @@ endmodule : cache_datapath
 
 // logic [255:0] line_in, line_out;
 // logic [23:0] address_tag, tag_out;
-// logic [2:0]  index;
+// logic [2:0]  set_index;
 // logic [31:0] mask;
 // logic valid_out;
 
 // always_comb begin
 //   address_tag = mem_address[31:8];
-//   index = mem_address[7:5];
+//   set_index = mem_address[7:5];
 //   hit = valid_out && (tag_out == address_tag);
 //   pmem_address = (dirty_out) ? {tag_out, mem_address[7:0]} : mem_address;
 //   mem_rdata = line_out;
@@ -231,9 +223,9 @@ endmodule : cache_datapath
 // 	endcase
 // end
 
-// data_array DM_cache (clk, mask, index, index, line_in, line_out);
-// array #(24) tag (clk, tag_load, index, index, address_tag, tag_out);
-// array #(1) valid (clk, valid_load, index, index, 1'b1, valid_out);
-// array #(1) dirty (clk, dirty_load, index, index, dirty_in, dirty_out);
+// data_array DM_cache (clk, mask, set_index, set_index, line_in, line_out);
+// array #(24) tag (clk, tag_load, set_index, set_index, address_tag, tag_out);
+// array #(1) valid (clk, valid_load, set_index, set_index, 1'b1, valid_out);
+// array #(1) dirty (clk, dirty_load, set_index, set_index, dirty_in, dirty_out);
 
 // endmodule : cache_datapath
