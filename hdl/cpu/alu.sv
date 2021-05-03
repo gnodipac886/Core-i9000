@@ -1,6 +1,6 @@
 import rv32i_types::*;
 
-module alu #(parameter size=8)
+module alu #(parameter size=15)
 (
     // this needs to be revised for ooo execution
     input rs_t data[size],

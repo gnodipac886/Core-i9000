@@ -1,6 +1,6 @@
 import rv32i_types::*;
 
-module reservation_station #(parameter size = 8, parameter rob_size = 8)
+module reservation_station #(parameter size = 15, parameter rob_size = 15)
 (
 		input logic clk,
 		input logic rst,

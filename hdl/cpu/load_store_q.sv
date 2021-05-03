@@ -2,8 +2,8 @@ import rv32i_types::*;
 
 module load_store_q #(
 	parameter width 		= 32,
-	parameter lsq_size 		= 8,
-	parameter size 			= 8
+	parameter lsq_size 		= 15,
+	parameter size 			= 15
 )
 (
 	input 	logic 				clk, 
@@ -116,7 +116,7 @@ module load_store_q #(
 		end 
 		for(int i = 0; i < size; i++) begin 
 			if(flush.valid && ~check_valid_flush_tag(arr[(front + i) % size].rd_tag)) begin 
-				return (front + i) % size == 0 ? 7 : (front + i) % size - 1;
+				return (front + i) % size == 0 ? (size - 1) : (front + i) % size - 1;
 			end 
 			if ((front + i) % size == rear) begin
 				return rear;

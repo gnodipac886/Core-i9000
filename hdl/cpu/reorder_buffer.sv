@@ -2,10 +2,10 @@ import rv32i_types::*;
 
 module reorder_buffer #(
 	parameter width 		= 32,
-	parameter size 			= 8,
-	parameter br_rs_size 	= 8,
-	parameter acu_rs_size 	= 8,
-	parameter lsq_size 		= 8
+	parameter size 			= 15,
+	parameter br_rs_size 	= 15,
+	parameter acu_rs_size 	= 15,
+	parameter lsq_size 		= 15
 )
 (
 	input logic	clk,
@@ -163,7 +163,7 @@ module reorder_buffer #(
 				rob_broadcast_bus[(flush_tag + i) % size] <= '{default: 0};
 			end
 		end
-		rear 	<= (flush_tag == 0) ? 7 : (flush_tag - 1);
+		rear 	<= (flush_tag == 0) ? (size - 1) : (flush_tag - 1);
 	endtask
 
 	function logic check_valid_flush_tag(logic [3:0] i);

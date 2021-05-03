@@ -2,10 +2,10 @@ import rv32i_types::*;
 
 module cpu #(	
 	parameter width 		= 32,
-	parameter rob_size 		= 8,
-	parameter br_rs_size 	= 8,
-	parameter acu_rs_size 	= 8,
-	parameter lsq_size 		= 8
+	parameter rob_size 		= 15,
+	parameter br_rs_size 	= 15,
+	parameter acu_rs_size 	= 15,
+	parameter lsq_size 		= 15
 )
 (
 	input 	logic 					clk,

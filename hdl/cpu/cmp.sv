@@ -1,6 +1,6 @@
 import rv32i_types::*;
 
-module cmp #(parameter size=8)
+module cmp #(parameter size=15)
 (
 	input rs_t data[size],
 	input logic[size-1:0] ready,

@@ -339,6 +339,8 @@ add wave -noupdate -group prefetcher /mp4_tb/dut/pref/pref_addr_load
 add wave -noupdate -group prefetcher /mp4_tb/dut/pref/valid
 add wave -noupdate -group prefetcher /mp4_tb/dut/pref/state
 add wave -noupdate -group prefetcher /mp4_tb/dut/pref/next_state
+add wave -noupdate /mp4_tb/num_inst
+add wave -noupdate /mp4_tb/num_rob_full
 TreeUpdate [SetDefaultTree]
 WaveRestoreCursors {{Cursor 1} {9145608 ps} 0}
 quietly wave cursor active 1
@@ -356,4 +358,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {15995853 ps} {18202189 ps}
+WaveRestoreZoom {574298981 ps} {576505317 ps}

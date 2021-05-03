@@ -1,7 +1,7 @@
 import rv32i_types::*;
 
 module regfile #(	parameter width = 32, 
-					parameter size 	= 8)
+					parameter size 	= 15)
 (
 	input logic clk,
 	input logic rst,

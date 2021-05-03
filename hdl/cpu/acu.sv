@@ -1,6 +1,6 @@
 import rv32i_types::*;
 
-module acu #(parameter size = 8)
+module acu #(parameter size = 15)
 (
 	input rs_t data[size],
 	input logic[size-1:0] ready,

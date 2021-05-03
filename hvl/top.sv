@@ -25,6 +25,7 @@ int timeout = 100000000;   // Feel Free to adjust the timeout value
 // assign itf.registers = dut.cpu.datapath.regfile.data;
 assign itf.halt = dut.cpu.rob.halt;
 /*****************************************************************************/
+int num_inst, num_rob_full;
 
 /************************** Testbench Instantiation **************************/
 // source_tb --- drives the dut by executing a RISC-V binary
@@ -46,6 +47,8 @@ initial begin
 	itf.rst = 1'b1;
 	repeat (5) @(posedge clk);
 	itf.rst = 1'b0;
+	num_inst	 = 0;
+	num_rob_full = 0;
 end
 /*****************************************************************************/
 
@@ -68,6 +71,10 @@ always @(posedge itf.clk) begin
 		$finish;
 	end
 	timeout <= timeout - 1;
+	if(dut.cpu.rob.deq)
+		num_inst <= num_inst + dut.cpu.rob.num_deq;
+	if(dut.cpu.rob.full)
+		num_rob_full <= num_rob_full + 1;
 end
 
 /*****************************************************************************/

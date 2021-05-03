@@ -2,10 +2,10 @@ import rv32i_types::*;
 
 module software_model #(
 	parameter width 		= 32,
-	parameter size 			= 8,
-	parameter br_rs_size 	= 8,
-	parameter acu_rs_size 	= 8,
-	parameter lsq_size 		= 8,
+	parameter size 			= 15,
+	parameter br_rs_size 	= 15,
+	parameter acu_rs_size 	= 15,
+	parameter lsq_size 		= 15,
 	parameter NUM_PC 		= 16
 )
 (

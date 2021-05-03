@@ -1,6 +1,6 @@
 import rv32i_types::*;
 
-module branch_predictor #(parameter size = 64)
+module branch_predictor #(parameter size = 128)
 (
 	input 	logic 			clk,
 	input 	logic 			rst,
@@ -22,8 +22,8 @@ module branch_predictor #(parameter size = 64)
 	logic 								hit;
 	int									hit_idx, next_avail_idx; // resume from here, write next_avail logic
 
-	assign arr_idx = pc_info.pc[7:2];
-	assign result_idx = pc_result[7:2];
+	assign arr_idx = pc_info.pc[$clog2(size) + 1:2];
+	assign result_idx = pc_result[$clog2(size) + 1:2];
 
 
 // 76543210
