@@ -16,6 +16,10 @@ module reorder_buffer #(
 	input logic stall_br,
 	input logic stall_acu,
 	input logic stall_lsq,
+	input logic [3:0] lsq_num_available,
+	input logic [3:0] acu_num_available,
+	input logic [3:0] br_num_available,
+
 	input sal_t	br_rs_o [br_rs_size],
 	input sal_t acu_rs_o [acu_rs_size],
 	input sal_t lsq_o,
@@ -38,7 +42,8 @@ module reorder_buffer #(
 
 	// output logic flush,
 	output logic [width-1:0] flush_pc,
-	output flush_t flush
+	output flush_t flush,
+	output logic [3:0] rob_num_available
 );
 	rob_t arr [size];
 	rob_t temp_in;
@@ -68,18 +73,18 @@ module reorder_buffer #(
 	assign temp_in.valid 		= 1'b1;
 	
 	task set_load_rs_default();
-		load_acu_rs 	= 1'b0;
-		load_br_rs 		= 1'b0;
-		load_lsq 		= 1'b0;
-		reg_ld_instr	= 1'b0;
-		flush.valid		= 1'b0;
-		flush_pc		= 32'b0;
-		br_result		= 1'b0;
-		pc_result		= 32'b0;
-		pc_result_load 	= 1'b0;
-		num_deq			= 0;
-		flush_tag 		= 0;  // index of start of flush to rear of rob
-		num_items		= 0;
+		load_acu_rs 		= 1'b0;
+		load_br_rs 			= 1'b0;
+		load_lsq 			= 1'b0;
+		reg_ld_instr		= 1'b0;
+		flush.valid			= 1'b0;
+		flush_pc			= 32'b0;
+		br_result			= 1'b0;
+		pc_result			= 32'b0;
+		pc_result_load 		= 1'b0;
+		num_deq				= 0;
+		flush_tag	 		= 0;  // index of start of flush to rear of rob
+		num_items			= 0;
 		for(int i = 0; i < size; i++) begin
 			rdest[i] 	= '{ tag: 4'b0, rdy: 0, data: 32'b0, pc_info: arr[i].pc_info };
 			rd_bus[i] 	= arr[i].pc_info.rd;
@@ -87,6 +92,7 @@ module reorder_buffer #(
 				num_items++;
 			end
 		end
+		rob_num_available	= size - num_items;
 	endtask
 	
 	task enqueue(rob_t data_in);

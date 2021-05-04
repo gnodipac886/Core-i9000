@@ -26,7 +26,8 @@ module load_store_q #(
 	output 	logic 				mem_write,
 	output 	logic 	[3:0] 		mem_byte_enable,
 	output 	logic 	[31:0]		mem_address,
-	output 	logic 	[31:0] 		mem_wdata
+	output 	logic 	[31:0] 		mem_wdata,
+	output	logic	[3:0]		num_available
 );
 
 	// internals
@@ -87,6 +88,7 @@ module load_store_q #(
 		lsq_in 			= '{pc_info: '{opcode: op_imm, default: 0}, default: 0};
 		next_front 		= front;
 		next_rear 		= rear;
+		num_available	= 0;
 	endfunction : set_default
 
 	function logic check_next_valid(int i);
@@ -298,6 +300,18 @@ module load_store_q #(
 				next_rear 			= (rear + 1) % size;
 			end 
 		end 
+
+		if (full) begin
+			num_available = 0;
+		end else if (empty) begin
+			num_available = lsq_size;
+		end else begin
+			if (rear >= front) begin
+				num_available = lsq_size - (rear - front);
+			end else begin
+				num_available = front - rear - 1;
+			end
+		end
 	end 
 
 	always_ff @(posedge clk) begin 

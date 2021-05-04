@@ -94,6 +94,7 @@ module cpu #(
 	rs_t 					br_data[acu_rs_size]; // all the reservation stations, to the alu
 	logic [acu_rs_size-1:0] ready; // if both values are not tags, flip this ready bit to 1
 	logic [acu_rs_size-1:0] br_ready; // if both values are not tags, flip this ready bit to 1
+	logic	[3:0]			lsq_num_available;
 	logic	[3:0] 			num_available; // do something if the number of available reservation stations are 0
 	logic	[3:0] 			br_num_available; // do something if the number of available reservation stations are 0
 	logic 					acu_operation[acu_rs_size];
@@ -250,6 +251,9 @@ module cpu #(
 		.instr_q_empty(iq_empty),
 		.instr_q_dequeue(iq_deq),
 		.instr_mem_resp(iq_enq),
+		.lsq_num_available(lsq_num_available),
+		.acu_num_available(num_available),
+		.br_num_available(br_num_available),
 		.*
 	);
 
@@ -291,6 +295,7 @@ module cpu #(
 		.mem_byte_enable(lsq_mem_byte_enable),
 		.mem_address(lsq_mem_address),
 		.mem_wdata(lsq_mem_wdata),
+		.num_available(lsq_num_available),
 		.*
 	);
 
