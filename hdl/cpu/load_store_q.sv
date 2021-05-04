@@ -307,7 +307,7 @@ module load_store_q #(
 			num_available = lsq_size;
 		end else begin
 			if (rear >= front) begin
-				num_available = lsq_size - (rear - front);
+				num_available = lsq_size - ((rear - front) + 1);
 			end else begin
 				num_available = front - rear - 1;
 			end

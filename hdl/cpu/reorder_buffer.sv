@@ -13,12 +13,14 @@ module reorder_buffer #(
 	input logic	instr_q_empty,
 	input logic instr_mem_resp,
 	input pci_t pci,
+	input pci_t pci1,
 	input logic stall_br,
 	input logic stall_acu,
 	input logic stall_lsq,
 	input logic [3:0] lsq_num_available,
 	input logic [3:0] acu_num_available,
 	input logic [3:0] br_num_available,
+	input logic [3:0] iq_num_available,
 
 	input sal_t	br_rs_o [br_rs_size],
 	input sal_t acu_rs_o [acu_rs_size],
@@ -29,11 +31,15 @@ module reorder_buffer #(
 	output logic load_br_rs,
 	output logic load_acu_rs,
 	output logic load_lsq,
+	output logic load_br_rs1,						// ;alskldjkf;al;ksdjkf;al;sdjk;
+	output logic load_lsq1,							// ;alskldjkf;al;ksdjkf;al;sdjk;
+	output logic load_acu_rs1,						// ;alskldjkf;al;ksdjkf;al;sdjk;
 	output sal_t rob_broadcast_bus [size],
 	output sal2_t rdest[size],
 	output logic [4:0] rd_bus[size],
 	output logic [3:0] rd_tag,
 	output logic reg_ld_instr,
+	output logic reg_ld_instr1,						// ;alskldjkf;al;ksdjkf;al;sdjk;
 	output rob_t rob_front,
 
 	output logic br_result, // high if taking branch, low if not taking
@@ -52,7 +58,7 @@ module reorder_buffer #(
 	int num_items;
 	logic halt;
 	
-	logic enq, deq, full, empty;
+	logic enq, deq, full, empty, enq1;
 
 	logic test_signal;
 	assign test_signal = enq && ~flush.valid && (pci.opcode == op_load || pci.opcode == op_store);
@@ -285,6 +291,33 @@ module reorder_buffer #(
 			end
 		end
 
+		enq1 = 1'b0;
+		if (enq && ((rob_num_available >= 2 || (num_deq >= 2)) || (num_deq == 1 && rob_num_available == 1)) && (iq_num_available >= 2)) begin
+			if ((pci1.opcode == op_br) || (pci1.opcode == op_jal) || (pci1.opcode == op_jalr)) begin
+				if ((pci.opcode == op_br) || (pci.opcode == op_jal) || (pci.opcode == op_jalr)) begin
+					if (br_num_available >= 2) begin
+						enq1 = 1'b1;
+					end
+				end else if (~stall_br) begin
+					enq1 = 1'b1;
+				end
+			end 
+			else if ((pci1.opcode == op_lui) || (pci1.opcode == op_load) || (pci1.opcode == op_store)) begin
+				if (~stall_lsq) begin
+					enq1 = 1'b1;
+				end
+			end 
+			else if ((pci1.opcode == op_auipc) || (pci1.opcode == op_imm) || (pci1.opcode == op_reg)) begin
+				if ((pci1.opcode == op_auipc) || (pci1.opcode == op_imm) || (pci1.opcode == op_reg)) begin
+					if (acu_num_available >= 2) begin
+						enq1 = 1'b1;
+					end
+				end else if (~stall_acu) begin
+					enq1 = 1'b1;
+				end
+			end
+		end
+
 		if (enq) begin
 			unique case (pci.opcode)
 				op_br	: load_br_rs= 1'b1;
@@ -334,6 +367,57 @@ module reorder_buffer #(
 			reg_ld_instr = 0;
 			load_lsq = 0;
 			load_acu_rs = 0;
+		end 
+
+		if (enq1) begin
+			unique case (pci1.opcode)
+				op_br	: load_br_rs1= 1'b1;
+
+				op_jal	: begin 
+					load_br_rs1 		= 1'b1;
+					reg_ld_instr1 	= 1'b1;
+				end 
+
+				op_jalr	: begin 
+					load_br_rs1 		= 1'b1;
+					reg_ld_instr1 	= 1'b1;
+				end 
+
+				op_lui	: begin 
+					load_acu_rs1 	= 1'b1;
+					reg_ld_instr1 	= 1'b1;
+				end 
+
+				op_load	: begin 
+					load_lsq 		= 1'b1;
+					reg_ld_instr1 	= 1'b1;
+				end 
+
+				op_store: load_lsq 	= 1'b1;
+
+				op_imm	: begin 
+					load_acu_rs1 	= 1'b1;
+					reg_ld_instr1 	= 1'b1;
+				end 
+
+				op_reg	: begin 
+					load_acu_rs1 	= 1'b1;
+					reg_ld_instr1 	= 1'b1;
+				end 
+
+				op_auipc: begin 
+					load_acu_rs1 	= 1'b1;
+					reg_ld_instr1 	= 1'b1;
+				end 
+
+				default :;
+			endcase
+		end
+		else begin 
+			load_br_rs1 = 0;
+			reg_ld_instr1 = 0;
+			load_lsq1 = 0;
+			load_acu_rs1 = 0;
 		end 
 	end
 

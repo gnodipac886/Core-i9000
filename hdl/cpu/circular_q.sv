@@ -15,17 +15,21 @@ module circular_q #(parameter width = 32,
 	output	logic 		empty,
 	output 	logic 		full,
 	output 	logic 		ready,
-	output	pci_t		out
+	output	pci_t		out,
+	output	pci_t		out1,
+	output	int			num_items
 );
 
 	pci_t	arr		[size];
 	int 	front, rear;
+	int		num_items;
 	logic 	wtf;
 
 	// assign 	full 	= (front == 0 && rear == size - 1) || (rear == (front - 1) % (size - 1));
-	assign 	full = (front == (rear + 1) % size) || (front == (rear + 2) % size);
+	assign 	full 	= (front == (rear + 1) % size) || (front == (rear + 2) % size);
 	assign 	empty 	= front == -1;
-	assign	out = enq && deq && front == -1 ? in : arr[front];
+	assign	out 	= enq && deq && front == -1 ? in : arr[front];
+	assign	out1	= enq && deq && front == -1 && num_enq ? in1 : arr[(front + 1) % size];
 
 	task enqueue(pci_t data_in, pci_t data_in1);
 		ready 				<= 0;
@@ -92,6 +96,21 @@ module circular_q #(parameter width = 32,
 		end 
 	endtask
 
+	always_comb begin
+		num_items = 0;
+		if (full) begin
+			num_items =	size;
+		end else if (empty) begin
+			num_items =	0;
+		end else begin
+			if (rear >= front) begin
+				num_items = (rear - front) + 1;
+			end else begin
+				num_items = front - rear - 1;
+			end
+		end
+	end
+
 	always_ff @(posedge clk) begin
 		if(rst || flush.valid) begin
 			front 	<= -1;
@@ -104,6 +123,9 @@ module circular_q #(parameter width = 32,
 		else if(enq && ~deq) begin
 			enqueue(in, in1);
 			// $display("enqueue!");
+		end else if(~enq && deq && deq1) begin 
+			dequeue();
+			// $display("dequeue!");
 		end 
 		else if(~enq && deq) begin 
 			dequeue();
