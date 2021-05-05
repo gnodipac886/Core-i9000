@@ -12,6 +12,7 @@ module regfile #(	parameter width = 32,
 	input logic [3:0] rd_tag1,
 	input logic [4:0] rs1, rs2, rd,
 	input logic [4:0] rs11, rs21, rd1,
+	input pci_t pci, pci1,
 	input logic [4:0] rd_bus[size],
 	input flush_t flush,
 	output rs_t rs_out,
@@ -101,8 +102,14 @@ module regfile #(	parameter width = 32,
 	always_comb begin
 		rs_out.busy_r1 = rdest[data[rs1].tag].rdy ? 0 : data[rs1].busy;
 		rs_out.busy_r2 = rdest[data[rs2].tag].rdy ? 0 : data[rs2].busy;
-		rs_out1.busy_r1 = rdest[data[rs11].tag].rdy ? 0 : data[rs11].busy;
-		rs_out1.busy_r2 = rdest[data[rs21].tag].rdy ? 0 : data[rs21].busy;
+		if(rd == 0 || pci.opcode == op_br || pci.opcode == op_store || (rd != 0 && rd != rs11 && rd != rs21)) begin 
+			rs_out1.busy_r1 = rdest[data[rs11].tag].rdy ? 0 : data[rs11].busy;
+			rs_out1.busy_r2 = rdest[data[rs21].tag].rdy ? 0 : data[rs21].busy;
+		end 
+		else begin 
+			rs_out1.busy_r1 = rd != rs11 ? data[rs11].busy : 1;
+			rs_out1.busy_r2 = rd != rs21 ? data[rs21].busy : 1;
+		end 
 		
 		unique case (rs_out.busy_r1)
 			1'b0: rs_out.r1 = rdest[data[rs1].tag].rdy && data[rs1].busy ? rdest[data[rs1].tag].data : data[rs1].data;
@@ -118,13 +125,13 @@ module regfile #(	parameter width = 32,
 		
 		unique case (rs_out1.busy_r1)
 			1'b0: rs_out1.r1 = rdest[data[rs11].tag].rdy && data[rs11].busy ? rdest[data[rs11].tag].data : data[rs11].data;
-			1'b1: rs_out1.r1 = data[rs11].tag;
+			1'b1: rs_out1.r1 = rd == rs11 ? rd_tag : data[rs11].tag;
 			default:;
 		endcase
 
 		unique case (rs_out1.busy_r2)
 			1'b0: rs_out1.r2 = rdest[data[rs21].tag].rdy && data[rs21].busy ? rdest[data[rs21].tag].data : data[rs21].data;
-			1'b1: rs_out1.r2 = data[rs21].tag;
+			1'b1: rs_out1.r2 = rd == rs21 ? rd_tag : data[rs21].tag;
 			default:;
 		endcase
 	end

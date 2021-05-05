@@ -57,7 +57,7 @@ module reorder_buffer #(
 	int front, rear;
 	int num_deq, flush_tag;
 	int num_items;
-	logic halt;
+	logic halt, break_double;
 	
 	logic enq, deq, full, empty, enq1;
 
@@ -84,6 +84,7 @@ module reorder_buffer #(
 	assign temp_in1 			= '{pc_info: pci1, data: 32'hxxxx, rdy: 1'b0, valid: 1'b1};
 	
 	task set_load_rs_default();
+		break_double 		= 1'b0;
 		load_acu_rs 		= 1'b0;
 		load_br_rs 			= 1'b0;
 		load_lsq 			= 1'b0;
@@ -217,27 +218,61 @@ module reorder_buffer #(
 		set_load_rs_default();
 		// branch flushing logic
 		// ADD LOGIC FOR JALR HERE!!!!!!!!!!!!!!!!!!!
-		for (int i = 0; i < br_rs_size; i++) begin
-			if (br_rs_o[i].rdy & arr[br_rs_o[i].tag].valid) begin
-				if(arr[br_rs_o[i].tag].pc_info.is_br_instr) begin 
-					br_result 		= br_rs_o[i].data[0];
-					pc_result 		= arr[br_rs_o[i].tag].pc_info.pc;
-					pc_result_load 	= 1'b1;
-					if(br_rs_o[i].data[0] != arr[br_rs_o[i].tag].pc_info.br_pred) begin // Branch Mispredict flush
-						flush.valid 	= 1'b1;
-						flush_tag 		= (br_rs_o[i].tag + 1) % size;
-						flush_pc		= br_rs_o[i].data[0] ? arr[br_rs_o[i].tag].pc_info.branch_pc : arr[br_rs_o[i].tag].pc_info.pc + 4;
-						break;
-					end 
+		for(int i = 0; i < size; i++) begin 
+			if(break_double)
+				break;
+			if(~arr[(front + i) % size].valid || ~(arr[(front + i) % size].pc_info.is_br_instr || arr[(front + i) % size].pc_info.opcode == op_jalr))
+				continue;
+			else begin 
+				for(int j = 0; j < br_rs_size; j++) begin 
+					if((front + i) % size == br_rs_o[j].tag && br_rs_o[j].rdy & arr[br_rs_o[j].tag].valid) begin 
+						if(arr[br_rs_o[j].tag].pc_info.is_br_instr) begin 
+							br_result 		= br_rs_o[j].data[0];
+							pc_result 		= arr[br_rs_o[j].tag].pc_info.pc;
+							pc_result_load 	= 1'b1;
+							if(br_rs_o[j].data[0] != arr[br_rs_o[j].tag].pc_info.br_pred) begin // Branch Mispredict flush
+								flush.valid 	= 1'b1;
+								flush_tag 		= (br_rs_o[j].tag + 1) % size;
+								flush_pc		= br_rs_o[j].data[0] ? arr[br_rs_o[j].tag].pc_info.branch_pc : arr[br_rs_o[j].tag].pc_info.pc + 4;
+								break_double 	= 1'b1;
+								break;
+							end 
+						end 
+						else if(arr[br_rs_o[j].tag].pc_info.opcode == op_jalr) begin //JALR fake flush
+							flush.valid 	= 1'b1;
+							flush_tag 		= (br_rs_o[j].tag + 1) % size;
+							flush_pc		= br_rs_o[j].data;
+							break_double 	= 1'b1;
+							break;
+						end 
+					end
 				end 
-				else if(arr[br_rs_o[i].tag].pc_info.opcode == op_jalr) begin //JALR fake flush
-					flush.valid 	= 1'b1;
-					flush_tag 		= (br_rs_o[i].tag + 1) % size;
-					flush_pc		= br_rs_o[i].data;
-					break;
-				end 
-			end
-		end
+			end 
+		end 
+
+
+		// for (int i = 0; i < br_rs_size; i++) begin
+		// 	if (br_rs_o[i].rdy & arr[br_rs_o[i].tag].valid) begin
+		// 		if(arr[br_rs_o[i].tag].pc_info.is_br_instr) begin 
+		// 			br_result 		= br_rs_o[i].data[0];
+		// 			pc_result 		= arr[br_rs_o[i].tag].pc_info.pc;
+		// 			pc_result_load 	= 1'b1;
+		// 			if(br_rs_o[i].data[0] != arr[br_rs_o[i].tag].pc_info.br_pred) begin // Branch Mispredict flush
+		// 				flush.valid 	= 1'b1;
+		// 				flush_tag 		= (br_rs_o[i].tag + 1) % size;
+		// 				flush_pc		= br_rs_o[i].data[0] ? arr[br_rs_o[i].tag].pc_info.branch_pc : arr[br_rs_o[i].tag].pc_info.pc + 4;
+		// 				break;
+		// 			end 
+		// 		end 
+		// 		else if(arr[br_rs_o[i].tag].pc_info.opcode == op_jalr) begin //JALR fake flush
+		// 			flush.valid 	= 1'b1;
+		// 			flush_tag 		= (br_rs_o[i].tag + 1) % size;
+		// 			flush_pc		= br_rs_o[i].data;
+		// 			break;
+		// 		end 
+		// 	end
+		// end
+
 		if (rear >= front) begin
 			for (int i = 0; i <= (rear - front) && i < size; i++) begin 
 				if (~empty) begin 
@@ -315,8 +350,7 @@ module reorder_buffer #(
 		end
 
 		enq1 = 1'b0;
-		if (enq && ~full && ((rob_num_available >= 2 || (num_deq >= 2)) || (num_deq == 1 && rob_num_available == 1)) && (iq_num_available >= 2)
-			&& (pci.rd == 0 | (pci.rd != 0 && pci.rd != pci1.rs1 && pci.rd != pci1.rs2))) begin
+		if (enq && ~full && ((rob_num_available >= 2 || (num_deq >= 2)) || (num_deq == 1 && rob_num_available == 1)) && (iq_num_available >= 2)) begin
 			if ((pci1.opcode == op_br) || (pci1.opcode == op_jal) || (pci1.opcode == op_jalr)) begin
 				if ((pci.opcode == op_br) || (pci.opcode == op_jal) || (pci.opcode == op_jalr)) begin
 					if (br_num_available >= 2) begin
