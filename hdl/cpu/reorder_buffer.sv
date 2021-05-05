@@ -158,7 +158,14 @@ module reorder_buffer #(
 			rdest 	<= '{4'd0, data_in.rdy, data_in.data};
 		*/
 		if(num_deq >= 1 && full && rob_num_available == 0) begin 
-			rob_broadcast_bus[front] 	<= '{ default: 0 };
+			for(int i = 0; i < num_deq && i < size; i++) begin 
+				if((arr[(front + i) % size].pc_info.opcode == op_br && arr[(front + i) % size].pc_info.pc == arr[(front + i) % size].pc_info.branch_pc)
+				|| arr[(front + i) % size].pc_info.opcode == op_jal && arr[(front + i) % size].pc_info.pc == arr[(front + i) % size].pc_info.jal_pc) begin 
+					halt <= 1'b1;
+				end 
+				rob_broadcast_bus[(i + front) % size] 	<= '{ default: 0 };
+				arr[(i + front) % size]					<= '{ pc_info: '{ opcode: op_imm, default: 0 }, default: 0};
+			end 
 			arr[front]					<= data_in;
 		end
 		else if(num_deq >= 1 && full && rob_num_available == 1) begin 

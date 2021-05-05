@@ -137,4 +137,3 @@ module circular_q #(parameter width = 32,
 
 endmodule : circular_q
 
-
