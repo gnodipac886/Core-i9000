@@ -49,4 +49,4 @@ vsim -t 1ps -L altera_ver -L lpm_ver -L sgate_ver -L altera_mf_ver -L altera_lns
 do wave.do
 view structure
 view signals
-run 1000ns
+run -all

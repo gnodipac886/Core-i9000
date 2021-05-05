@@ -98,7 +98,7 @@ module reservation_station #(parameter size = 15, parameter rob_size = 15)
 		end
 
 		else begin 
-			if (load)
+			if (load || load1)
 			begin
 				// set all the fields for the new struct
 				if (num_available > 5'd1) 
@@ -322,13 +322,7 @@ module reservation_station #(parameter size = 15, parameter rob_size = 15)
 		// loop through the rs and clear the rs. set their valid bit to 0
 		for (int idx = 0; idx < size; idx++) 
 		begin
-			if (broadcast_bus[idx].rdy && ~(load && next_rs == idx))
-			begin
-				// set_default(idx);
-				data[idx] <= '{cmp_opcode :cmp_beq, alu_opcode:alu_add, valid: 0, default: '0};
-				acu_operation[idx] <= 1'b0;
-			end
-			if (broadcast_bus[idx].rdy && ~(load1 && next_rs1 == idx))
+			if (broadcast_bus[idx].rdy && ~(load && next_rs == idx) && ~(load1 && next_rs1 == idx))
 			begin
 				// set_default(idx);
 				data[idx] <= '{cmp_opcode :cmp_beq, alu_opcode:alu_add, valid: 0, default: '0};

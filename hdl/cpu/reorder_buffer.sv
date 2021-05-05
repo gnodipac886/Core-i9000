@@ -301,7 +301,7 @@ module reorder_buffer #(
 
 		enq1 = 1'b0;
 		if (enq && ~full && ((rob_num_available >= 2 || (num_deq >= 2)) || (num_deq == 1 && rob_num_available == 1)) && (iq_num_available >= 2)
-			&&(pci.rd == 0 | (pci.rd != 0 && pci.rd != pci.rs1 && pci.rd != pci.rs2))) begin
+			&& (pci.rd == 0 | (pci.rd != 0 && pci.rd != pci1.rs1 && pci.rd != pci1.rs2))) begin
 			if ((pci1.opcode == op_br) || (pci1.opcode == op_jal) || (pci1.opcode == op_jalr)) begin
 				if ((pci.opcode == op_br) || (pci.opcode == op_jal) || (pci.opcode == op_jalr)) begin
 					if (br_num_available >= 2) begin
@@ -313,7 +313,7 @@ module reorder_buffer #(
 			end 
 			else if ((pci1.opcode == op_lui) || (pci1.opcode == op_load) || (pci1.opcode == op_store)) begin
 				if (~stall_lsq) begin
-					enq1 = 1'b1;
+					enq1 = 1'b0;
 				end
 			end 
 			else if ((pci1.opcode == op_auipc) || (pci1.opcode == op_imm) || (pci1.opcode == op_reg)) begin

@@ -5,18 +5,11 @@ mp4_simple_tests.s:
 	# Refer to the RISC-V ISA Spec for the functionality of
 	# the instructions in this test program.
 _start:	
-	addi    x0,     x0,     0
-	addi    x0,     x0,     0
-	addi    x0,     x0,     0
-	addi    x0,     x0,     0
-	addi    x0,     x0,     0
-	addi    x0,     x0,     0
-	addi    x0,     x0,     0
-	addi    x0,     x0,     0
-	addi    x0,     x0,     0
-	addi    x0,     x0,     0
-	addi    x0,     x0,     0
-	addi    x0,     x0,     0
+	addi    x1,     x0,     5
+	addi 	x2, 	x2, 	1
+	bne 	x1, 	x2, 	_start
+
+
 # 	addi    x2,     x0,     2
 # 	beq 	x2, 	x0, 	halt
 # 	addi    x4,     x0,     4
