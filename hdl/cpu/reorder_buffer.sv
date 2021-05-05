@@ -25,21 +25,22 @@ module reorder_buffer #(
 	input sal_t	br_rs_o [br_rs_size],
 	input sal_t acu_rs_o [acu_rs_size],
 	input sal_t lsq_o,
-	
 
 	output logic instr_q_dequeue,
+	output logic instr_q_dequeue1,
 	output logic load_br_rs,
 	output logic load_acu_rs,
 	output logic load_lsq,
-	output logic load_br_rs1,						// ;alskldjkf;al;ksdjkf;al;sdjk;
-	output logic load_lsq1,							// ;alskldjkf;al;ksdjkf;al;sdjk;
-	output logic load_acu_rs1,						// ;alskldjkf;al;ksdjkf;al;sdjk;
+	output logic load_br_rs1,
+	output logic load_lsq1,
+	output logic load_acu_rs1,
 	output sal_t rob_broadcast_bus [size],
 	output sal2_t rdest[size],
 	output logic [4:0] rd_bus[size],
 	output logic [3:0] rd_tag,
+	output logic [3:0] rd_tag1,
 	output logic reg_ld_instr,
-	output logic reg_ld_instr1,						// ;alskldjkf;al;ksdjkf;al;sdjk;
+	output logic reg_ld_instr1,
 	output rob_t rob_front,
 
 	output logic br_result, // high if taking branch, low if not taking
@@ -52,7 +53,7 @@ module reorder_buffer #(
 	output logic [3:0] rob_num_available
 );
 	rob_t arr [size];
-	rob_t temp_in;
+	rob_t temp_in, temp_in1;
 	int front, rear;
 	int num_deq, flush_tag;
 	int num_items;
@@ -63,11 +64,13 @@ module reorder_buffer #(
 	logic test_signal;
 	assign test_signal = enq && ~flush.valid && (pci.opcode == op_load || pci.opcode == op_store);
 	assign instr_q_dequeue		= enq;
+	assign instr_q_dequeue1		= enq1;
 	assign rob_front 			= front == -1 ? arr[0] : arr[front];
 
-	assign full 				= ((front == 0) && (rear == size - 1)) || (rear == ((front - 1) % (size - 1)));
+	assign full 				= (front == (rear + 1) % size) || (front == (rear + 2) % size);
 	assign empty 				= (front == -1);
 	assign rd_tag 				= empty ? 0 : (rear + 1) % size;
+	assign rd_tag1 				= empty && enq1 ? 1 : (rear + 2) % size;
 
     assign flush.flush_tag      = flush_tag[3:0];
 	assign flush.front_tag 		= front[3:0];
@@ -77,6 +80,8 @@ module reorder_buffer #(
 	assign temp_in.data 		= 32'hxxxx;
 	assign temp_in.rdy 			= 1'b0;
 	assign temp_in.valid 		= 1'b1;
+
+	assign temp_in1 			= '{pc_info: pci1, data: 32'hxxxx, rdy: 1'b0, valid: 1'b1};
 	
 	task set_load_rs_default();
 		load_acu_rs 		= 1'b0;
@@ -101,20 +106,22 @@ module reorder_buffer #(
 		rob_num_available	= size - num_items;
 	endtask
 	
-	task enqueue(rob_t data_in);
+	task enqueue(rob_t data_in, rob_t data_in1);
 		// Check if full before sending dequeue signal to instr_q
 		// first element
 		if (empty) begin 
 			front 	<= 0;
-			rear 	<= 0;
+			rear 	<= enq1 ? 1 : 0;
 			arr[0]	<= data_in;
+			arr[1] 	<= enq1	? data_in1 : arr[1];
 			// rd_tag	<= 0;
 		end
 		// otherwise
 		else begin 
-			rear 	<= (rear + 1) % size;
+			rear 	<= enq1 ? (rear + 2) % size : (rear + 1) % size;
 			// rd_tag	<= (rear + 1) % size;
 			arr[(rear + 1) % size] <= data_in; 
+			arr[(rear + 2) % size] <= enq1 ? data_in1 : arr[(rear + 2) % size]; 
 		end
 	endtask : enqueue
 
@@ -139,16 +146,16 @@ module reorder_buffer #(
 	endtask : dequeue
 
 	// Necessary?
-	task endequeue(rob_t data_in);
+	task endequeue(rob_t data_in, rob_t data_in1);
 		// if empty, but this case should never occur be able to occur, because then it wouldn't attempt to dequeue
 		/*
 		if(front == -1)
 			rdest 	<= '{4'd0, data_in.rdy, data_in.data};
 		*/
-		if(num_deq == 1 && full) begin 
+		if(num_deq >= 1 && full) begin 
 			rob_broadcast_bus[front] 	<= '{ default: 0 };
 			arr[front]					<= data_in;
-		end 
+		end
 		else begin 
 			for(int i = 0; i < num_deq && i < size; i++) begin 
 				if((arr[(front + i) % size].pc_info.opcode == op_br && arr[(front + i) % size].pc_info.pc == arr[(front + i) % size].pc_info.branch_pc)
@@ -159,9 +166,10 @@ module reorder_buffer #(
 				arr[(i + front) % size]					<= '{ default: 0, pc_info: '{ opcode: op_imm, default: 0 }};
 			end 
 			arr[(rear + 1) % size]	<= data_in;
+			arr[(rear + 2) % size]	<= enq1 ? data_in1 : arr[(rear + 2 % size)];
 		end 
 		front 						<= (front + num_deq) % size;
-		rear						<= (rear + 1) % size;
+		rear						<= enq1 ? (rear + 2) % size : (rear + 1) % size;
 	endtask
 
 	task broadcast(sal_t broadcast_data);
@@ -292,7 +300,8 @@ module reorder_buffer #(
 		end
 
 		enq1 = 1'b0;
-		if (enq && ((rob_num_available >= 2 || (num_deq >= 2)) || (num_deq == 1 && rob_num_available == 1)) && (iq_num_available >= 2)) begin
+		if (enq && ~full && ((rob_num_available >= 2 || (num_deq >= 2)) || (num_deq == 1 && rob_num_available == 1)) && (iq_num_available >= 2)
+			&&(pci.rd == 0 | (pci.rd != 0 && pci.rd != pci.rs1 && pci.rd != pci.rs2))) begin
 			if ((pci1.opcode == op_br) || (pci1.opcode == op_jal) || (pci1.opcode == op_jalr)) begin
 				if ((pci.opcode == op_br) || (pci.opcode == op_jal) || (pci.opcode == op_jalr)) begin
 					if (br_num_available >= 2) begin
@@ -467,13 +476,13 @@ module reorder_buffer #(
 			end 
 		end else begin
 			if(enq && ~deq) begin
-				enqueue(temp_in);
+				enqueue(temp_in, temp_in1);
 			end 
 			else if(~enq && deq) begin 
 				dequeue();
 			end 
 			else if(enq && deq) begin 
-				endequeue(temp_in);
+				endequeue(temp_in, temp_in1);
 			end
 
 			// Update rob entry for incoming completed operation

@@ -8,6 +8,7 @@ module reservation_station #(parameter size = 15, parameter rob_size = 15)
 		input flush_t flush,
 
 		input logic load, //from ROB, load_alu_rs signal
+		input logic load1, //from ROB, load_alu_rs signal
 
 		// from instruction queue -> RS and instruction queue -> ROB -> RS, on issuing new instruction
 		// need elaboration from eric what signals im getting from ROB and IQ
@@ -22,8 +23,11 @@ module reservation_station #(parameter size = 15, parameter rob_size = 15)
 
 		// inputs
 		input rs_t input_r, //regfile
+		input rs_t input_r1, //regfile
 		input logic[3:0] tag, // from ROB
+		input logic[3:0] tag1, // from ROB
 		input pci_t pci, // from ROB
+		input pci_t pci1,
 
 		input sal_t broadcast_bus[size], // after computation is done, coming back from alu
 		input sal_t rob_broadcast_bus[size], // after other rs is done, send data from ROB to rs
@@ -34,7 +38,7 @@ module reservation_station #(parameter size = 15, parameter rob_size = 15)
 		output logic[3:0] num_available // do something if the number of available reservation stations are 0
 );
 
-	logic[4:0] next_rs;
+	logic[4:0] next_rs, next_rs1;
 	int index = -1;
 
 	// task set_default(int idx);
@@ -69,6 +73,10 @@ module reservation_station #(parameter size = 15, parameter rob_size = 15)
 			data[next_rs] <= '{cmp_opcode :cmp_beq, alu_opcode:alu_add, valid: 0, default: '0};
 		end 
 
+		if(load1) begin 
+			data[next_rs1] <= '{cmp_opcode :cmp_beq, alu_opcode:alu_add, valid: 0, default: '0};
+		end 
+
 	endtask
 	
 	always_ff @(posedge clk)
@@ -89,103 +97,204 @@ module reservation_station #(parameter size = 15, parameter rob_size = 15)
 			flush_rs();
 		end
 
-		else if (load)
-		begin
-			// set all the fields for the new struct
-			if (num_available != 5'd0) 
+		else begin 
+			if (load)
 			begin
-				// load..
-				data[next_rs].tag <= tag;
-				data[next_rs].alu_opcode <= alu_ops'(pci.funct3);
-				data[next_rs].cmp_opcode <= cmp_ops'(pci.funct3);
-				data[next_rs].valid <= 1'b1;
-				data[next_rs].funct7 <= pci.opcode == op_reg ? pci.funct7 : 0;
-				unique case (pci.opcode) 
-					op_jal: begin 
-						data[next_rs].alu_opcode <= alu_add;
-						data[next_rs].busy_r1 <= 1'b0;
-						data[next_rs].busy_r2 <= 1'b0;
-						data[next_rs].r1 <= pci.pc;
-						data[next_rs].r2 <= pci.j_imm;
-						acu_operation[next_rs] <= 1'b0;
-						
-					end 
-					op_jalr: begin 
-						data[next_rs].alu_opcode <= alu_add;
-						data[next_rs].busy_r1 <= input_r.busy_r1;
-						data[next_rs].busy_r2 <= 1'b0;
-						data[next_rs].r1 <= input_r.r1;
-						data[next_rs].r2 <= pci.i_imm;
-						acu_operation[next_rs] <= 1'b0;
-					end 
-					op_br: begin 
-						data[next_rs].busy_r1 <= input_r.busy_r1;
-						data[next_rs].busy_r2 <= input_r.busy_r2;
-						data[next_rs].r1 <= input_r.r1;
-						data[next_rs].r2 <= input_r.r2;
-						acu_operation[next_rs] <= 1'b1;
-					end 
-					op_lui: begin
-						data[next_rs].alu_opcode <= alu_add;
-						data[next_rs].busy_r1 <= 1'b0;
-						data[next_rs].busy_r2 <= 1'b0;
-						data[next_rs].r1 <= pci.u_imm;
-						data[next_rs].r2 <= 32'b0;
-						acu_operation[next_rs] <= 1'b0;
-					end
-					op_auipc: begin
-						data[next_rs].alu_opcode <= alu_add;
-						data[next_rs].busy_r1 <= 1'b0;
-						data[next_rs].busy_r2 <= 1'b0;
-						data[next_rs].r1 <= pci.pc;
-						data[next_rs].r2 <= pci.u_imm;
-						acu_operation[next_rs] <= 1'b0;
-					end
-					op_reg: begin
-						data[next_rs].busy_r1 <= input_r.busy_r1;
-						data[next_rs].busy_r2 <= input_r.busy_r2;
-						data[next_rs].r1 <= input_r.r1;
-						data[next_rs].r2 <= input_r.r2;
-						if (arith_funct3_t'(pci.funct3) == slt) begin
-							data[next_rs].cmp_opcode <= cmp_blt;
+				// set all the fields for the new struct
+				if (num_available > 5'd1) 
+				begin
+					// load..
+					data[next_rs].tag <= tag;
+					data[next_rs].alu_opcode <= alu_ops'(pci.funct3);
+					data[next_rs].cmp_opcode <= cmp_ops'(pci.funct3);
+					data[next_rs].valid <= 1'b1;
+					data[next_rs].funct7 <= pci.opcode == op_reg ? pci.funct7 : 0;
+					unique case (pci.opcode) 
+						op_jal: begin 
+							data[next_rs].alu_opcode <= alu_add;
+							data[next_rs].busy_r1 <= 1'b0;
+							data[next_rs].busy_r2 <= 1'b0;
+							data[next_rs].r1 <= pci.pc;
+							data[next_rs].r2 <= pci.j_imm;
+							acu_operation[next_rs] <= 1'b0;
+							
+						end 
+						op_jalr: begin 
+							data[next_rs].alu_opcode <= alu_add;
+							data[next_rs].busy_r1 <= input_r.busy_r1;
+							data[next_rs].busy_r2 <= 1'b0;
+							data[next_rs].r1 <= input_r.r1;
+							data[next_rs].r2 <= pci.i_imm;
+							acu_operation[next_rs] <= 1'b0;
+						end 
+						op_br: begin 
+							data[next_rs].busy_r1 <= input_r.busy_r1;
+							data[next_rs].busy_r2 <= input_r.busy_r2;
+							data[next_rs].r1 <= input_r.r1;
+							data[next_rs].r2 <= input_r.r2;
 							acu_operation[next_rs] <= 1'b1;
-						end else if (arith_funct3_t'(pci.funct3) == sltu) begin
-							data[next_rs].cmp_opcode <= cmp_bltu;
-							acu_operation[next_rs] <= 1'b1;
-						end else begin
-							data[next_rs].cmp_opcode <= cmp_ops'(pci.funct3);
+						end 
+						op_lui: begin
+							data[next_rs].alu_opcode <= alu_add;
+							data[next_rs].busy_r1 <= 1'b0;
+							data[next_rs].busy_r2 <= 1'b0;
+							data[next_rs].r1 <= pci.u_imm;
+							data[next_rs].r2 <= 32'b0;
 							acu_operation[next_rs] <= 1'b0;
 						end
-					end
-					op_imm: begin
-						data[next_rs].busy_r1 <= input_r.busy_r1;
-						data[next_rs].busy_r2 <= 1'b0;
-						data[next_rs].r1 <= input_r.r1;
-						data[next_rs].r2 <= pci.i_imm;
-						if (arith_funct3_t'(pci.funct3) == slt) begin
-							data[next_rs].cmp_opcode <= cmp_blt;
-							acu_operation[next_rs] <= 1'b1;
-						end else if (arith_funct3_t'(pci.funct3) == sltu) begin
-							data[next_rs].cmp_opcode <= cmp_bltu;
-							acu_operation[next_rs] <= 1'b1;
-						end else begin
-							if (arith_funct3_t'(pci.funct3) == sr) begin
-								if (pci.funct7[5]) begin
-									data[next_rs].alu_opcode <= alu_ops'(alu_sra);
-									acu_operation[next_rs] <= 1'b0;
-								end else begin
-									data[next_rs].alu_opcode <= alu_ops'(alu_srl);
-									acu_operation[next_rs] <= 1'b0;
-								end
+						op_auipc: begin
+							data[next_rs].alu_opcode <= alu_add;
+							data[next_rs].busy_r1 <= 1'b0;
+							data[next_rs].busy_r2 <= 1'b0;
+							data[next_rs].r1 <= pci.pc;
+							data[next_rs].r2 <= pci.u_imm;
+							acu_operation[next_rs] <= 1'b0;
+						end
+						op_reg: begin
+							data[next_rs].busy_r1 <= input_r.busy_r1;
+							data[next_rs].busy_r2 <= input_r.busy_r2;
+							data[next_rs].r1 <= input_r.r1;
+							data[next_rs].r2 <= input_r.r2;
+							if (arith_funct3_t'(pci.funct3) == slt) begin
+								data[next_rs].cmp_opcode <= cmp_blt;
+								acu_operation[next_rs] <= 1'b1;
+							end else if (arith_funct3_t'(pci.funct3) == sltu) begin
+								data[next_rs].cmp_opcode <= cmp_bltu;
+								acu_operation[next_rs] <= 1'b1;
 							end else begin
 								data[next_rs].cmp_opcode <= cmp_ops'(pci.funct3);
 								acu_operation[next_rs] <= 1'b0;
 							end
 						end
+						op_imm: begin
+							data[next_rs].busy_r1 <= input_r.busy_r1;
+							data[next_rs].busy_r2 <= 1'b0;
+							data[next_rs].r1 <= input_r.r1;
+							data[next_rs].r2 <= pci.i_imm;
+							if (arith_funct3_t'(pci.funct3) == slt) begin
+								data[next_rs].cmp_opcode <= cmp_blt;
+								acu_operation[next_rs] <= 1'b1;
+							end else if (arith_funct3_t'(pci.funct3) == sltu) begin
+								data[next_rs].cmp_opcode <= cmp_bltu;
+								acu_operation[next_rs] <= 1'b1;
+							end else begin
+								if (arith_funct3_t'(pci.funct3) == sr) begin
+									if (pci.funct7[5]) begin
+										data[next_rs].alu_opcode <= alu_ops'(alu_sra);
+										acu_operation[next_rs] <= 1'b0;
+									end else begin
+										data[next_rs].alu_opcode <= alu_ops'(alu_srl);
+										acu_operation[next_rs] <= 1'b0;
+									end
+								end else begin
+									data[next_rs].cmp_opcode <= cmp_ops'(pci.funct3);
+									acu_operation[next_rs] <= 1'b0;
+								end
+							end
+						end
+						default: ;
+					endcase
+				end
+
+				if (load1)
+				begin
+					// set all the fields for the new struct
+					if (num_available > 5'd1) 
+					begin
+						// load..
+						data[next_rs1].tag <= tag1;
+						data[next_rs1].alu_opcode <= alu_ops'(pci1.funct3);
+						data[next_rs1].cmp_opcode <= cmp_ops'(pci1.funct3);
+						data[next_rs1].valid <= 1'b1;
+						data[next_rs1].funct7 <= pci1.opcode == op_reg ? pci1.funct7 : 0;
+						unique case (pci1.opcode) 
+							op_jal: begin 
+								data[next_rs1].alu_opcode <= alu_add;
+								data[next_rs1].busy_r1 <= 1'b0;
+								data[next_rs1].busy_r2 <= 1'b0;
+								data[next_rs1].r1 <= pci1.pc;
+								data[next_rs1].r2 <= pci1.j_imm;
+								acu_operation[next_rs1] <= 1'b0;
+								
+							end 
+							op_jalr: begin 
+								data[next_rs1].alu_opcode <= alu_add;
+								data[next_rs1].busy_r1 <= input_r1.busy_r1;
+								data[next_rs1].busy_r2 <= 1'b0;
+								data[next_rs1].r1 <= input_r1.r1;
+								data[next_rs1].r2 <= pci1.i_imm;
+								acu_operation[next_rs1] <= 1'b0;
+							end 
+							op_br: begin 
+								data[next_rs1].busy_r1 <= input_r1.busy_r1;
+								data[next_rs1].busy_r2 <= input_r1.busy_r2;
+								data[next_rs1].r1 <= input_r1.r1;
+								data[next_rs1].r2 <= input_r1.r2;
+								acu_operation[next_rs1] <= 1'b1;
+							end 
+							op_lui: begin
+								data[next_rs1].alu_opcode <= alu_add;
+								data[next_rs1].busy_r1 <= 1'b0;
+								data[next_rs1].busy_r2 <= 1'b0;
+								data[next_rs1].r1 <= pci1.u_imm;
+								data[next_rs1].r2 <= 32'b0;
+								acu_operation[next_rs1] <= 1'b0;
+							end
+							op_auipc: begin
+								data[next_rs1].alu_opcode <= alu_add;
+								data[next_rs1].busy_r1 <= 1'b0;
+								data[next_rs1].busy_r2 <= 1'b0;
+								data[next_rs1].r1 <= pci1.pc;
+								data[next_rs1].r2 <= pci1.u_imm;
+								acu_operation[next_rs1] <= 1'b0;
+							end
+							op_reg: begin
+								data[next_rs1].busy_r1 <= input_r1.busy_r1;
+								data[next_rs1].busy_r2 <= input_r1.busy_r2;
+								data[next_rs1].r1 <= input_r1.r1;
+								data[next_rs1].r2 <= input_r1.r2;
+								if (arith_funct3_t'(pci1.funct3) == slt) begin
+									data[next_rs1].cmp_opcode <= cmp_blt;
+									acu_operation[next_rs1] <= 1'b1;
+								end else if (arith_funct3_t'(pci1.funct3) == sltu) begin
+									data[next_rs1].cmp_opcode <= cmp_bltu;
+									acu_operation[next_rs1] <= 1'b1;
+								end else begin
+									data[next_rs1].cmp_opcode <= cmp_ops'(pci1.funct3);
+									acu_operation[next_rs1] <= 1'b0;
+								end
+							end
+							op_imm: begin
+								data[next_rs1].busy_r1 <= input_r1.busy_r1;
+								data[next_rs1].busy_r2 <= 1'b0;
+								data[next_rs1].r1 <= input_r1.r1;
+								data[next_rs1].r2 <= pci1.i_imm;
+								if (arith_funct3_t'(pci1.funct3) == slt) begin
+									data[next_rs1].cmp_opcode <= cmp_blt;
+									acu_operation[next_rs1] <= 1'b1;
+								end else if (arith_funct3_t'(pci1.funct3) == sltu) begin
+									data[next_rs1].cmp_opcode <= cmp_bltu;
+									acu_operation[next_rs1] <= 1'b1;
+								end else begin
+									if (arith_funct3_t'(pci1.funct3) == sr) begin
+										if (pci1.funct7[5]) begin
+											data[next_rs1].alu_opcode <= alu_ops'(alu_sra);
+											acu_operation[next_rs1] <= 1'b0;
+										end else begin
+											data[next_rs1].alu_opcode <= alu_ops'(alu_srl);
+											acu_operation[next_rs1] <= 1'b0;
+										end
+									end else begin
+										data[next_rs1].cmp_opcode <= cmp_ops'(pci1.funct3);
+										acu_operation[next_rs1] <= 1'b0;
+									end
+								end
+							end
+							default: ;
+						endcase
 					end
-					default: ;
-				endcase
-			end
+				end 
+			end 
 		end
 
 		// loop through all the tags (anywhere from 0 - 2 tags per rs), check if the tag has been resolved by alu broadcast or rob broadcast
@@ -219,12 +328,19 @@ module reservation_station #(parameter size = 15, parameter rob_size = 15)
 				data[idx] <= '{cmp_opcode :cmp_beq, alu_opcode:alu_add, valid: 0, default: '0};
 				acu_operation[idx] <= 1'b0;
 			end
+			if (broadcast_bus[idx].rdy && ~(load1 && next_rs1 == idx))
+			begin
+				// set_default(idx);
+				data[idx] <= '{cmp_opcode :cmp_beq, alu_opcode:alu_add, valid: 0, default: '0};
+				acu_operation[idx] <= 1'b0;
+			end
 		end
 	end
 
 	always_comb
 	begin
 		next_rs = 5'b10000;
+		next_rs1 = 5'b10000;
 		// find an empty place for the new operation
 		for (int idx = 0; idx < size ; idx++)
 		begin
@@ -234,6 +350,20 @@ module reservation_station #(parameter size = 15, parameter rob_size = 15)
 				break;
 			end
 		end
+
+		if(~load) begin 
+			next_rs1 = next_rs;
+		end 
+		else begin 
+			for (int idx = (next_rs + 1) % size; idx < size ; idx++)
+			begin
+				if (~data[idx].valid || (~data[idx].busy_r1 && ~data[idx].busy_r2))
+				begin
+					next_rs1 = idx;
+					break;
+				end
+			end
+		end 
 
 		num_available = 0;
 		for (int z = 0; z < size; z++)

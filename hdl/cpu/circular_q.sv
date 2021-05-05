@@ -8,6 +8,7 @@ module circular_q #(parameter width = 32,
 	input 	logic 		rst,
 	input 	logic 		enq,
 	input 	logic 		deq,
+	input 	logic 		deq1,
 	input	pci_t		in,
 	input 	pci_t 		in1,
 	input 	flush_t 	flush,
@@ -22,7 +23,6 @@ module circular_q #(parameter width = 32,
 
 	pci_t	arr		[size];
 	int 	front, rear;
-	int		num_items;
 	logic 	wtf;
 
 	// assign 	full 	= (front == 0 && rear == size - 1) || (rear == (front - 1) % (size - 1));
@@ -61,14 +61,15 @@ module circular_q #(parameter width = 32,
 		else begin 
 			// out 				<= arr[front];
 			arr[front] 			<= '{ default: 0, opcode: op_imm};
+			arr[(front + 1) % size] 			<= deq1 ? '{ default: 0, opcode: op_imm} : arr[(front + 1) % size];
 			ready 				<= 1;
 			// dequeued the last one
-			if(front == rear) begin 
+			if(front == rear || ((front + 1 % size) == rear && deq1)) begin 
 				front 			<= -1;
 				rear 			<= -1;
 			end
 			else begin 
-				front 			<= (front + 1) % size;
+				front 			<= deq1 ? (front + 2) % size : (front + 1) % size;
 			end
 		end 
 	endtask : dequeue
@@ -83,11 +84,12 @@ module circular_q #(parameter width = 32,
 		end 
 		else begin 
 			// out 					<= arr[front];
-			front 					<= (front + 1) % size;
+			front 					<= deq1 ? (front + 2) % size : (front + 1) % size;
 			rear 					<= (~num_enq) ? (rear + 1) % size : (rear + 2) % size;
 			ready 					<= 1;
 			if (~full) begin
 				arr[front] 				<= '{ default: 0, opcode: op_imm};
+				arr[(front + 1) % size] <= deq1 ? '{ default: 0, opcode: op_imm} : arr[(front + 1) % size];
 				arr[(rear + 1) % size] 	<= data_in;
 				arr[(rear + 2) % size]	<= data_in1;
 			end else begin	// Never can happen
@@ -123,14 +125,10 @@ module circular_q #(parameter width = 32,
 		else if(enq && ~deq) begin
 			enqueue(in, in1);
 			// $display("enqueue!");
-		end else if(~enq && deq && deq1) begin 
+		end else if(~enq && deq) begin 
 			dequeue();
 			// $display("dequeue!");
-		end 
-		else if(~enq && deq) begin 
-			dequeue();
-			// $display("dequeue!");
-		end 
+		end
 		else if(enq && deq) begin 
 			endequeue(in, in1);
 			// $display("endeque!");

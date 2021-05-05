@@ -58,7 +58,7 @@ module cpu #(
 	/*fetcher logic*/
 	logic	[63:0]		fetch_out;
 	/*instruction queue logic*/
-	logic 				iq_enq, iq_deq, iq_full, iq_ready;
+	logic 				iq_enq, iq_deq, iq_deq1, iq_full, iq_ready;
 	pci_t				iq_in, iq_in1, iq_out;
 	logic				num_enq;
 
@@ -82,10 +82,18 @@ module cpu #(
 	logic 				pc_result_load;
 	logic [width-1:0]	flush_pc;
 	flush_t				flush;
+	pci_t 				pci1;
+	logic 				load_br_rs1;
+	logic 				load_lsq1;
+	logic 				load_acu_rs1;
+	logic [3:0] 		rd_tag1;
+	logic 				reg_ld_instr1;
+	int 				iq_num_items;
+	logic [3:0] 		rob_num_available;
 	
 	/* regfile logic */
 	logic 		reg_ld_instr;
-	rs_t 		rs_out;
+	rs_t 		rs_out, rs_out1;
 	
 	/*rs and alu logic*/
  	rs_t input_r; //regfile
@@ -237,12 +245,15 @@ module cpu #(
 	circular_q iq(
 		.enq(iq_enq & ~br_miss_pc_load),
 		.deq(iq_deq),
+		.deq1(iq_deq1),
 		.in(iq_in),
 		.in1(iq_in1),
 		.empty(iq_empty),
 		.full(iq_full),
 		.ready(iq_ready),
 		.out(pci),
+		.out1(pci1),
+		.num_items(iq_num_items),
 		.*
 	);
 
@@ -250,10 +261,12 @@ module cpu #(
 	reorder_buffer rob(
 		.instr_q_empty(iq_empty),
 		.instr_q_dequeue(iq_deq),
+		.instr_q_dequeue1(iq_deq1),
 		.instr_mem_resp(iq_enq),
 		.lsq_num_available(lsq_num_available),
 		.acu_num_available(num_available),
 		.br_num_available(br_num_available),
+		.iq_num_available(iq_num_items),
 		.*
 	);
 
@@ -262,14 +275,20 @@ module cpu #(
 		.rs1(pci.rs1),
 		.rs2(pci.rs2),
 		.rd(pci.rd),
+		.rs11(pci1.rs1),
+		.rs21(pci1.rs2),
+		.rd1(pci1.rd),
 		.rs_out(rs_out),
 		.*
 	);
 
 	reservation_station acu_rs(
 		.load(load_acu_rs),
+		.load1(load_acu_rs1),
 		.input_r(rs_out),
+		.input_r1(rs_out1),
 		.tag(rd_tag),
+		.tag1(rd_tag1),
 		.broadcast_bus(acu_rs_o),
 		.*
 	);
@@ -301,8 +320,11 @@ module cpu #(
 
 	reservation_station br_rs(
 		.load(load_br_rs),
+		.load1(load_br_rs1),
 		.input_r(rs_out),
+		.input_r1(rs_out1),
 		.tag(rd_tag),
+		.tag1(rd_tag1),
 		.broadcast_bus(br_rs_o),
 		.acu_operation(br_acu_operation),
 		.data(br_data),
