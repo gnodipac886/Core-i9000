@@ -87,7 +87,11 @@ module reorder_buffer #(
 		load_acu_rs 		= 1'b0;
 		load_br_rs 			= 1'b0;
 		load_lsq 			= 1'b0;
+		load_acu_rs1 		= 1'b0;
+		load_br_rs1 		= 1'b0;
+		load_lsq1 			= 1'b0;
 		reg_ld_instr		= 1'b0;
+		reg_ld_instr1		= 1'b0;
 		flush.valid			= 1'b0;
 		flush_pc			= 32'b0;
 		br_result			= 1'b0;
@@ -152,9 +156,20 @@ module reorder_buffer #(
 		if(front == -1)
 			rdest 	<= '{4'd0, data_in.rdy, data_in.data};
 		*/
-		if(num_deq >= 1 && full) begin 
+		if(num_deq >= 1 && full && rob_num_available == 0) begin 
 			rob_broadcast_bus[front] 	<= '{ default: 0 };
 			arr[front]					<= data_in;
+		end
+		else if(num_deq >= 1 && full && rob_num_available == 1) begin 
+			for(int i = 0; i < num_deq && i < size; i++) begin 
+				if((arr[(front + i) % size].pc_info.opcode == op_br && arr[(front + i) % size].pc_info.pc == arr[(front + i) % size].pc_info.branch_pc)
+				|| arr[(front + i) % size].pc_info.opcode == op_jal && arr[(front + i) % size].pc_info.pc == arr[(front + i) % size].pc_info.jal_pc) begin 
+					halt <= 1'b1;
+				end 
+				rob_broadcast_bus[(i + front) % size] 	<= '{ default: 0 };
+				arr[(i + front) % size]					<= '{ pc_info: '{ opcode: op_imm, default: 0 }, default: 0};
+			end 
+			arr[(rear + 1) % size]		<= data_in;
 		end
 		else begin 
 			for(int i = 0; i < num_deq && i < size; i++) begin 
@@ -163,7 +178,7 @@ module reorder_buffer #(
 					halt <= 1'b1;
 				end 
 				rob_broadcast_bus[(i + front) % size] 	<= '{ default: 0 };
-				arr[(i + front) % size]					<= '{ default: 0, pc_info: '{ opcode: op_imm, default: 0 }};
+				arr[(i + front) % size]					<= '{ pc_info: '{ opcode: op_imm, default: 0 }, default: 0};
 			end 
 			arr[(rear + 1) % size]	<= data_in;
 			arr[(rear + 2) % size]	<= enq1 ? data_in1 : arr[(rear + 2 % size)];

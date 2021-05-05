@@ -170,7 +170,7 @@ module reservation_station #(parameter size = 15, parameter rob_size = 15)
 							data[next_rs].busy_r1 <= input_r.busy_r1;
 							data[next_rs].busy_r2 <= 1'b0;
 							data[next_rs].r1 <= input_r.r1;
-							data[next_rs].r2 <= pci.i_imm;
+							data[next_rs].r2 <= arith_funct3_t'(pci.funct3) == sr || arith_funct3_t'(pci.funct3) == sll ? pci.i_imm[4:0] : pci.i_imm;
 							if (arith_funct3_t'(pci.funct3) == slt) begin
 								data[next_rs].cmp_opcode <= cmp_blt;
 								acu_operation[next_rs] <= 1'b1;
@@ -268,7 +268,7 @@ module reservation_station #(parameter size = 15, parameter rob_size = 15)
 								data[next_rs1].busy_r1 <= input_r1.busy_r1;
 								data[next_rs1].busy_r2 <= 1'b0;
 								data[next_rs1].r1 <= input_r1.r1;
-								data[next_rs1].r2 <= pci1.i_imm;
+								data[next_rs1].r2 <= arith_funct3_t'(pci1.funct3) == sr || arith_funct3_t'(pci1.funct3) == sll ? pci1.i_imm[4:0] : pci1.i_imm;
 								if (arith_funct3_t'(pci1.funct3) == slt) begin
 									data[next_rs1].cmp_opcode <= cmp_blt;
 									acu_operation[next_rs1] <= 1'b1;

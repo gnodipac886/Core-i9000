@@ -78,15 +78,15 @@ add wave -noupdate -group iq /mp4_tb/dut/cpu/iq/ready
 add wave -noupdate -group iq /mp4_tb/dut/cpu/iq/out
 add wave -noupdate -group iq /mp4_tb/dut/cpu/iq/front
 add wave -noupdate -group iq /mp4_tb/dut/cpu/iq/rear
-add wave -noupdate -expand -group rob -group rob_imm -expand /mp4_tb/dut/cpu/rob/arr
-add wave -noupdate -expand -group rob -group rob_imm /mp4_tb/dut/cpu/rob/acu_rs_o
-add wave -noupdate -expand -group rob -group rob_imm /mp4_tb/dut/cpu/rob/br_rs_o
-add wave -noupdate -expand -group rob -group rob_imm /mp4_tb/dut/cpu/rob/lsq_o
-add wave -noupdate -expand -group rob -group rob_imm /mp4_tb/dut/cpu/rob/rob_broadcast_bus
-add wave -noupdate -expand -group rob -group rob_imm /mp4_tb/dut/cpu/rob/front
-add wave -noupdate -expand -group rob -group rob_imm /mp4_tb/dut/cpu/rob/rear
-add wave -noupdate -expand -group rob -group rob_imm -expand /mp4_tb/dut/cpu/rob/flush
-add wave -noupdate -expand -group rob -group rob_imm /mp4_tb/dut/cpu/rob/flush_pc
+add wave -noupdate -expand -group rob -expand -group rob_imm -expand -subitemconfig {{/mp4_tb/dut/cpu/rob/arr[12]} -expand} /mp4_tb/dut/cpu/rob/arr
+add wave -noupdate -expand -group rob -expand -group rob_imm /mp4_tb/dut/cpu/rob/acu_rs_o
+add wave -noupdate -expand -group rob -expand -group rob_imm /mp4_tb/dut/cpu/rob/br_rs_o
+add wave -noupdate -expand -group rob -expand -group rob_imm /mp4_tb/dut/cpu/rob/lsq_o
+add wave -noupdate -expand -group rob -expand -group rob_imm /mp4_tb/dut/cpu/rob/rob_broadcast_bus
+add wave -noupdate -expand -group rob -expand -group rob_imm /mp4_tb/dut/cpu/rob/front
+add wave -noupdate -expand -group rob -expand -group rob_imm /mp4_tb/dut/cpu/rob/rear
+add wave -noupdate -expand -group rob -expand -group rob_imm -expand /mp4_tb/dut/cpu/rob/flush
+add wave -noupdate -expand -group rob -expand -group rob_imm /mp4_tb/dut/cpu/rob/flush_pc
 add wave -noupdate -expand -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/rob_front
 add wave -noupdate -expand -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/instr_q_dequeue
 add wave -noupdate -expand -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/instr_q_empty
@@ -126,15 +126,23 @@ add wave -noupdate -group sm /mp4_tb/sm/pc_mux_out
 add wave -noupdate -group sm /mp4_tb/sm/num_deq
 add wave -noupdate -group sm /mp4_tb/sm/cpu_pci
 add wave -noupdate -group sm /mp4_tb/sm/take_pc
-add wave -noupdate -group reg_file -expand /mp4_tb/dut/cpu/registers/data
-add wave -noupdate -group reg_file -expand /mp4_tb/dut/cpu/registers/rdest
-add wave -noupdate -group reg_file /mp4_tb/dut/cpu/registers/rd_bus
-add wave -noupdate -group reg_file /mp4_tb/dut/cpu/registers/reg_ld_instr
-add wave -noupdate -group reg_file /mp4_tb/dut/cpu/registers/rd_tag
-add wave -noupdate -group reg_file /mp4_tb/dut/cpu/registers/rs1
-add wave -noupdate -group reg_file /mp4_tb/dut/cpu/registers/rs2
-add wave -noupdate -group reg_file /mp4_tb/dut/cpu/registers/rd
-add wave -noupdate -group reg_file /mp4_tb/dut/cpu/registers/rs_out
+add wave -noupdate -expand -group reg_file /mp4_tb/dut/cpu/registers/data
+add wave -noupdate -expand -group reg_file /mp4_tb/dut/cpu/registers/rdest
+add wave -noupdate -expand -group reg_file /mp4_tb/dut/cpu/registers/rd_bus
+add wave -noupdate -expand -group reg_file /mp4_tb/dut/cpu/registers/reg_ld_instr
+add wave -noupdate -expand -group reg_file /mp4_tb/dut/cpu/registers/rd_tag
+add wave -noupdate -expand -group reg_file /mp4_tb/dut/cpu/registers/rs1
+add wave -noupdate -expand -group reg_file /mp4_tb/dut/cpu/registers/rs2
+add wave -noupdate -expand -group reg_file /mp4_tb/dut/cpu/registers/rd
+add wave -noupdate -expand -group reg_file /mp4_tb/dut/cpu/registers/rs_out
+add wave -noupdate -expand -group reg_file /mp4_tb/dut/cpu/registers/reg_ld_instr1
+add wave -noupdate -expand -group reg_file /mp4_tb/dut/cpu/registers/rd_tag1
+add wave -noupdate -expand -group reg_file /mp4_tb/dut/cpu/registers/rs11
+add wave -noupdate -expand -group reg_file /mp4_tb/dut/cpu/registers/rs21
+add wave -noupdate -expand -group reg_file /mp4_tb/dut/cpu/registers/rd1
+add wave -noupdate -expand -group reg_file /mp4_tb/dut/cpu/registers/flush
+add wave -noupdate -expand -group reg_file /mp4_tb/dut/cpu/registers/rs_out1
+add wave -noupdate -expand -group reg_file /mp4_tb/dut/cpu/registers/temp
 add wave -noupdate -group lsq -expand -group lsq_imm -expand /mp4_tb/dut/cpu/lsq/arr
 add wave -noupdate -group lsq -expand -group lsq_imm /mp4_tb/dut/cpu/lsq/lsq_out
 add wave -noupdate -group lsq -expand -group lsq_imm /mp4_tb/dut/cpu/lsq/mem_resp
@@ -184,24 +192,24 @@ add wave -noupdate -group alu_acu /mp4_tb/dut/cpu/acu_module/acu_operation
 add wave -noupdate -group alu_acu /mp4_tb/dut/cpu/acu_module/out
 add wave -noupdate -group alu_acu /mp4_tb/dut/cpu/acu_module/out_alu
 add wave -noupdate -group alu_acu /mp4_tb/dut/cpu/acu_module/out_cmp
-add wave -noupdate -expand -group acu_rs -expand /mp4_tb/dut/cpu/acu_rs/data
-add wave -noupdate -expand -group acu_rs /mp4_tb/dut/cpu/acu_rs/input_r
-add wave -noupdate -expand -group acu_rs /mp4_tb/dut/cpu/acu_rs/broadcast_bus
-add wave -noupdate -expand -group acu_rs /mp4_tb/dut/cpu/acu_rs/rob_broadcast_bus
-add wave -noupdate -expand -group acu_rs /mp4_tb/dut/cpu/acu_rs/flush
-add wave -noupdate -expand -group acu_rs /mp4_tb/dut/cpu/acu_rs/load
-add wave -noupdate -expand -group acu_rs /mp4_tb/dut/cpu/acu_rs/tag
-add wave -noupdate -expand -group acu_rs /mp4_tb/dut/cpu/acu_rs/pci
-add wave -noupdate -expand -group acu_rs /mp4_tb/dut/cpu/acu_rs/load1
-add wave -noupdate -expand -group acu_rs /mp4_tb/dut/cpu/acu_rs/input_r1
-add wave -noupdate -expand -group acu_rs /mp4_tb/dut/cpu/acu_rs/tag1
-add wave -noupdate -expand -group acu_rs /mp4_tb/dut/cpu/acu_rs/pci1
-add wave -noupdate -expand -group acu_rs /mp4_tb/dut/cpu/acu_rs/next_rs1
-add wave -noupdate -expand -group acu_rs /mp4_tb/dut/cpu/acu_rs/acu_operation
-add wave -noupdate -expand -group acu_rs /mp4_tb/dut/cpu/acu_rs/ready
-add wave -noupdate -expand -group acu_rs /mp4_tb/dut/cpu/acu_rs/num_available
-add wave -noupdate -expand -group acu_rs /mp4_tb/dut/cpu/acu_rs/next_rs
-add wave -noupdate -expand -group acu_rs /mp4_tb/dut/cpu/acu_rs/index
+add wave -noupdate -group acu_rs /mp4_tb/dut/cpu/acu_rs/data
+add wave -noupdate -group acu_rs /mp4_tb/dut/cpu/acu_rs/input_r
+add wave -noupdate -group acu_rs /mp4_tb/dut/cpu/acu_rs/broadcast_bus
+add wave -noupdate -group acu_rs /mp4_tb/dut/cpu/acu_rs/rob_broadcast_bus
+add wave -noupdate -group acu_rs /mp4_tb/dut/cpu/acu_rs/flush
+add wave -noupdate -group acu_rs /mp4_tb/dut/cpu/acu_rs/load
+add wave -noupdate -group acu_rs /mp4_tb/dut/cpu/acu_rs/tag
+add wave -noupdate -group acu_rs /mp4_tb/dut/cpu/acu_rs/pci
+add wave -noupdate -group acu_rs /mp4_tb/dut/cpu/acu_rs/load1
+add wave -noupdate -group acu_rs /mp4_tb/dut/cpu/acu_rs/input_r1
+add wave -noupdate -group acu_rs /mp4_tb/dut/cpu/acu_rs/tag1
+add wave -noupdate -group acu_rs /mp4_tb/dut/cpu/acu_rs/pci1
+add wave -noupdate -group acu_rs /mp4_tb/dut/cpu/acu_rs/next_rs1
+add wave -noupdate -group acu_rs /mp4_tb/dut/cpu/acu_rs/acu_operation
+add wave -noupdate -group acu_rs /mp4_tb/dut/cpu/acu_rs/ready
+add wave -noupdate -group acu_rs /mp4_tb/dut/cpu/acu_rs/num_available
+add wave -noupdate -group acu_rs /mp4_tb/dut/cpu/acu_rs/next_rs
+add wave -noupdate -group acu_rs /mp4_tb/dut/cpu/acu_rs/index
 add wave -noupdate -group br_rs /mp4_tb/dut/cpu/br_rs/data
 add wave -noupdate -group br_rs /mp4_tb/dut/cpu/br_rs/input_r
 add wave -noupdate -group br_rs /mp4_tb/dut/cpu/br_rs/broadcast_bus
@@ -354,8 +362,8 @@ add wave -noupdate -group prefetcher /mp4_tb/dut/pref/next_state
 add wave -noupdate /mp4_tb/num_inst
 add wave -noupdate /mp4_tb/num_rob_full
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {387994 ps} 0}
-quietly wave cursor active 1
+WaveRestoreCursors {{Cursor 1} {175900000 ps} 1} {{Cursor 2} {175655000 ps} 0}
+quietly wave cursor active 2
 configure wave -namecolwidth 452
 configure wave -valuecolwidth 81
 configure wave -justifyvalue left
@@ -370,4 +378,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {377880 ps} {443508 ps}
+WaveRestoreZoom {175641872 ps} {175707500 ps}
