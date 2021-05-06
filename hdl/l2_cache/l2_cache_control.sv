@@ -247,6 +247,6 @@ module l2_cache_control (
 		endcase
 	end 
 
-endmodule : cache_control
+endmodule : l2_cache_control
 
 // pmem_write_addr mismatch

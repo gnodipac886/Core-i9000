@@ -287,4 +287,4 @@ module l2_cache_datapath #(
 		endcase
 	end 
 
-endmodule:cache_datapath
+endmodule:l2_cache_datapath
