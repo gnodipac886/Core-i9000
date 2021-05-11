@@ -3,7 +3,8 @@ import rv32i_types::*;
 module load_store_q #(
 	parameter width 		= 32,
 	parameter lsq_size 		= 8,
-	parameter size 			= 8
+	parameter size 			= 8,
+	parameter mask 			= 32'd7
 )
 (
 	input 	logic 				clk, 
@@ -60,7 +61,7 @@ module load_store_q #(
 	assign 			lsq_ready 			= ready;
 	assign 			lsq_front 			= out;
 	assign 			lsq_next_front 		= arr[next_front];
-	assign 			full 				= (front == 0 && rear == size - 1) || (rear == (front - 1) % (size - 1));
+	assign 			full 				= (front == 0 && rear == size - 1) || front == ((rear + 1) & mask);
 	assign 			empty 				= front == -1;
 	assign			out 				= enq && deq && front == -1 ? in : arr[front];
 
@@ -99,7 +100,7 @@ module load_store_q #(
 	endfunction
 
 	function logic check_valid_flush_tag(logic [3:0] i);
-		if((flush.rear_tag + 1) % size == flush.flush_tag) begin 
+		if(((flush.rear_tag + 1) & mask) == flush.flush_tag) begin // here????
 			return 1'b1;
 		end
 		if(flush.front_tag <= flush.flush_tag) begin
@@ -115,10 +116,10 @@ module load_store_q #(
 			return rear;
 		end 
 		for(int i = 0; i < size; i++) begin 
-			if(flush.valid && ~check_valid_flush_tag(arr[(front + i) % size].rd_tag)) begin 
-				return (front + i) % size == 0 ? 7 : (front + i) % size - 1;
+			if(flush.valid && ~check_valid_flush_tag(arr[(front + i) & mask].rd_tag)) begin 
+				return ((front + i) & mask) == 0 ? 7 : ((front + i) & mask) - 1;
 			end 
-			if ((front + i) % size == rear) begin
+			if (((front + i) & mask) == rear) begin
 				return rear;
 			end
 		end 
@@ -129,7 +130,7 @@ module load_store_q #(
 		if(~check_valid_flush_tag(arr[front].rd_tag)) begin 
 			flush_stall <= 1;
 		end 
-		if (~check_valid_flush_tag(arr[front].rd_tag) || (mem_resp && ~check_valid_flush_tag(arr[(front + 1) % size].rd_tag))) begin
+		if (~check_valid_flush_tag(arr[front].rd_tag) || (mem_resp && ~check_valid_flush_tag(arr[(front + 1) & mask].rd_tag))) begin
 			// reset the whole table
 			front 	<= -1;
 			rear 	<= -1;
@@ -144,8 +145,8 @@ module load_store_q #(
 		// else do a weird search
 		else begin
 			for(int i = 0; i < size; i++) begin 
-				if(~check_valid_flush_tag(arr[(front + i) % size].rd_tag))
-					arr[(front + i) % size] <= '{pc_info: '{opcode: op_imm, default: 0}, default: 0};
+				if(~check_valid_flush_tag(arr[(front + i) & mask].rd_tag))
+					arr[(front + i) & mask] <= '{pc_info: '{opcode: op_imm, default: 0}, default: 0};
 			end
 			rear 	<= flush_get_next_rear();
 		end
@@ -165,7 +166,7 @@ module load_store_q #(
 	task enqueue(lsq_t data_in);
 		ready 				<= 0;
 		// full
-		if((front == 0 && rear == size - 1) || (rear == (front - 1) % (size - 1))) begin 
+		if((front == 0 && rear == size - 1) || front == ((rear + 1) & mask)) begin 
 			return;
 		end 
 		// first element
@@ -176,8 +177,8 @@ module load_store_q #(
 		end
 		// otherwise
 		else begin 
-			rear 					<= (rear + 1) % size;
-			arr[(rear + 1) % size] 	<= data_in; 
+			rear 					<= (rear + 1) & mask;
+			arr[(rear + 1) & mask] 	<= data_in; 
 		end 
 	endtask : enqueue
 
@@ -197,7 +198,7 @@ module load_store_q #(
 				rear 			<= -1;
 			end
 			else begin 
-				front 			<= (front + 1) % size;
+				front 			<= (front + 1) & mask;
 			end
 		end 
 	endtask : dequeue
@@ -210,12 +211,12 @@ module load_store_q #(
 		end 
 		else begin 
 			// out 					<= arr[front];
-			front 					<= (front + 1) % size;
-			rear 					<= (rear + 1) % size;
+			front 					<= (front + 1) & mask;
+			rear 					<= (rear + 1) & mask;
 			ready 					<= 1;
 			if (~full) begin
 				arr[front] 				<= '{pc_info: '{opcode: op_imm, default: 0}, default: 0};;
-				arr[(rear + 1) % size] 	<= data_in; 
+				arr[(rear + 1) & mask] 	<= data_in; 
 			end else begin
 				arr[front]			<= data_in;
 			end
@@ -263,7 +264,7 @@ module load_store_q #(
 		endcase // store_funct3
 
 		if(enq && ~deq) begin //enqueue
-			if((front == 0 && rear == size - 1) || (rear == (front - 1) % (size - 1))) begin 
+			if((front == 0 && rear == size - 1) || front == ((rear + 1) & mask)) begin 
 			end 
 			// first element
 			else if(front == -1) begin 
@@ -272,7 +273,7 @@ module load_store_q #(
 			end
 			// otherwise
 			else begin 
-				next_rear 		= (rear + 1) % size;
+				next_rear 		= (rear + 1) & mask;
 			end 
 		end 
 		else if(~enq && deq) begin //dequeue
@@ -285,7 +286,7 @@ module load_store_q #(
 					next_rear 		= 0;
 				end
 				else begin 
-					next_front 		= (front + 1) % size;
+					next_front 		= (front + 1) & mask;
 				end
 			end 
 		end 
@@ -294,8 +295,8 @@ module load_store_q #(
 			if(front == -1) begin
 			end 
 			else begin 
-				next_front 			= (front + 1) % size;
-				next_rear 			= (rear + 1) % size;
+				next_front 			= (front + 1) & mask;
+				next_rear 			= (rear + 1) & mask;
 			end 
 		end 
 	end 

@@ -5,7 +5,8 @@ module reorder_buffer #(
 	parameter size 			= 8,
 	parameter br_rs_size 	= 8,
 	parameter acu_rs_size 	= 8,
-	parameter lsq_size 		= 8
+	parameter lsq_size 		= 8,
+	parameter mask 			= 32'd7
 )
 (
 	input logic	clk,
@@ -54,9 +55,9 @@ module reorder_buffer #(
 	assign instr_q_dequeue		= enq;
 	assign rob_front 			= front == -1 ? arr[0] : arr[front];
 
-	assign full 				= ((front == 0) && (rear == size - 1)) || (rear == ((front - 1) % (size - 1)));
+	assign full 				= ((front == 0) && (rear == size - 1)) || front == ((rear + 1) & mask);
 	assign empty 				= (front == -1);
-	assign rd_tag 				= empty ? 0 : (rear + 1) % size;
+	assign rd_tag 				= empty ? 0 : (rear + 1) & mask;
 
     assign flush.flush_tag      = flush_tag[3:0];
 	assign flush.front_tag 		= front[3:0];
@@ -100,21 +101,21 @@ module reorder_buffer #(
 		end
 		// otherwise
 		else begin 
-			rear 	<= (rear + 1) % size;
-			// rd_tag	<= (rear + 1) % size;
-			arr[(rear + 1) % size] <= data_in; 
+			rear 	<= (rear + 1) & mask;
+			// rd_tag	<= (rear + 1) & mask;
+			arr[(rear + 1) & mask] <= data_in; 
 		end
 	endtask : enqueue
 
 	task dequeue();
 		// Check if empty before dequeuing
 		for(int i = 0; i < num_deq && i < size; i++) begin 
-			if((arr[(front + i) % size].pc_info.opcode == op_br && arr[(front + i) % size].pc_info.pc == arr[(front + i) % size].pc_info.branch_pc)
-			|| arr[(front + i) % size].pc_info.opcode == op_jal && arr[(front + i) % size].pc_info.pc == arr[(front + i) % size].pc_info.jal_pc) begin 
+			if((arr[(front + i) & mask].pc_info.opcode == op_br && arr[(front + i) & mask].pc_info.pc == arr[(front + i) & mask].pc_info.branch_pc)
+			|| arr[(front + i) & mask].pc_info.opcode == op_jal && arr[(front + i) & mask].pc_info.pc == arr[(front + i) & mask].pc_info.jal_pc) begin 
 				halt <= 1'b1;
 			end 
-			arr[(front + i) % size] 				<= '{ default: 0, pc_info: '{ opcode: op_imm, default: 0 }};
-			rob_broadcast_bus[(front + i) % size] 	<= '{ default: 0 };
+			arr[(front + i) & mask] 				<= '{ default: 0, pc_info: '{ opcode: op_imm, default: 0 }};
+			rob_broadcast_bus[(front + i) & mask] 	<= '{ default: 0 };
 		end 
 		// dequeued the last one
 		if(front == rear || num_deq == num_items) begin 
@@ -122,7 +123,7 @@ module reorder_buffer #(
 			rear 	<= -1;
 		end
 		else begin 
-			front 	<=  (front + num_deq) % size;
+			front 	<=  (front + num_deq) & mask;
 		end
 	endtask : dequeue
 
@@ -139,17 +140,17 @@ module reorder_buffer #(
 		end 
 		else begin 
 			for(int i = 0; i < num_deq && i < size; i++) begin 
-				if((arr[(front + i) % size].pc_info.opcode == op_br && arr[(front + i) % size].pc_info.pc == arr[(front + i) % size].pc_info.branch_pc)
-				|| arr[(front + i) % size].pc_info.opcode == op_jal && arr[(front + i) % size].pc_info.pc == arr[(front + i) % size].pc_info.jal_pc) begin 
+				if((arr[(front + i) & mask].pc_info.opcode == op_br && arr[(front + i) & mask].pc_info.pc == arr[(front + i) & mask].pc_info.branch_pc)
+				|| arr[(front + i) & mask].pc_info.opcode == op_jal && arr[(front + i) & mask].pc_info.pc == arr[(front + i) & mask].pc_info.jal_pc) begin 
 					halt <= 1'b1;
 				end 
-				rob_broadcast_bus[(i + front) % size] 	<= '{ default: 0 };
-				arr[(i + front) % size]					<= '{ default: 0, pc_info: '{ opcode: op_imm, default: 0 }};
+				rob_broadcast_bus[(i + front) & mask] 	<= '{ default: 0 };
+				arr[(i + front) & mask]					<= '{ default: 0, pc_info: '{ opcode: op_imm, default: 0 }};
 			end 
-			arr[(rear + 1) % size]	<= data_in;
+			arr[(rear + 1) & mask]	<= data_in;
 		end 
-		front 						<= (front + num_deq) % size;
-		rear						<= (rear + 1) % size;
+		front 						<= (front + num_deq) & mask;
+		rear						<= (rear + 1) & mask;
 	endtask
 
 	task broadcast(sal_t broadcast_data);
@@ -158,16 +159,16 @@ module reorder_buffer #(
 
 	task flush_rob();
 		for(int i = 0; i < size; i++) begin 
-			if(~check_valid_flush_tag((flush_tag + i) % size)) begin
-				arr[(flush_tag + i) % size] <= '{ default: 0, pc_info: '{ opcode: op_imm, default: 0 }};
-				rob_broadcast_bus[(flush_tag + i) % size] <= '{default: 0};
+			if(~check_valid_flush_tag((flush_tag + i) & mask)) begin
+				arr[(flush_tag + i) & mask] <= '{ default: 0, pc_info: '{ opcode: op_imm, default: 0 }};
+				rob_broadcast_bus[(flush_tag + i) & mask] <= '{default: 0};
 			end
 		end
 		rear 	<= (flush_tag == 0) ? 7 : (flush_tag - 1);
 	endtask
 
 	function logic check_valid_flush_tag(logic [3:0] i);
-		if((rear + 1) % size == flush_tag) begin 
+		if(((rear + 1) & mask) == flush_tag) begin 
 			return 1'b1;
 		end 
 		if(front <= flush_tag) begin
@@ -190,14 +191,14 @@ module reorder_buffer #(
 					pc_result_load 	= 1'b1;
 					if(br_rs_o[i].data[0] != arr[br_rs_o[i].tag].pc_info.br_pred) begin // Branch Mispredict flush
 						flush.valid 	= 1'b1;
-						flush_tag 		= (br_rs_o[i].tag + 1) % size;
+						flush_tag 		= (br_rs_o[i].tag + 1) & mask;
 						flush_pc		= br_rs_o[i].data[0] ? arr[br_rs_o[i].tag].pc_info.branch_pc : arr[br_rs_o[i].tag].pc_info.pc + 4;
 						break;
 					end 
 				end 
 				else if(arr[br_rs_o[i].tag].pc_info.opcode == op_jalr) begin //JALR fake flush
 					flush.valid 	= 1'b1;
-					flush_tag 		= (br_rs_o[i].tag + 1) % size;
+					flush_tag 		= (br_rs_o[i].tag + 1) & mask;
 					flush_pc		= br_rs_o[i].data;
 					break;
 				end 
@@ -239,7 +240,7 @@ module reorder_buffer #(
 				num_deq++;
 			end 
 		 
-		 	if(arr[(num_deq + front) % size].rdy & arr[(num_deq + front) % size].valid) begin 
+		 	if(arr[(num_deq + front) & mask].rdy & arr[(num_deq + front) & mask].valid) begin 
 		 		for (int i = 0; i <= rear && i < size; i++) begin 
 		 			if (~empty) begin
 		 				if(~arr[i].rdy | ~arr[i].valid)

@@ -1,6 +1,6 @@
 import rv32i_types::*;
 
-module reservation_station #(parameter size = 8, parameter rob_size = 8)
+module reservation_station #(parameter size = 8, parameter rob_size = 8, parameter mask = 32'd7)
 (
 		input logic clk,
 		input logic rst,
@@ -44,7 +44,7 @@ module reservation_station #(parameter size = 8, parameter rob_size = 8)
 
 
 	function logic check_valid_flush_tag(logic [3:0] i);
-		if((flush.rear_tag + 1) % size == flush.flush_tag) begin 
+		if(((flush.rear_tag + 1) & mask) == flush.flush_tag) begin 
 			return 1'b1;
 		end 
 		if(flush.front_tag <= flush.flush_tag) begin

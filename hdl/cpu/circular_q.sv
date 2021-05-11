@@ -2,7 +2,8 @@ import rv32i_types::*;
 
 
 module circular_q #(parameter width = 32,
-					parameter size 	= 8)
+					parameter size 	= 8,
+					parameter mask 	= 32'd7)
 (
 	input 	logic 		clk,
 	input 	logic 		rst,
@@ -20,14 +21,14 @@ module circular_q #(parameter width = 32,
 	int 	front, rear;
 	logic 	wtf;
 
-	assign 	full 	= (front == 0 && rear == size - 1) || (rear == (front - 1) % (size - 1));
+	assign 	full 	= (front == 0 && rear == size - 1) || front == ((rear + 1) & mask);
 	assign 	empty 	= front == -1;
 	assign	out = enq && deq && front == -1 ? in : arr[front];
 
 	task enqueue(pci_t data_in);
 		ready 				<= 0;
 		// full
-		if((front == 0 && rear == size - 1) || (rear == (front - 1) % (size - 1))) begin 
+		if((front == 0 && rear == size - 1) || front == ((rear + 1) & mask)) begin 
 			return;
 		end 
 		// first element
@@ -38,8 +39,8 @@ module circular_q #(parameter width = 32,
 		end
 		// otherwise
 		else begin 
-			rear 					<= (rear + 1) % size;
-			arr[(rear + 1) % size] 	<= data_in; 
+			rear 					<= (rear + 1) & mask;
+			arr[(rear + 1) & mask] 	<= data_in; 
 		end 
 	endtask : enqueue
 
@@ -59,7 +60,7 @@ module circular_q #(parameter width = 32,
 				rear 			<= -1;
 			end
 			else begin 
-				front 			<= (front + 1) % size;
+				front 			<= (front + 1) & mask;
 			end
 		end 
 	endtask : dequeue
@@ -74,12 +75,12 @@ module circular_q #(parameter width = 32,
 		end 
 		else begin 
 			// out 					<= arr[front];
-			front 					<= (front + 1) % size;
-			rear 					<= (rear + 1) % size;
+			front 					<= (front + 1) & mask;
+			rear 					<= (rear + 1) & mask;
 			ready 					<= 1;
 			if (~full) begin
 				arr[front] 				<= '{ default: 0, opcode: op_imm};
-				arr[(rear + 1) % size] 	<= data_in; 
+				arr[(rear + 1) & mask] 	<= data_in; 
 			end else begin
 				arr[front]			<= data_in;
 			end
