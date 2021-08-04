@@ -4,24 +4,9 @@
 <details open="open">
   <summary>Table of Contents</summary>
   <ol>
-    <li>
-      <a href="#about-the-project">About The Project</a>
-      <ul>
-        <li><a href="#built-with">Built With</a></li>
-      </ul>
-    </li>
-    <li>
-      <a href="#getting-started">Getting Started</a>
-      <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#installation">Installation</a></li>
-      </ul>
-    </li>
-    <li><a href="#usage">Usage</a></li>
-    <li><a href="#roadmap">Roadmap</a></li>
-    <li><a href="#contributing">Contributing</a></li>
-    <li><a href="#license">License</a></li>
-    <li><a href="#contact">Contact</a></li>
+    <li><a href="#about-the-project">About The Project</a></li>
+    <li><a href="#advanced-features">Advanced Features</a></li>
+    <li><a href="#run-times">Run Times</a></li>
     <li><a href="#acknowledgements">Acknowledgements</a></li>
   </ol>
 </details>
@@ -30,16 +15,55 @@
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
+This project is the final project for ECE 411 at UIUC. As a result of all the advanced features, we received a total score of 146/120. 
 
-[![CPU Design][product-screenshot]](https://github.com/gnodipac886/Core-i9000/blob/superscalar/design/CPU_diagram.png)
+For more information, please refer to our [final report](https://github.com/gnodipac886/Core-i9000/blob/superscalar/ECE%20411%20MP4%20Report.pdf) and our [final presentation](https://github.com/gnodipac886/Core-i9000/blob/superscalar/ECE%20411%20MP4%20Final%20Presentation.pdf).
 
-There are many great README templates available on GitHub, however, I didn't find one that really suit my needs so I created this enhanced one. I want to create a README template so amazing that it'll be the last one you ever need -- I think this is it.
+We decided to implement an 32 bit out-of-order RISC-V processor based
+on the Tomasulo algorithm learned in lecture. The goal was to have a fully functional processor
+that supports the RV32i ISA. After implementing the base CPU from scratch, we also included
+various advanced features such as dynamic branch prediction, superscalar processing,
+prefetching, as well as a N-way L1 cache and a unified L2 cache.
 
-Here's why:
-* Your time should be focused on creating something amazing. A project that solves a problem and helps others
-* You shouldn't be doing the same tasks over and over like creating a README from scratch
-* You should element DRY principles to the rest of your life :smile:
+In order to help us verify the processor and obtain metrics in order to expose bottlenecks,
+we developed our own software processor model that is capable of running assembly code
+autonomously. Not only could the software model independently run programs, we also
+programmed it such that it can report metrics such as the number of instructions per cycle and
+branch prediction accuracy. By using this feature in the software model, we were able to learn
+what was limiting our CPU and pick the proper advanced feature to implement that can best
+improve performance.
 
-Of course, no one template will serve all projects since your needs may be different. So I'll be adding more in the near future. You may also suggest changes by forking this repo and creating a pull request or opening an issue. Thanks to all the people have have contributed to expanding this template!
+The reason we decided to implement an out-of-order processor is because we wanted to
+challenge ourselves and attempt to put the concepts we learned into practice. By building the
+processor, we can also explore different optimization techniques that may particularly benefit the
+out-of-order architecture.
 
-A list of commonly used resources that I find helpful are listed in the acknowledgements.
+![CPU Design](https://github.com/gnodipac886/Core-i9000/blob/superscalar/design/CPU_diagram.png)
+<p align="center">
+  <img src="https://github.com/gnodipac886/Core-i9000/blob/superscalar/design/advanced_features_design.png">
+</p>
+
+<!-- Advanced Features -->
+## Advanced Features
+- Tomasulo
+- Superscalar
+- Local Branch Prediction
+- Parameterized (N-Way) Cache
+- L2 Cache
+- Software Verification Model
+- Hardware Prefetcher
+
+<!-- Run Times -->
+## Run Times
+With all the advanced features combined, we achieved the following times:
+| Competition Code      | Run Time | Percentage Above Baseline|
+| ----------- | ----------- | ----------- |
+| Comp1   | 433,665 ns  | 39.8% |
+| Comp2   | 998,745 ns  | 77.9% |
+| Comp3   | 488,455 ns  | 86.6% |
+
+<!-- ACKNOWLEDGEMENTS -->
+## Acknowledgements
+- Eric Dong - ericd3@illinois.edu
+- Michael Kwan - mk26@illinois.edu
+- Srikar Nalamalapu - svn3@illinois.edu
