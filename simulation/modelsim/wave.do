@@ -17,27 +17,27 @@ add wave -noupdate -group cpu_io /mp4_tb/dut/cpu/lsq_mem_write
 add wave -noupdate -group cpu_io /mp4_tb/dut/cpu/lsq_mem_byte_enable
 add wave -noupdate -group cpu_io /mp4_tb/dut/cpu/lsq_mem_address
 add wave -noupdate -group cpu_io /mp4_tb/dut/cpu/lsq_mem_wdata
-add wave -noupdate -expand -group arbiter /mp4_tb/dut/arbiter/state
-add wave -noupdate -expand -group arbiter /mp4_tb/dut/arbiter/next_state
-add wave -noupdate -expand -group arbiter /mp4_tb/dut/arbiter/iq_empty
-add wave -noupdate -expand -group arbiter -group instruction /mp4_tb/dut/arbiter/i_pmem_read_cla
-add wave -noupdate -expand -group arbiter -group instruction /mp4_tb/dut/arbiter/i_pmem_write_cla
-add wave -noupdate -expand -group arbiter -group instruction /mp4_tb/dut/arbiter/i_pmem_address_cla
-add wave -noupdate -expand -group arbiter -group instruction /mp4_tb/dut/arbiter/i_pmem_wdata_256_cla
-add wave -noupdate -expand -group arbiter -group instruction /mp4_tb/dut/arbiter/i_pmem_resp_cla
-add wave -noupdate -expand -group arbiter -group instruction /mp4_tb/dut/arbiter/i_pmem_rdata_256_cla
-add wave -noupdate -expand -group arbiter -group lsq /mp4_tb/dut/arbiter/lsq_pmem_read_cla
-add wave -noupdate -expand -group arbiter -group lsq /mp4_tb/dut/arbiter/lsq_pmem_write_cla
-add wave -noupdate -expand -group arbiter -group lsq /mp4_tb/dut/arbiter/lsq_pmem_address_cla
-add wave -noupdate -expand -group arbiter -group lsq /mp4_tb/dut/arbiter/lsq_pmem_wdata_256_cla
-add wave -noupdate -expand -group arbiter -group lsq /mp4_tb/dut/arbiter/lsq_pmem_resp_cla
-add wave -noupdate -expand -group arbiter -group lsq /mp4_tb/dut/arbiter/lsq_pmem_rdata_256_cla
-add wave -noupdate -expand -group arbiter -expand -group p_mem /mp4_tb/dut/arbiter/pmem_resp_cla
-add wave -noupdate -expand -group arbiter -expand -group p_mem /mp4_tb/dut/arbiter/pmem_rdata_256_cla
-add wave -noupdate -expand -group arbiter -expand -group p_mem /mp4_tb/dut/arbiter/pmem_read_cla
-add wave -noupdate -expand -group arbiter -expand -group p_mem /mp4_tb/dut/arbiter/pmem_write_cla
-add wave -noupdate -expand -group arbiter -expand -group p_mem /mp4_tb/dut/arbiter/pmem_address_cla
-add wave -noupdate -expand -group arbiter -expand -group p_mem /mp4_tb/dut/arbiter/pmem_wdata_256_cla
+add wave -noupdate -group arbiter /mp4_tb/dut/arbiter/state
+add wave -noupdate -group arbiter /mp4_tb/dut/arbiter/next_state
+add wave -noupdate -group arbiter /mp4_tb/dut/arbiter/iq_empty
+add wave -noupdate -group arbiter -group instruction /mp4_tb/dut/arbiter/i_pmem_read_cla
+add wave -noupdate -group arbiter -group instruction /mp4_tb/dut/arbiter/i_pmem_write_cla
+add wave -noupdate -group arbiter -group instruction /mp4_tb/dut/arbiter/i_pmem_address_cla
+add wave -noupdate -group arbiter -group instruction /mp4_tb/dut/arbiter/i_pmem_wdata_256_cla
+add wave -noupdate -group arbiter -group instruction /mp4_tb/dut/arbiter/i_pmem_resp_cla
+add wave -noupdate -group arbiter -group instruction /mp4_tb/dut/arbiter/i_pmem_rdata_256_cla
+add wave -noupdate -group arbiter -group lsq /mp4_tb/dut/arbiter/lsq_pmem_read_cla
+add wave -noupdate -group arbiter -group lsq /mp4_tb/dut/arbiter/lsq_pmem_write_cla
+add wave -noupdate -group arbiter -group lsq /mp4_tb/dut/arbiter/lsq_pmem_address_cla
+add wave -noupdate -group arbiter -group lsq /mp4_tb/dut/arbiter/lsq_pmem_wdata_256_cla
+add wave -noupdate -group arbiter -group lsq /mp4_tb/dut/arbiter/lsq_pmem_resp_cla
+add wave -noupdate -group arbiter -group lsq /mp4_tb/dut/arbiter/lsq_pmem_rdata_256_cla
+add wave -noupdate -group arbiter -expand -group p_mem /mp4_tb/dut/arbiter/pmem_resp_cla
+add wave -noupdate -group arbiter -expand -group p_mem /mp4_tb/dut/arbiter/pmem_rdata_256_cla
+add wave -noupdate -group arbiter -expand -group p_mem /mp4_tb/dut/arbiter/pmem_read_cla
+add wave -noupdate -group arbiter -expand -group p_mem /mp4_tb/dut/arbiter/pmem_write_cla
+add wave -noupdate -group arbiter -expand -group p_mem /mp4_tb/dut/arbiter/pmem_address_cla
+add wave -noupdate -group arbiter -expand -group p_mem /mp4_tb/dut/arbiter/pmem_wdata_256_cla
 add wave -noupdate -group pc_reg /mp4_tb/dut/cpu/pc_reg/load
 add wave -noupdate -group pc_reg /mp4_tb/dut/cpu/pc_load
 add wave -noupdate -group pc_reg /mp4_tb/dut/cpu/pc_out
@@ -78,36 +78,36 @@ add wave -noupdate -group iq /mp4_tb/dut/cpu/iq/ready
 add wave -noupdate -group iq /mp4_tb/dut/cpu/iq/out
 add wave -noupdate -group iq /mp4_tb/dut/cpu/iq/front
 add wave -noupdate -group iq /mp4_tb/dut/cpu/iq/rear
-add wave -noupdate -expand -group rob -group rob_imm -expand -subitemconfig {{/mp4_tb/dut/cpu/rob/arr[6]} -expand {/mp4_tb/dut/cpu/rob/arr[12]} -expand} /mp4_tb/dut/cpu/rob/arr
-add wave -noupdate -expand -group rob -group rob_imm /mp4_tb/dut/cpu/rob/acu_rs_o
-add wave -noupdate -expand -group rob -group rob_imm /mp4_tb/dut/cpu/rob/br_rs_o
-add wave -noupdate -expand -group rob -group rob_imm /mp4_tb/dut/cpu/rob/lsq_o
-add wave -noupdate -expand -group rob -group rob_imm /mp4_tb/dut/cpu/rob/rob_broadcast_bus
-add wave -noupdate -expand -group rob -group rob_imm /mp4_tb/dut/cpu/rob/front
-add wave -noupdate -expand -group rob -group rob_imm /mp4_tb/dut/cpu/rob/rear
-add wave -noupdate -expand -group rob -group rob_imm -expand /mp4_tb/dut/cpu/rob/flush
-add wave -noupdate -expand -group rob -group rob_imm /mp4_tb/dut/cpu/rob/flush_pc
-add wave -noupdate -expand -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/rob_front
-add wave -noupdate -expand -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/instr_q_dequeue
-add wave -noupdate -expand -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/instr_q_empty
-add wave -noupdate -expand -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/pci
-add wave -noupdate -expand -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/stall_br
-add wave -noupdate -expand -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/stall_lsq
-add wave -noupdate -expand -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/stall_acu
-add wave -noupdate -expand -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/load_br_rs
-add wave -noupdate -expand -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/load_lsq
-add wave -noupdate -expand -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/test_signal
-add wave -noupdate -expand -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/rdest
-add wave -noupdate -expand -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/rd_bus
-add wave -noupdate -expand -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/rd_tag
-add wave -noupdate -expand -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/temp_in
-add wave -noupdate -expand -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/enq
-add wave -noupdate -expand -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/enq1
-add wave -noupdate -expand -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/deq
-add wave -noupdate -expand -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/full
-add wave -noupdate -expand -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/empty
-add wave -noupdate -expand -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/flush_tag
-add wave -noupdate -expand -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/num_deq
+add wave -noupdate -group rob -group rob_imm -expand -subitemconfig {{/mp4_tb/dut/cpu/rob/arr[6]} -expand {/mp4_tb/dut/cpu/rob/arr[12]} -expand} /mp4_tb/dut/cpu/rob/arr
+add wave -noupdate -group rob -group rob_imm /mp4_tb/dut/cpu/rob/acu_rs_o
+add wave -noupdate -group rob -group rob_imm /mp4_tb/dut/cpu/rob/br_rs_o
+add wave -noupdate -group rob -group rob_imm /mp4_tb/dut/cpu/rob/lsq_o
+add wave -noupdate -group rob -group rob_imm /mp4_tb/dut/cpu/rob/rob_broadcast_bus
+add wave -noupdate -group rob -group rob_imm /mp4_tb/dut/cpu/rob/front
+add wave -noupdate -group rob -group rob_imm /mp4_tb/dut/cpu/rob/rear
+add wave -noupdate -group rob -group rob_imm -expand /mp4_tb/dut/cpu/rob/flush
+add wave -noupdate -group rob -group rob_imm /mp4_tb/dut/cpu/rob/flush_pc
+add wave -noupdate -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/rob_front
+add wave -noupdate -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/instr_q_dequeue
+add wave -noupdate -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/instr_q_empty
+add wave -noupdate -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/pci
+add wave -noupdate -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/stall_br
+add wave -noupdate -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/stall_lsq
+add wave -noupdate -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/stall_acu
+add wave -noupdate -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/load_br_rs
+add wave -noupdate -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/load_lsq
+add wave -noupdate -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/test_signal
+add wave -noupdate -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/rdest
+add wave -noupdate -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/rd_bus
+add wave -noupdate -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/rd_tag
+add wave -noupdate -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/temp_in
+add wave -noupdate -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/enq
+add wave -noupdate -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/enq1
+add wave -noupdate -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/deq
+add wave -noupdate -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/full
+add wave -noupdate -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/empty
+add wave -noupdate -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/flush_tag
+add wave -noupdate -group rob -group rob_unimm /mp4_tb/dut/cpu/rob/num_deq
 add wave -noupdate -group sm /mp4_tb/sm/cpu_registers
 add wave -noupdate -group sm /mp4_tb/sm/data
 add wave -noupdate -group sm /mp4_tb/sm/commit
@@ -126,7 +126,7 @@ add wave -noupdate -group sm /mp4_tb/sm/pc_mux_out
 add wave -noupdate -group sm /mp4_tb/sm/num_deq
 add wave -noupdate -group sm /mp4_tb/sm/cpu_pci
 add wave -noupdate -group sm /mp4_tb/sm/take_pc
-add wave -noupdate -group reg_file /mp4_tb/dut/cpu/registers/data
+add wave -noupdate -group reg_file -expand /mp4_tb/dut/cpu/registers/data
 add wave -noupdate -group reg_file /mp4_tb/dut/cpu/registers/rdest
 add wave -noupdate -group reg_file /mp4_tb/dut/cpu/registers/rd_bus
 add wave -noupdate -group reg_file /mp4_tb/dut/cpu/registers/reg_ld_instr
@@ -186,15 +186,15 @@ add wave -noupdate -group lsq -group lsq_unimm /mp4_tb/dut/cpu/lsq/out
 add wave -noupdate -group lsq -group lsq_unimm /mp4_tb/dut/cpu/lsq/next_front_is_ld
 add wave -noupdate -group lsq -group lsq_unimm /mp4_tb/dut/cpu/lsq/next_front_is_valid
 add wave -noupdate -group lsq -group lsq_unimm /mp4_tb/dut/cpu/lsq/front_is_valid
-add wave -noupdate -group alu_acu /mp4_tb/dut/cpu/acu_module/data
+add wave -noupdate -group alu_acu -expand /mp4_tb/dut/cpu/acu_module/data
 add wave -noupdate -group alu_acu /mp4_tb/dut/cpu/acu_module/ready
 add wave -noupdate -group alu_acu /mp4_tb/dut/cpu/acu_module/acu_operation
-add wave -noupdate -group alu_acu /mp4_tb/dut/cpu/acu_module/out
+add wave -noupdate -group alu_acu -expand -subitemconfig {{/mp4_tb/dut/cpu/acu_module/out[0]} -expand} /mp4_tb/dut/cpu/acu_module/out
 add wave -noupdate -group alu_acu /mp4_tb/dut/cpu/acu_module/out_alu
 add wave -noupdate -group alu_acu /mp4_tb/dut/cpu/acu_module/out_cmp
-add wave -noupdate -group acu_rs /mp4_tb/dut/cpu/acu_rs/data
+add wave -noupdate -group acu_rs -expand -subitemconfig {{/mp4_tb/dut/cpu/acu_rs/data[2]} -expand} /mp4_tb/dut/cpu/acu_rs/data
 add wave -noupdate -group acu_rs /mp4_tb/dut/cpu/acu_rs/input_r
-add wave -noupdate -group acu_rs /mp4_tb/dut/cpu/acu_rs/broadcast_bus
+add wave -noupdate -group acu_rs -expand -subitemconfig {{/mp4_tb/dut/cpu/acu_rs/broadcast_bus[2]} -expand} /mp4_tb/dut/cpu/acu_rs/broadcast_bus
 add wave -noupdate -group acu_rs /mp4_tb/dut/cpu/acu_rs/rob_broadcast_bus
 add wave -noupdate -group acu_rs /mp4_tb/dut/cpu/acu_rs/flush
 add wave -noupdate -group acu_rs /mp4_tb/dut/cpu/acu_rs/load
@@ -210,24 +210,24 @@ add wave -noupdate -group acu_rs /mp4_tb/dut/cpu/acu_rs/ready
 add wave -noupdate -group acu_rs /mp4_tb/dut/cpu/acu_rs/num_available
 add wave -noupdate -group acu_rs /mp4_tb/dut/cpu/acu_rs/next_rs
 add wave -noupdate -group acu_rs /mp4_tb/dut/cpu/acu_rs/index
-add wave -noupdate -expand -group br_rs -expand /mp4_tb/dut/cpu/br_rs/data
-add wave -noupdate -expand -group br_rs /mp4_tb/dut/cpu/br_rs/input_r
-add wave -noupdate -expand -group br_rs /mp4_tb/dut/cpu/br_rs/broadcast_bus
-add wave -noupdate -expand -group br_rs /mp4_tb/dut/cpu/br_rs/rob_broadcast_bus
-add wave -noupdate -expand -group br_rs /mp4_tb/dut/cpu/br_rs/flush
-add wave -noupdate -expand -group br_rs /mp4_tb/dut/cpu/br_rs/load
-add wave -noupdate -expand -group br_rs /mp4_tb/dut/cpu/br_rs/tag
-add wave -noupdate -expand -group br_rs /mp4_tb/dut/cpu/br_rs/pci
-add wave -noupdate -expand -group br_rs /mp4_tb/dut/cpu/br_rs/acu_operation
-add wave -noupdate -expand -group br_rs /mp4_tb/dut/cpu/br_rs/ready
-add wave -noupdate -expand -group br_rs /mp4_tb/dut/cpu/br_rs/num_available
-add wave -noupdate -expand -group br_rs /mp4_tb/dut/cpu/br_rs/next_rs
-add wave -noupdate -expand -group br_rs /mp4_tb/dut/cpu/br_rs/load1
-add wave -noupdate -expand -group br_rs /mp4_tb/dut/cpu/br_rs/input_r1
-add wave -noupdate -expand -group br_rs /mp4_tb/dut/cpu/br_rs/tag1
-add wave -noupdate -expand -group br_rs /mp4_tb/dut/cpu/br_rs/pci1
-add wave -noupdate -expand -group br_rs /mp4_tb/dut/cpu/br_rs/next_rs1
-add wave -noupdate -expand -group br_rs /mp4_tb/dut/cpu/br_rs/index
+add wave -noupdate -group br_rs -expand /mp4_tb/dut/cpu/br_rs/data
+add wave -noupdate -group br_rs /mp4_tb/dut/cpu/br_rs/input_r
+add wave -noupdate -group br_rs /mp4_tb/dut/cpu/br_rs/broadcast_bus
+add wave -noupdate -group br_rs /mp4_tb/dut/cpu/br_rs/rob_broadcast_bus
+add wave -noupdate -group br_rs /mp4_tb/dut/cpu/br_rs/flush
+add wave -noupdate -group br_rs /mp4_tb/dut/cpu/br_rs/load
+add wave -noupdate -group br_rs /mp4_tb/dut/cpu/br_rs/tag
+add wave -noupdate -group br_rs /mp4_tb/dut/cpu/br_rs/pci
+add wave -noupdate -group br_rs /mp4_tb/dut/cpu/br_rs/acu_operation
+add wave -noupdate -group br_rs /mp4_tb/dut/cpu/br_rs/ready
+add wave -noupdate -group br_rs /mp4_tb/dut/cpu/br_rs/num_available
+add wave -noupdate -group br_rs /mp4_tb/dut/cpu/br_rs/next_rs
+add wave -noupdate -group br_rs /mp4_tb/dut/cpu/br_rs/load1
+add wave -noupdate -group br_rs /mp4_tb/dut/cpu/br_rs/input_r1
+add wave -noupdate -group br_rs /mp4_tb/dut/cpu/br_rs/tag1
+add wave -noupdate -group br_rs /mp4_tb/dut/cpu/br_rs/pci1
+add wave -noupdate -group br_rs /mp4_tb/dut/cpu/br_rs/next_rs1
+add wave -noupdate -group br_rs /mp4_tb/dut/cpu/br_rs/index
 add wave -noupdate -group br_acu /mp4_tb/dut/cpu/acu_br/data
 add wave -noupdate -group br_acu /mp4_tb/dut/cpu/acu_br/ready
 add wave -noupdate -group br_acu /mp4_tb/dut/cpu/acu_br/acu_operation
@@ -240,11 +240,6 @@ add wave -noupdate -group br_pred /mp4_tb/dut/cpu/br_pred/pc_result
 add wave -noupdate -group br_pred /mp4_tb/dut/cpu/br_pred/pc_result_load
 add wave -noupdate -group br_pred /mp4_tb/dut/cpu/br_pred/br_taken
 add wave -noupdate -group br_pred /mp4_tb/dut/cpu/br_pred/br_addr
-add wave -noupdate -group br_pred /mp4_tb/dut/cpu/br_pred/arr
-add wave -noupdate -group br_pred /mp4_tb/dut/cpu/br_pred/arr_idx
-add wave -noupdate -group br_pred /mp4_tb/dut/cpu/br_pred/result_idx
-add wave -noupdate -group br_pred /mp4_tb/dut/cpu/br_pred/hit
-add wave -noupdate -group br_pred /mp4_tb/dut/cpu/br_pred/hit_idx
 add wave -noupdate -group lsq_cache -expand -group io /mp4_tb/dut/lsq_cache/pmem_resp
 add wave -noupdate -group lsq_cache -expand -group io /mp4_tb/dut/lsq_cache/pmem_rdata
 add wave -noupdate -group lsq_cache -expand -group io /mp4_tb/dut/lsq_cache/pmem_address
@@ -364,10 +359,21 @@ add wave -noupdate -group prefetcher /mp4_tb/dut/pref/pref_addr_load
 add wave -noupdate -group prefetcher /mp4_tb/dut/pref/valid
 add wave -noupdate -group prefetcher /mp4_tb/dut/pref/state
 add wave -noupdate -group prefetcher /mp4_tb/dut/pref/next_state
-add wave -noupdate /mp4_tb/num_inst
-add wave -noupdate /mp4_tb/num_rob_full
+add wave -noupdate -group multiplier /mp4_tb/dut/cpu/acu_module/alu/mul_a
+add wave -noupdate -group multiplier /mp4_tb/dut/cpu/acu_module/alu/mul_b
+add wave -noupdate -group multiplier /mp4_tb/dut/cpu/acu_module/alu/mul_valid
+add wave -noupdate -group multiplier /mp4_tb/dut/cpu/acu_module/alu/mul_ans
+add wave -noupdate -group multiplier /mp4_tb/dut/cpu/acu_module/alu/mul_rdy
+add wave -noupdate -group divider /mp4_tb/num_inst
+add wave -noupdate -group divider /mp4_tb/num_rob_full
+add wave -noupdate -group divider /mp4_tb/dut/cpu/acu_module/alu/div_a
+add wave -noupdate -group divider /mp4_tb/dut/cpu/acu_module/alu/div_b
+add wave -noupdate -group divider /mp4_tb/dut/cpu/acu_module/alu/div_valid
+add wave -noupdate -group divider /mp4_tb/dut/cpu/acu_module/alu/div_quo
+add wave -noupdate -group divider /mp4_tb/dut/cpu/acu_module/alu/div_rem
+add wave -noupdate -group divider /mp4_tb/dut/cpu/acu_module/alu/div_rdy
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {331109574 ps} 0} {{Cursor 2} {328575000 ps} 1}
+WaveRestoreCursors {{Cursor 1} {223633184 ps} 0} {{Cursor 2} {328575000 ps} 1}
 quietly wave cursor active 1
 configure wave -namecolwidth 452
 configure wave -valuecolwidth 81
@@ -383,4 +389,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {287801904 ps} {356185124 ps}
+WaveRestoreZoom {223623309 ps} {223635615 ps}

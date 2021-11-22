@@ -1,6 +1,6 @@
 import rv32i_types::*;
 
-module mp4 #(parameter width = 32)
+module mp4 #(parameter width = 32, parameter size = 32)
 (
 	input 	logic			clk,
 	input 	logic			rst,
@@ -74,7 +74,7 @@ module mp4 #(parameter width = 32)
 		logic 		[255:0]	l2_mem_rdata_256;
 		logic 		[255:0]	l2_mem_wdata_256;
 	/*****************************************************************************/
-	cpu cpu(.*);
+	cpu #(.size(size)) cpu(.*);
 
 	// Keep cache named `cache` for RVFI Monitor
 	cache #(8, 3, 2) i_cache(

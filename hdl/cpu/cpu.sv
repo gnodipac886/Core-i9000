@@ -2,10 +2,11 @@ import rv32i_types::*;
 
 module cpu #(	
 	parameter width 		= 32,
-	parameter rob_size 		= 15,
-	parameter br_rs_size 	= 15,
-	parameter acu_rs_size 	= 15,
-	parameter lsq_size 		= 15
+	parameter size 			= 32,
+	parameter rob_size 		= size,
+	parameter br_rs_size 	= size,
+	parameter acu_rs_size 	= size,
+	parameter lsq_size 		= size
 )
 (
 	input 	logic 					clk,
@@ -76,7 +77,7 @@ module cpu #(
 	sal_t 				rob_broadcast_bus [rob_size];
 	sal2_t 				rdest[rob_size];
 	logic [4:0] 		rd_bus[rob_size];
-	logic [3:0] 		rd_tag;
+	logic [$clog2(size):0] 		rd_tag;
 	logic 				br_result;
 	logic [width-1:0] 	pc_result;
 	logic 				pc_result_load;
@@ -86,10 +87,10 @@ module cpu #(
 	logic 				load_br_rs1;
 	logic 				load_lsq1;
 	logic 				load_acu_rs1;
-	logic [3:0] 		rd_tag1;
+	logic [$clog2(size):0] 		rd_tag1;
 	logic 				reg_ld_instr1;
 	int 				iq_num_items;
-	logic [3:0] 		rob_num_available;
+	logic [$clog2(size):0] 		rob_num_available;
 	
 	/* regfile logic */
 	logic 		reg_ld_instr;
@@ -102,9 +103,9 @@ module cpu #(
 	rs_t 					br_data[acu_rs_size]; // all the reservation stations, to the alu
 	logic [acu_rs_size-1:0] ready; // if both values are not tags, flip this ready bit to 1
 	logic [acu_rs_size-1:0] br_ready; // if both values are not tags, flip this ready bit to 1
-	logic	[3:0]			lsq_num_available;
-	logic	[3:0] 			num_available; // do something if the number of available reservation stations are 0
-	logic	[3:0] 			br_num_available; // do something if the number of available reservation stations are 0
+	logic	[$clog2(size):0]			lsq_num_available;
+	logic	[$clog2(size):0] 			num_available; // do something if the number of available reservation stations are 0
+	logic	[$clog2(size):0] 			br_num_available; // do something if the number of available reservation stations are 0
 	logic 					acu_operation[acu_rs_size];
 	logic 					br_acu_operation[br_rs_size];
 
@@ -258,7 +259,13 @@ module cpu #(
 	);
 
 	// reorder_buffer
-	reorder_buffer rob(
+	reorder_buffer #(
+		.width(width),
+		.size(size),
+		.br_rs_size(size),
+		.acu_rs_size(size),
+		.lsq_size(size)
+	) rob(
 		.instr_q_empty(iq_empty),
 		.instr_q_dequeue(iq_deq),
 		.instr_q_dequeue1(iq_deq1),
@@ -266,11 +273,14 @@ module cpu #(
 		.lsq_num_available(lsq_num_available),
 		.acu_num_available(num_available),
 		.br_num_available(br_num_available),
-		.iq_num_available(iq_num_items),
+		.iq_num_available(iq_num_items[$clog2(size):0]),
 		.*
 	);
 
-	regfile registers(
+	regfile #(
+		.width(width),
+		.size(size)
+	) registers(
 		.rdest(rdest),
 		.rs1(pci.rs1),
 		.rs2(pci.rs2),
@@ -282,7 +292,7 @@ module cpu #(
 		.*
 	);
 
-	reservation_station acu_rs(
+	reservation_station #(size, size) acu_rs(
 		.load(load_acu_rs),
 		.load1(load_acu_rs1),
 		.input_r(rs_out),
@@ -293,14 +303,19 @@ module cpu #(
 		.*
 	);
 	
-	acu acu_module(
+	acu #(size) acu_module(
 		.data(data),
 		.ready(ready),
 		.acu_operation(acu_operation),
-		.out(acu_rs_o)
+		.out(acu_rs_o),
+		.*
 	);
 	
-	load_store_q lsq(
+	load_store_q #(
+		.width(width),
+		.lsq_size(size),
+		.size(size)
+	) lsq(
 		.rob_bus(rob_broadcast_bus),
 		.reg_entry(rs_out),
 		.instruction(pci),
@@ -318,7 +333,7 @@ module cpu #(
 		.*
 	);
 
-	reservation_station br_rs(
+	reservation_station #(size, size) br_rs(
 		.load(load_br_rs),
 		.load1(load_br_rs1),
 		.input_r(rs_out),
@@ -333,7 +348,7 @@ module cpu #(
 		.*
 	);
 
-	acu acu_br(
+	acu #(size) acu_br(
 		.data(br_data),
 		.ready(br_ready),
 		.acu_operation(br_acu_operation),

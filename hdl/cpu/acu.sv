@@ -2,6 +2,8 @@ import rv32i_types::*;
 
 module acu #(parameter size = 15)
 (
+	input clk,
+	input rst,
 	input rs_t data[size],
 	input logic[size-1:0] ready,
 	input logic acu_operation [size],
@@ -11,12 +13,12 @@ module acu #(parameter size = 15)
 	sal_t out_alu[size];
 	sal_t out_cmp[size];
 
-	alu alu(
+	alu #(size, 32) alu(
 		.out(out_alu),
 		.*
 	);
 	
-	cmp cmp(
+	cmp #(size) cmp(
 		.out(out_cmp),
 		.*
 	);

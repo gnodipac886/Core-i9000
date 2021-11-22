@@ -6,6 +6,8 @@
 
 module mp4_tb;
 
+localparam size = 63;
+
 timeunit 1ns;
 timeprecision 1ns;
 
@@ -73,13 +75,17 @@ always @(posedge itf.clk) begin
 	timeout <= timeout - 1;
 	if(dut.cpu.rob.deq)
 		num_inst <= num_inst + dut.cpu.rob.num_deq;
-	if(dut.cpu.rob.full)
+	if(dut.cpu.rob.full) begin 
 		num_rob_full <= num_rob_full + 1;
+		// $display("%b", dut.cpu.rob.arr[dut.cpu.rob.front].pc_info.funct3);
+	end
 end
 
 /*****************************************************************************/
 
-mp4 dut(
+mp4 #(
+	.size(size)
+) dut(
 	.clk		  (itf.clk),
 	.rst		  (itf.rst),
 	.pmem_resp  (itf.mem_resp),
@@ -90,36 +96,9 @@ mp4 dut(
 	.pmem_wdata   (itf.mem_wdata)
 );
 
-// riscv_formal_monitor_rv32i monitor(
-//   .clock(itf.clk),
-//   .reset(itf.rst),
-//   .rvfi_valid(commit),
-//   .rvfi_order(order),
-//   .rvfi_insn(dut.cpu.datapath.IR.data),
-//   .rvfi_trap(dut.cpu.control.trap),
-//   .rvfi_halt(itf.halt),
-//   .rvfi_intr(1'b0),
-//   .rvfi_mode(2'b00),
-//   .rvfi_rs1_addr(dut.cpu.control.rs1_addr),
-//   .rvfi_rs2_addr(dut.cpu.control.rs2_addr),
-//   .rvfi_rs1_rdata(monitor.rvfi_rs1_addr ? dut.cpu.datapath.rs1_out : 0),
-//   .rvfi_rs2_rdata(monitor.rvfi_rs2_addr ? dut.cpu.datapath.rs2_out : 0),
-//   .rvfi_rd_addr(dut.cpu.load_regfile ? dut.cpu.datapath.rd : 5'h0),
-//   .rvfi_rd_wdata(monitor.rvfi_rd_addr ? dut.cpu.datapath.regfilemux_out : 0),
-//   .rvfi_pc_rdata(dut.cpu.datapath.pc_out),
-//   .rvfi_pc_wdata(dut.cpu.datapath.pcmux_out),
-//   // NOTE: dut.cpu.datapath.mem_addr should be byte or 4-byte aligned
-//   //	  memory address for all loads and stores (including fetches)
-//   .rvfi_mem_addr({dut.cpu.datapath.mem_addr[31:2], 2'b0}),
-//   .rvfi_mem_rmask(dut.cpu.control.rmask),
-//   .rvfi_mem_wmask(dut.cpu.control.wmask),
-//   .rvfi_mem_rdata(dut.cpu.datapath.mdrreg_out),
-//   .rvfi_mem_wdata(dut.cpu.datapath.mem_wdata),
-//   .rvfi_mem_extamo(1'b0),
-//   .errcode(itf.errcode)
-// );
-
-software_model sm(
+software_model #(
+	.size(size)
+) sm(
 	.clk	(itf.clk),
 	.rst    (itf.rst),
 	.commit (dut.cpu.rob.deq),
@@ -136,3 +115,10 @@ software_model sm(
 );
 
 endmodule : mp4_tb
+
+/*
+
+comp1: 433,225
+comp2: 223,635
+comp3: 419,305
+*/

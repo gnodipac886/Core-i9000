@@ -1,5 +1,5 @@
 /* DO NOT MODIFY. WILL BE OVERRIDDEN BY THE AUTOGRADER. */
-
+`define TAG_SIZE 6
 package rv32i_types;
 // Mux types are in their own packages to prevent identiier collisions
 // e.g. pcmux::pc_plus4 and regfilemux::pc_plus4 are seperate identifiers
@@ -74,6 +74,17 @@ typedef enum bit [2:0] {
 } alu_ops;
 
 typedef enum bit [2:0] {
+	mul_mul 	= 3'b000,
+	mul_mulh 	= 3'b001,
+	mul_mulhsu 	= 3'b010,
+	mul_mulhu 	= 3'b011,
+	mul_div 	= 3'b100,
+	mul_divu 	= 3'b101,
+	mul_rem  	= 3'b110,
+	mul_remu 	= 3'b111
+} mul_ops;
+
+typedef enum bit [2:0] {
 	cmp_beq  = 3'b000,
 	cmp_bne  = 3'b001,
 	cmp_blt  = 3'b100,
@@ -92,7 +103,7 @@ typedef enum bit [1:0] {
 /*OOO structs*/
 
 typedef struct {
-	logic 	[3:0] 	tag;
+	logic 	[`TAG_SIZE - 1:0] 	tag;
 	logic 			rdy;
 	logic 	[31:0] 	data;
 } sal_t;
@@ -101,7 +112,7 @@ typedef struct {
 	sal_t 			op1;
 	sal_t 			op2;
 	alu_ops 		operation;
-	logic 	[3:0] 	tag;
+	logic 	[`TAG_SIZE - 1:0] 	tag;
 } alu_t;
 
 typedef struct {
@@ -132,7 +143,7 @@ typedef struct {
 } rob_t;
 
 typedef struct {
-	logic 	[3:0] 	tag;
+	logic 	[`TAG_SIZE - 1:0] 	tag;
 	logic 			rdy;
 	logic 	[31:0] 	data;
 	pci_t           pc_info;
@@ -140,7 +151,7 @@ typedef struct {
 
 typedef struct {
 	logic	[31:0]	data;
-	logic	[3:0]	tag;
+	logic	[`TAG_SIZE - 1:0]	tag;
 	logic	busy;
 } reg_entry_t;
   
@@ -148,7 +159,7 @@ typedef struct{
 	alu_ops 		alu_opcode; // set this to an actual struct like alu_ops;
 	cmp_ops 		cmp_opcode;
 	logic [6:0] 	funct7;
-	logic [3:0] 	tag;
+	logic [`TAG_SIZE - 1:0] 	tag;
 	logic 			busy_r1; // 1 if the r1 value is a tag, 0 if a constant value
 	logic 			busy_r2; // 1 if the r2 value is a tag, 0 if a constant value
 	logic [31:0] 	r1;
@@ -159,7 +170,7 @@ typedef struct{
 
 typedef struct {
 	pci_t 			pc_info;		// pc info
-	logic [3:0] 	rd_tag;			// rob tag
+	logic [`TAG_SIZE - 1:0] 	rd_tag;			// rob tag
 	logic [31:0] 	data;			// data loaded in
 	logic 			data_is_tag;
 	logic [31:0] 	addr;			// addr for mem loc
@@ -174,9 +185,9 @@ typedef struct {
 
 typedef struct {
 	logic           valid;
-	logic	[3:0]	front_tag;
-	logic   [3:0]   rear_tag;
-    logic   [3:0]   flush_tag;
+	logic	[`TAG_SIZE - 1:0]	front_tag;
+	logic   [`TAG_SIZE - 1:0]   rear_tag;
+    logic   [`TAG_SIZE - 1:0]   flush_tag;
 } flush_t;
 
 endpackage : rv32i_types

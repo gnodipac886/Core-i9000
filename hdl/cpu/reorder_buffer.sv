@@ -17,10 +17,10 @@ module reorder_buffer #(
 	input logic stall_br,
 	input logic stall_acu,
 	input logic stall_lsq,
-	input logic [3:0] lsq_num_available,
-	input logic [3:0] acu_num_available,
-	input logic [3:0] br_num_available,
-	input logic [3:0] iq_num_available,
+	input logic [$clog2(size):0] lsq_num_available,
+	input logic [$clog2(size):0] acu_num_available,
+	input logic [$clog2(size):0] br_num_available,
+	input logic [$clog2(size):0] iq_num_available,
 
 	input sal_t	br_rs_o [br_rs_size],
 	input sal_t acu_rs_o [acu_rs_size],
@@ -37,8 +37,8 @@ module reorder_buffer #(
 	output sal_t rob_broadcast_bus [size],
 	output sal2_t rdest[size],
 	output logic [4:0] rd_bus[size],
-	output logic [3:0] rd_tag,
-	output logic [3:0] rd_tag1,
+	output logic [$clog2(size):0] rd_tag,
+	output logic [$clog2(size):0] rd_tag1,
 	output logic reg_ld_instr,
 	output logic reg_ld_instr1,
 	output rob_t rob_front,
@@ -50,7 +50,7 @@ module reorder_buffer #(
 	// output logic flush,
 	output logic [width-1:0] flush_pc,
 	output flush_t flush,
-	output logic [3:0] rob_num_available
+	output logic [$clog2(size):0] rob_num_available
 );
 	rob_t arr [size];
 	rob_t temp_in, temp_in1;
@@ -72,9 +72,9 @@ module reorder_buffer #(
 	assign rd_tag 				= empty ? 0 : (rear + 1) % size;
 	assign rd_tag1 				= empty && enq1 ? 1 : (rear + 2) % size;
 
-    assign flush.flush_tag      = flush_tag[3:0];
-	assign flush.front_tag 		= front[3:0];
-    assign flush.rear_tag       = rear[3:0];
+    assign flush.flush_tag      = flush_tag[$clog2(size):0];
+	assign flush.front_tag 		= front[$clog2(size):0];
+    assign flush.rear_tag       = rear[$clog2(size):0];
 
 	assign temp_in.pc_info 		= pci;
 	assign temp_in.data 		= 32'hxxxx;
@@ -209,7 +209,7 @@ module reorder_buffer #(
 		rear 	<= (flush_tag == 0) ? (size - 1) : (flush_tag - 1);
 	endtask
 
-	function logic check_valid_flush_tag(logic [3:0] i);
+	function logic check_valid_flush_tag(logic [$clog2(size):0] i);
 		if((rear + 1) % size == flush_tag) begin 
 			return 1'b1;
 		end 
@@ -290,9 +290,9 @@ module reorder_buffer #(
 						continue;
 					end 
 					else if (arr[i + front].pc_info.opcode == op_jalr)
-						rdest[i + front] = '{ (i[3:0] + front[3:0]), arr[i + front].rdy, arr[i + front].pc_info.pc + 4, arr[i+front].pc_info };
+						rdest[i + front] = '{ (i[$clog2(size):0] + front[$clog2(size):0]), arr[i + front].rdy, arr[i + front].pc_info.pc + 4, arr[i+front].pc_info };
 					else // FIX JALR RDEST[i + front] HERE
-						rdest[i + front] = '{ (i[3:0] + front[3:0]), arr[i + front].rdy, arr[i + front].data, arr[i+front].pc_info };
+						rdest[i + front] = '{ (i[$clog2(size):0] + front[$clog2(size):0]), arr[i + front].rdy, arr[i + front].data, arr[i+front].pc_info };
 				end else
 					rdest[i + front] = '{ 4'b0, 0, 32'b0, '{ opcode: op_imm, default: 0 } };
 				num_deq++;
@@ -308,9 +308,9 @@ module reorder_buffer #(
 						continue;
 					end 
 					else if (arr[i + front].pc_info.opcode == op_jalr)
-						rdest[i + front] = '{ (i[3:0] + front[3:0]), arr[i + front].rdy, arr[i + front].pc_info.pc + 4, arr[i+front].pc_info };
+						rdest[i + front] = '{ (i[$clog2(size):0] + front[$clog2(size):0]), arr[i + front].rdy, arr[i + front].pc_info.pc + 4, arr[i+front].pc_info };
 					else // FIX JALR RDEST[i + front] HERE
-						rdest[i + front] = '{ (i[3:0] + front[3:0]), arr[i + front].rdy, arr[i + front].data, arr[i+front].pc_info };
+						rdest[i + front] = '{ (i[$clog2(size):0] + front[$clog2(size):0]), arr[i + front].rdy, arr[i + front].data, arr[i+front].pc_info };
 				end else
 					rdest[i + front] = '{ 4'b0, 0, 32'b0, '{ opcode: op_imm, default: 0 } };
 				num_deq++;
@@ -326,9 +326,9 @@ module reorder_buffer #(
 		 					continue;
 		 				end 
 						else if (arr[i].pc_info.opcode == op_jalr)
-		 					rdest[i] = '{ i[3:0], arr[i].rdy, arr[i].pc_info.pc + 4 , arr[i].pc_info};
+		 					rdest[i] = '{ i[$clog2(size):0], arr[i].rdy, arr[i].pc_info.pc + 4 , arr[i].pc_info};
 		 				else // FIX JALR RDEST[i] HERE
-		 					rdest[i] = '{ i[3:0], arr[i].rdy, arr[i].data, arr[i].pc_info };
+		 					rdest[i] = '{ i[$clog2(size):0], arr[i].rdy, arr[i].data, arr[i].pc_info };
 		 			end else
 		 				rdest[i] = '{ 4'b0, 0, 32'b0, '{ opcode: op_imm, default: 0 }};
 		 			num_deq++;

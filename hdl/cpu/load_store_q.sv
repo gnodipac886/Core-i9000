@@ -12,7 +12,7 @@ module load_store_q #(
 	input 	sal_t 				rob_bus[size],
 	input 	rs_t 				reg_entry,
 	input 	pci_t 				instruction,
-	input 	logic 	[3:0]	 	rob_tag,
+	input 	logic 	[$clog2(size):0]	 	rob_tag,
 	input	rob_t				rob_front,	
 	input 	logic 				load_lsq,		
 			
@@ -24,10 +24,10 @@ module load_store_q #(
 	input 	logic 	[31:0] 		mem_rdata,
 	output 	logic 				mem_read,
 	output 	logic 				mem_write,
-	output 	logic 	[3:0] 		mem_byte_enable,
+	output 	logic 	[$clog2(size):0] 		mem_byte_enable,
 	output 	logic 	[31:0]		mem_address,
 	output 	logic 	[31:0] 		mem_wdata,
-	output	logic	[3:0]		num_available
+	output	logic	[$clog2(size):0]		num_available
 );
 
 	// internals
@@ -100,7 +100,7 @@ module load_store_q #(
 		end 
 	endfunction
 
-	function logic check_valid_flush_tag(logic [3:0] i);
+	function logic check_valid_flush_tag(logic [$clog2(size):0] i);
 		if((flush.rear_tag + 1) % size == flush.flush_tag) begin 
 			return 1'b1;
 		end
@@ -154,11 +154,11 @@ module load_store_q #(
 	endtask
 
 	task update_q_reg(int i, sal_t rob_item);
-		if(arr[i].addr_is_tag & rob_item.rdy & (rob_item.tag == arr[i].addr[3:0])) begin
+		if(arr[i].addr_is_tag & rob_item.rdy & (rob_item.tag == arr[i].addr[$clog2(size):0])) begin
 			arr[i].addr 		<= arr[i].pc_info.opcode == op_load ? rob_item.data + arr[i].pc_info.i_imm : rob_item.data + arr[i].pc_info.s_imm;
 			arr[i].addr_is_tag	<= 1'b0;
 		end 
-		if(arr[i].data_is_tag & rob_item.rdy && (rob_item.tag == arr[i].data[3:0])) begin
+		if(arr[i].data_is_tag & rob_item.rdy && (rob_item.tag == arr[i].data[$clog2(size):0])) begin
 			arr[i].data 		<= rob_item.data;
 			arr[i].data_is_tag	<= 1'b0;
 		end 
@@ -343,29 +343,29 @@ module load_store_q #(
 			if (next_rear >= next_front) begin
 				for (int i = 0; i <= (next_rear - next_front) && i < size; i++) begin 
 					if(check_valid_flush_tag(arr[i + next_front].rd_tag)) begin 
-						if(arr[i + next_front].addr_is_tag && check_valid_flush_tag(arr[i + next_front].addr[3:0]));
-							update_q_reg(i + next_front, rob_bus[arr[i + next_front].addr[3:0]]);
-						if(arr[i + next_front].data_is_tag && check_valid_flush_tag(arr[i + next_front].data[3:0]));
-							update_q_reg(i + next_front, rob_bus[arr[i + next_front].data[3:0]]);
+						if(arr[i + next_front].addr_is_tag && check_valid_flush_tag(arr[i + next_front].addr[$clog2(size):0]));
+							update_q_reg(i + next_front, rob_bus[arr[i + next_front].addr[$clog2(size):0]]);
+						if(arr[i + next_front].data_is_tag && check_valid_flush_tag(arr[i + next_front].data[$clog2(size):0]));
+							update_q_reg(i + next_front, rob_bus[arr[i + next_front].data[$clog2(size):0]]);
 					end
 				end
 			end 
 			else begin 
 				for (int i = 0; i < (size - next_front + 1) && i < size; i++) begin 
 					if(check_valid_flush_tag(arr[i + next_front].rd_tag)) begin 
-						if(arr[i + next_front].addr_is_tag && check_valid_flush_tag(arr[i + next_front].addr[3:0]));
-							update_q_reg(i + next_front, rob_bus[arr[i + next_front].addr[3:0]]);
-						if(arr[i + next_front].data_is_tag && check_valid_flush_tag(arr[i + next_front].data[3:0]));
-							update_q_reg(i + next_front, rob_bus[arr[i + next_front].data[3:0]]);
+						if(arr[i + next_front].addr_is_tag && check_valid_flush_tag(arr[i + next_front].addr[$clog2(size):0]));
+							update_q_reg(i + next_front, rob_bus[arr[i + next_front].addr[$clog2(size):0]]);
+						if(arr[i + next_front].data_is_tag && check_valid_flush_tag(arr[i + next_front].data[$clog2(size):0]));
+							update_q_reg(i + next_front, rob_bus[arr[i + next_front].data[$clog2(size):0]]);
 					end
 				end
 		  
 				for (int i = 0; i <= next_rear && i < size; i++) begin
 					if(check_valid_flush_tag(arr[i + next_front].rd_tag)) begin 
-						if(arr[i + next_front].addr_is_tag && check_valid_flush_tag(arr[i + next_front].addr[3:0]));
-							update_q_reg(i, rob_bus[arr[i].addr[3:0]]);
-						if(arr[i + next_front].data_is_tag && check_valid_flush_tag(arr[i + next_front].data[3:0]));
-							update_q_reg(i, rob_bus[arr[i].data[3:0]]);
+						if(arr[i + next_front].addr_is_tag && check_valid_flush_tag(arr[i + next_front].addr[$clog2(size):0]));
+							update_q_reg(i, rob_bus[arr[i].addr[$clog2(size):0]]);
+						if(arr[i + next_front].data_is_tag && check_valid_flush_tag(arr[i + next_front].data[$clog2(size):0]));
+							update_q_reg(i, rob_bus[arr[i].data[$clog2(size):0]]);
 					end
 					
 				end
@@ -418,20 +418,20 @@ module load_store_q #(
 			// see if anything new was posted on rob bus
 			if (next_rear >= next_front) begin
 				for (int i = 0; i <= (next_rear - next_front) && i < size; i++) begin 
-					update_q_reg(i + next_front, rob_bus[arr[i + next_front].addr[3:0]]);
-					update_q_reg(i + next_front, rob_bus[arr[i + next_front].data[3:0]]);
+					update_q_reg(i + next_front, rob_bus[arr[i + next_front].addr[$clog2(size):0]]);
+					update_q_reg(i + next_front, rob_bus[arr[i + next_front].data[$clog2(size):0]]);
 				end 
 					
 			end 
 			else begin 
 				for (int i = 0; i < (size - next_front + 1) && i < size; i++) begin 
-					update_q_reg(i + next_front, rob_bus[arr[i + next_front].addr[3:0]]);
-					update_q_reg(i + next_front, rob_bus[arr[i + next_front].data[3:0]]);
+					update_q_reg(i + next_front, rob_bus[arr[i + next_front].addr[$clog2(size):0]]);
+					update_q_reg(i + next_front, rob_bus[arr[i + next_front].data[$clog2(size):0]]);
 				end 
 		  
 				for (int i = 0; i <= next_rear && i < size; i++) begin 
-					update_q_reg(i, rob_bus[arr[i].addr[3:0]]);
-					update_q_reg(i, rob_bus[arr[i].data[3:0]]);
+					update_q_reg(i, rob_bus[arr[i].addr[$clog2(size):0]]);
+					update_q_reg(i, rob_bus[arr[i].data[$clog2(size):0]]);
 				end 
 			end
 
