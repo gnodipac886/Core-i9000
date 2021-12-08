@@ -89,10 +89,10 @@ module alu #(parameter size=15,
 								if(out[idx].rdy) begin 
 									if (is_neg(data[idx].r1) ^ is_neg(data[idx].r2)) begin 
 										if (out[idx].data != negate(div_a[idx] / div_b[idx]))
-											$display("1 error: %t, %d / %d = %d", $time, data[idx].r1, data[idx].r2, out[idx].data);
+											$error("1 error: %t, %d / %d = %d", $time, data[idx].r1, data[idx].r2, out[idx].data);
 									end else begin 
 										if (out[idx].data != div_a[idx] / div_b[idx])
-											$display("1 error: %t, %d / %d = %d", $time, data[idx].r1, data[idx].r2, out[idx].data);
+											$error("1 error: %t, %d / %d = %d", $time, data[idx].r1, data[idx].r2, out[idx].data);
 									end 
 								end 
 							end 
@@ -108,7 +108,7 @@ module alu #(parameter size=15,
 
 								if(out[idx].rdy) begin 
 									if (out[idx].data != (div_a[idx] / div_b[idx]))
-										$display("idx: %d, 2 error: %t, %d / %d = %d", idx, $time, data[idx].r1, data[idx].r2, out[idx].data);
+										$error("idx: %d, 2 error: %t, %d / %d = %d", idx, $time, data[idx].r1, data[idx].r2, out[idx].data);
 								end 
 							end 
 
@@ -124,10 +124,10 @@ module alu #(parameter size=15,
 								if(out[idx].rdy) begin 
 									if (is_neg(data[idx].r1) ^ is_neg(data[idx].r2)) begin 
 										if (out[idx].data != negate(div_a[idx] % div_b[idx]))
-											$display("idx: %d, 3 error: %t, %d mod %d = %d", idx, $time, data[idx].r1, data[idx].r2, out[idx].data);
+											$error("idx: %d, 3 error: %t, %d mod %d = %d", idx, $time, data[idx].r1, data[idx].r2, out[idx].data);
 									end else begin 
 										if (out[idx].data != (div_a[idx] % div_b[idx]))
-											$display("idx: %d, 3 error: %t, %d mod %d = %d", idx, $time, data[idx].r1, data[idx].r2, out[idx].data);
+											$error("idx: %d, 3 error: %t, %d mod %d = %d", idx, $time, data[idx].r1, data[idx].r2, out[idx].data);
 									end 
 								end 
 							end 
@@ -142,7 +142,7 @@ module alu #(parameter size=15,
 								// out[idx].data 	= unsigned'(data[idx].r1) % unsigned'(data[idx].r2);
 								if(out[idx].rdy) begin 
 									if (out[idx].data != (div_a[idx] % div_b[idx]))
-										$display("idx: %d, 4 error: %t, %d mod %d = %d", idx, $time, data[idx].r1, data[idx].r2, out[idx].data);
+										$error("idx: %d, 4 error: %t, %d mod %d = %d", idx, $time, data[idx].r1, data[idx].r2, out[idx].data);
 								end 
 							end 
 

@@ -38,10 +38,11 @@ module multiplier_tb();
 
 	task reset();
 		##1;
-		rst 	<= 1'b1;
-		valid 	<= 1'b0;
+		rst 		<= 1'b1;
+		valid 		<= 1'b0;
+		div_valid 	<= 1'b0;
 		##1;
-		rst 	<= 1'b0;
+		rst 		<= 1'b0;
 		##1;
 	endtask : reset
 
@@ -88,7 +89,7 @@ module multiplier_tb();
 	
 	initial begin : TEST_VECTORS
 		reset();
-		for(int i = 1; i < 32; i++) begin 
+		for(int i = 1; i < 100; i++) begin 
 			test_divide(i + 1, 12);
 		end 
 		// test_multiply(-1, -1);	// unsigned

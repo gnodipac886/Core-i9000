@@ -1,3 +1,5 @@
+import rv32i_types::*;
+
 module divider #(width = 32)
 (
 	input logic clk,
@@ -46,6 +48,14 @@ module divider #(width = 32)
 		return num != 0 && ((num - 1) == (~num));
 	endfunction
 
+	function logic [31:0] shift_input();
+		// powers of 2
+		if (is_power_2(numerator))
+			return $clog2(numerator) + 1;
+
+		return $clog2(numerator);
+	endfunction
+
 	always_comb begin 
 		special_quo = '0;
 		special_rem = '0;
@@ -90,6 +100,7 @@ module divider #(width = 32)
 				remainder <= 0;
 				local_denominator <= '0;
 				local_numerator <= '0;
+				counter <= '0;
 		end
 		else begin 
 			if (start && state == idle) begin
@@ -149,7 +160,7 @@ module divider #(width = 32)
 				idle: begin
 					Q <= 32'b0;
 					R <= 32'b0;
-					next_counter <= 32'd31;
+					next_counter <= shift_input(); //32'd31;
 					done <= delayed_done;
 				end
 

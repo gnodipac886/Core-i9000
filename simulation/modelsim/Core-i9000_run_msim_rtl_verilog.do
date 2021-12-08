@@ -13,12 +13,12 @@ vlog -sv -work work +incdir+C:/Users/Eric/Desktop/UIUC/SP\ 2021/ECE\ 411/Core-i9
 vlog -sv -work work +incdir+C:/Users/Eric/Desktop/UIUC/SP\ 2021/ECE\ 411/Core-i9000/hdl/cache {C:/Users/Eric/Desktop/UIUC/SP 2021/ECE 411/Core-i9000/hdl/cache/cache_control.sv}
 vlog -sv -work work +incdir+C:/Users/Eric/Desktop/UIUC/SP\ 2021/ECE\ 411/Core-i9000/hdl/cache {C:/Users/Eric/Desktop/UIUC/SP 2021/ECE 411/Core-i9000/hdl/cache/array.sv}
 vlog -sv -work work +incdir+C:/Users/Eric/Desktop/UIUC/SP\ 2021/ECE\ 411/Core-i9000/hdl/types {C:/Users/Eric/Desktop/UIUC/SP 2021/ECE 411/Core-i9000/hdl/types/rv32i_mux_types.sv}
+vlog -sv -work work +incdir+C:/Users/Eric/Desktop/UIUC/SP\ 2021/ECE\ 411/Core-i9000/hdl/types {C:/Users/Eric/Desktop/UIUC/SP 2021/ECE 411/Core-i9000/hdl/types/rv32i_types.sv}
 vlog -sv -work work +incdir+C:/Users/Eric/Desktop/UIUC/SP\ 2021/ECE\ 411/Core-i9000/hdl/cpu {C:/Users/Eric/Desktop/UIUC/SP 2021/ECE 411/Core-i9000/hdl/cpu/multiplier.sv}
 vlog -sv -work work +incdir+C:/Users/Eric/Desktop/UIUC/SP\ 2021/ECE\ 411/Core-i9000/hdl/cpu {C:/Users/Eric/Desktop/UIUC/SP 2021/ECE 411/Core-i9000/hdl/cpu/divider.sv}
 vlog -sv -work work +incdir+C:/Users/Eric/Desktop/UIUC/SP\ 2021/ECE\ 411/Core-i9000/hdl/cpu {C:/Users/Eric/Desktop/UIUC/SP 2021/ECE 411/Core-i9000/hdl/cpu/pc_reg.sv}
 vlog -sv -work work +incdir+C:/Users/Eric/Desktop/UIUC/SP\ 2021/ECE\ 411/Core-i9000/hdl/cpu {C:/Users/Eric/Desktop/UIUC/SP 2021/ECE 411/Core-i9000/hdl/cpu/fetcher.sv}
 vlog -sv -work work +incdir+C:/Users/Eric/Desktop/UIUC/SP\ 2021/ECE\ 411/Core-i9000/hdl/cache {C:/Users/Eric/Desktop/UIUC/SP 2021/ECE 411/Core-i9000/hdl/cache/cache.sv}
-vlog -sv -work work +incdir+C:/Users/Eric/Desktop/UIUC/SP\ 2021/ECE\ 411/Core-i9000/hdl/types {C:/Users/Eric/Desktop/UIUC/SP 2021/ECE 411/Core-i9000/hdl/types/rv32i_types.sv}
 vlog -sv -work work +incdir+C:/Users/Eric/Desktop/UIUC/SP\ 2021/ECE\ 411/Core-i9000/hdl/cpu {C:/Users/Eric/Desktop/UIUC/SP 2021/ECE 411/Core-i9000/hdl/cpu/branch_predictor.sv}
 vlog -sv -work work +incdir+C:/Users/Eric/Desktop/UIUC/SP\ 2021/ECE\ 411/Core-i9000/hdl/cpu {C:/Users/Eric/Desktop/UIUC/SP 2021/ECE 411/Core-i9000/hdl/cpu/cmp.sv}
 vlog -sv -work work +incdir+C:/Users/Eric/Desktop/UIUC/SP\ 2021/ECE\ 411/Core-i9000/hdl/cpu {C:/Users/Eric/Desktop/UIUC/SP 2021/ECE 411/Core-i9000/hdl/cpu/load_store_q.sv}
