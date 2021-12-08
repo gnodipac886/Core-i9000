@@ -60,7 +60,7 @@ With all the advanced features combined, we achieved the following times:
 | Competition Code      | Run Time | Percentage Above Baseline|
 | ----------- | ----------- | ----------- |
 | Comp1   | 433,225 ns  | 39.89% |
-| Comp2   | 223,635 ns  | 95.05% |
+| Comp2   | 136,695 ns  | 96.98% |
 | Comp3   | 419,305 ns  | 88.48% |
 
 <!-- ACKNOWLEDGEMENTS -->
